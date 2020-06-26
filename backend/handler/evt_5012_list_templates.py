@@ -11,7 +11,7 @@ from ifconf import configure_module, config_callback
 @config_callback
 def config(loader):
     loader.add_attr('root_path', os.getcwd(), help='')
-    loader.add_attr('root_path_templates', 'projects/{project_name}/web/components/templates', help='')
+    loader.add_attr('root_path_templates', 'projects/{project_name}/templates/', help='')
 
 class Handler(EventHandler):
 

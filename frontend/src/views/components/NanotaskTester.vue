@@ -1,5 +1,5 @@
 <template>
-    <v-content>
+    <v-main>
         <v-container mt-0 pa-0>
         <v-toolbar prominent flat height="150px" fill-height>
             <v-toolbar-title>
@@ -29,7 +29,7 @@
             </v-col>
         </v-row>
         </v-container>
-    </v-content>
+    </v-main>
 </template>
 
 <script>
@@ -48,7 +48,7 @@ export default {
             cache: true,
             get: function() {
                 if(this.projectName && this.templateName){
-                    return require(`@/projects/${this.projectName}/web/components/templates/${this.templateName}`).default;
+                    return require(`@/projects/${this.projectName}/templates/${this.templateName}/Main.vue`).default;
                 } else {
                     return null
                 }

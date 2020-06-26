@@ -12,7 +12,7 @@ from ifconf import configure_module, config_callback
 def config(loader):
     loader.add_attr('root_path', os.getcwd(), help='')
     loader.add_attr('root_path_project', 'projects/{project_name}', help='')
-    loader.add_attr('dir_presets', 'web/components/templates', help='')
+    loader.add_attr('dir_presets', 'templates', help='')
     loader.add_attr('preset_default', '.presets/Default.vue', help='')
 
 class Handler(EventHandler):
@@ -32,7 +32,7 @@ class Handler(EventHandler):
         
         root_path_templates = os.path.join(self.conf.root_path, self.conf.root_path_project.format(project_name=project_name), self.conf.dir_presets)
         src = os.path.join(root_path_templates, self.conf.preset_default)
-        dst = os.path.join(root_path_templates, f"{template_name}.vue")
+        dst = os.path.join(root_path_templates, f"{template_name}/Main.vue")
 
         if not os.path.exists(src):
             return "Error: default preset does not exist ({})".format(src)

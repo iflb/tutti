@@ -12,6 +12,7 @@
     "babel-polyfill": "^6.26.0",
     "bootstrap-vue": "^2.15.0",
     "core-js": "^3.6.5",
+    "dateformat": "^3.0.3",
     "fs": "0.0.1-security",
     "material-design-icons-iconfont": "^5.0.1",
     "vue": "^2.6.11",

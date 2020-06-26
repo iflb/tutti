@@ -1,5 +1,5 @@
 <template>
-    <v-content>
+    <v-main>
         <v-container justify="center">
             <v-row class="d-flex justify-center">
                 <v-col>
@@ -31,7 +31,7 @@
                 </v-col>
             </v-row>
         </v-container>
-    </v-content>
+    </v-main>
 </template>
 
 <script>

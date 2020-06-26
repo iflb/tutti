@@ -13,21 +13,24 @@ const store = new Vuex.Store({
             wsd: {}
         },
         isWSOpened: false,
-
-
+        onOpenHandler: null,
 
         currentAnswer: {},
         answers: [],
     },
     mutations: {
-        connectDuctsWebSocket(state) {
+        connectDuctsWebSocket(state, wsd) {
             state.isWSOpened = false
-            axios.get("/ducts/wsd").then(function(response){
-                state.ducts.wsd = response.data
-                state.ducts.ws = new WSClient(state.ducts.wsd)
-                state.ducts.ws.set_onopen_event_handler(function(){
-                    state.isWSOpened = true
-                })
+            state.ducts.wsd = wsd.data
+            state.ducts.ws = new WSClient(state.ducts.wsd)
+        },
+        setOnOpenHandler(state, handler) {
+            state.onOpenHandler = handler;
+        },
+        _setOnOpenHandler(state) {
+            state.ducts.ws.set_onopen_event_handler(function(){
+                state.isWSOpened = true
+                if(state.onOpenHandler) state.onOpenHandler();
             })
         },
         setOnMessageDefaultHandler(state, handler) {
@@ -38,8 +41,16 @@ const store = new Vuex.Store({
             const handler = message[1]
             state.ducts.ws.set_onmessage_handler(eid, handler);
         },
+        setOnCloseHandler(state, handler) {
+            state.ducts.ws._ws_onclose = handler
+        },
         removeAllOnMessageHandlers(state) {
-            state.ducts.ws._onmessage_handlers = {};
+            const handlers = state.ducts.ws._onmessage_handlers
+            var remainingHandlers = {}
+            for(const evt in handlers){
+                if(evt<1000) remainingHandlers[evt] = handlers[evt]
+            }
+            state.ducts.ws._onmessage_handlers = remainingHandlers;
         },
         sendWSMessage(state, message) {
             const rid = new Date().getTime();
@@ -66,11 +77,21 @@ const store = new Vuex.Store({
         getValueForName: (state) => (name) => { return state.currentAnswer[name] }
     },
     actions: {
+        connectDuctsWebSocket(context){
+            return new Promise((resolve) => {
+                axios.get("/ducts/wsd").then(function(wsd){
+                    context.commit("connectDuctsWebSocket", wsd);
+                    context.commit("_setOnOpenHandler");
+                    resolve()
+                })
+            })
+        },
+        setOnOpenHandler(context, message){ context.commit("setOnOpenHandler", message) },
         setOnMessageDefaultHandler(context, message){ context.commit("setOnMessageDefaultHandler", message) },
         setOnMessageHandler(context, message){ context.commit("setOnMessageHandler", message) },
+        setOnCloseHandler(context, message){ context.commit("setOnCloseHandler", message) },
         removeAllOnMessageHandlers(context){ context.commit("removeAllOnMessageHandlers") },
         sendWSMessage(context, message){ context.commit("sendWSMessage", message) },
-        connectDuctsWebSocket(context){ context.commit("connectDuctsWebSocket"); },
         updateAnswer(context, message){ context.commit("updateAnswer", message); },
         updateAnswerForTag(context, message){ context.commit("updateAnswerForTag", message); },
         submitAnswer(context){ context.commit("submitAnswer"); }

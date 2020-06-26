@@ -4,6 +4,20 @@
             <v-app-bar-nav-icon @click="drawer = !drawer"></v-app-bar-nav-icon>
             
             <v-toolbar-title>DynamicCrowd Management Console</v-toolbar-title>
+            <v-spacer></v-spacer>
+            <v-menu offset-y>
+                <template v-slot:activator="{ on, attrs }">
+                    <v-btn depressed :color="wsStatusLabels[wsStatus].color" class="text-none" v-bind="attrs" v-on="on">
+                        {{ wsStatusLabels[wsStatus].label }}
+                        <span v-if="wsStatus == 'connected'" class="text-caption ml-2">(last pinged: {{ lastPinged }})</span>
+                    </v-btn>
+                </template>
+                <v-list>
+                    <v-list-item v-for="(menu, index) in wsBtnMenu[wsStatus]" :key="index" @click="menu.handler()">
+                        <v-list-item-title>{{ menu.title }}</v-list-item-title>
+                    </v-list-item>
+                </v-list>
+            </v-menu>
         </v-app-bar>
 
         <v-navigation-drawer v-model="drawer" app clipped>
@@ -47,12 +61,67 @@
 </template>
 
 <script>
+import dateFormat from 'dateformat'
 export default {
     data: () => ({
         drawer: true,
+        wsStatus: "connecting",
+        wsStatusLabels: {
+            connected: {
+                color: "success",
+                label: `Connected to websocket`
+            },
+            connecting: {
+                color: "warning",
+                label: "Connecting to websocket..."
+            },
+            closed: {
+                color: "error",
+                label: "No connection to websocket"
+            }
+        },
+        wsBtnMenu: {},
+        lastPinged: ""
     }),
-    created: function(){
-        this.$store.dispatch("connectDuctsWebSocket")
+    computed: {
+        ws() { return this.$store.getters.ws },
+        wsd() { return this.$store.getters.wsd },
     },
+    methods: {
+        connectWS(){
+            const self = this
+            self.$store.dispatch("connectDuctsWebSocket").then(function(){
+                self.$store.dispatch("setOnMessageHandler", [
+                    self.wsd.EVENT["ALIVE_MONITORING"],
+                    function(){
+                        self.lastPinged = dateFormat(new Date(), "HH:MM:ss")
+                        self.wsStatus = "connected"
+                    }
+                ])
+                self.$store.dispatch("setOnCloseHandler", function(){ self.wsStatus = "closed" })
+            })
+        }
+    },
+    created: function(){
+        this.connectWS()
+        this.wsBtnMenu = {
+            connected: [
+                {
+                    title: "Disconnect",
+                    handler: () => {
+                        this.ws._ws.close()
+                    }
+                }
+            ],
+            closed: [
+                {
+                    title: "Connect",
+                    handler: () => {
+                        this.connectWS()
+                    }
+                }
+            ]
+        }
+    }
 }
 </script>
