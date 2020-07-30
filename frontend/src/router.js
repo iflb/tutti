@@ -3,8 +3,10 @@ import VueRouter from 'vue-router'
 
 import Console from './views/Console'
 import Dashboard from './views/components/Dashboard'
-import NanotaskTester from './views/components/NanotaskTester'
+import NanotaskInspector from './views/components/NanotaskInspector'
 import Operation from './views/components/Operation'
+
+import PrivateProd from './views/PrivateProd'
 
 Vue.use(VueRouter)
 
@@ -13,19 +15,19 @@ const router = new VueRouter({
     base: "/vue/",
     routes: [
         {
-            path: "/operation",
-            component: Operation,
-        },
-        {
             path: "/console",
             redirect: "/console/dashboard",
             component: Console,
             children: [
                 { path: "dashboard", component: Dashboard },
-                { path: "tester", component: NanotaskTester },
+                { path: "inspector", component: NanotaskInspector },
                 { path: "events", component: Operation }
             ]
         },
+        {
+            path: "/private-prod",
+            component: PrivateProd
+        }
     ]
 })
 

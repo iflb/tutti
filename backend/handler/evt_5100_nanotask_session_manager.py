@@ -97,17 +97,16 @@ class Handler(EventHandler):
     async def handle(self, event):
         command = event.data[0]
         project_name = event.data[1]
-        if command=="REGISTER_SM":
+        if command=="REGISTER_SM":    # ナノタスクフローの定義。ワーカー数によらず１回のみでよい
             try:
                 sm = NanotaskSessionStateMachine()
-                sm.add_batch(NanotaskSessionState("first", 2))
-                sm.add_batch(NanotaskSessionState("main", 10))
-                sm.add_batch(NanotaskSessionState("last", 1))
+                for t in templates:
+                    sm.add_batch(NanotaskSessionState(t["name"], t["repeat_times"]))
                 self.session_manager.register_state_machine(project_name, sm)
                 return "successfully registered a state machine"
             except Exception as e:
                 return str(e)
-        elif command=="CREATE_SESSION":
+        elif command=="CREATE_SESSION":    # フローをワーカーが開始するごとに作成
             try:
                 session_id, session = self.session_manager.create_session(project_name)
                 return session_id

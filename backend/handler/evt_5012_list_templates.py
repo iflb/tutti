@@ -25,7 +25,7 @@ class Handler(EventHandler):
         return handler_spec
 
     async def handle(self, event):
-        project_name = event.data[0]
+        project_name = event.data
 
         root_path_templates = os.path.join(self.conf.root_path, self.conf.root_path_templates)
 

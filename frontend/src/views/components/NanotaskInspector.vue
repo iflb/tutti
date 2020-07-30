@@ -10,6 +10,9 @@
                 <v-col>
                     <v-select :items="templates" v-model="templateName" label="Template name" :disabled="isTemplateSelectDisabled"></v-select>
                 </v-col>
+                <v-col align="right">
+                    <v-btn class="text-none" :disabled="projectName === null" @click="launchProductionMode()">Launch in production mode (private)</v-btn>
+                </v-col>
             </v-row>
             </v-toolbar-title>
         </v-toolbar>
@@ -40,8 +43,9 @@ export default {
         projectName: null,
         templateName: null
     }),
+    props: ["duct"],
     mounted() {
-        this.initOnMount()
+        this.onDuctOpen()
     },
     computed: {
         nanotaskTemplateComponent: {
@@ -49,81 +53,27 @@ export default {
             get: function() {
                 if(this.projectName && this.templateName){
                     return require(`@/projects/${this.projectName}/templates/${this.templateName}/Main.vue`).default;
-                } else {
-                    return null
-                }
+                } else { return null }
             }
         },
         currentAnswer() { return JSON.stringify(this.$store.getters.currentAnswer, undefined, 4) },
 
-        ws() { return this.$store.getters.ws },
-        wsd() { return this.$store.getters.wsd },
-        isWSOpened() { return this.$store.getters.isWSOpened },
         isTemplateSelectDisabled() { return this.templates.length==0 }
     },
     methods: {
-        initOnMount(){
-            if(!this.ws || !this.wsd){ return }
-
-            this.$store.dispatch("setOnMessageHandler", [this.wsd.EVENT["LIST_PROJECTS"], this.receivedProjectsList])
-            this.$store.dispatch("setOnMessageHandler", [this.wsd.EVENT["LIST_TEMPLATES"], this.receivedTemplatesList])
-
-            if(this.isWSOpened){
-                this.$store.dispatch("sendWSMessage", [this.wsd.EVENT["LIST_PROJECTS"], []]);
-            }
+        onDuctOpen(){
+            this.duct.setEventHandler(this.duct.EVENT.LIST_PROJECTS, this.receivedProjectsList)
+            this.duct.setEventHandler(this.duct.EVENT.LIST_TEMPLATES, this.receivedTemplatesList)
+            this.duct.send(this.duct.next_rid(), this.duct.EVENT.LIST_PROJECTS, null)
         },
-        receivedProjectsList(rid, eid, data){
-            this.projects = data
-        },
-        receivedTemplatesList(rid, eid, data){
-            this.templates = data
-        },
+        receivedProjectsList(rid, eid, data){ this.projects = data },
+        receivedTemplatesList(rid, eid, data){ this.templates = data },
+        launchProductionMode(){ window.open(`/vue/prod/private/${this.projectName}`); }
     },
     watch: {
-        isWSOpened() {
-            this.initOnMount();
-        },
         projectName() {
-            this.$store.dispatch("sendWSMessage", [this.wsd.EVENT["LIST_TEMPLATES"], [this.projectName]]);
+            this.duct.send(this.duct.next_rid(), this.duct.EVENT.LIST_TEMPLATES, this.projectName)
         }
     }
 }
 </script>
-
-<style>
-/*
-#nanotask-test {
-    width: 100%;
-    height: 800px;
-    margin-top: 50px;
-}
-#selectboxes {
-    display: flex;
-    justify-content: center;
-}
-#selectboxes>* {
-    max-width: 300px;
-    margin: 0 10px;
-}
-#nanotask-test-inner {
-    width: 90%;
-    margin: 0 auto;
-    display: flex;
-    height: 100%;
-    justify-content: center;
-}
-#nanotask-test-inner>* {
-    height: 80%;
-    margin: 0 10px;
-}
-#left { width: 70%; }
-#right { width: 15%; }
-textarea {
-    width: 100%;
-    height: 100%;
-    background: #ddd;
-    font-weight: bold;
-    box-sizing: border-box;
-}
-*/
-</style>
