@@ -412,6 +412,24 @@ window.ducts.nds.AutomaticSpeechRecognizer = class {
 };
 */
 
+class HandlerAdapter {
+    constructor(EVENT){
+        this.events = EVENT
+        this.listeners = {}
+        this.state = null
+        for(var e in this.events) {
+            var eid = this.events[e]
+            this.handlers[eid] = (rid, eid, data) => {}
+        }
+    }
+    setListener(state, listener) {
+        this.listeners[state] = listener
+    }
+    setState(state) {
+        this.state = state
+    }
+}
+
 window.ducts.dynamiccrowd.Duct = class extends window.ducts.Duct {
 
     constructor(wsd) {
@@ -441,9 +459,25 @@ window.ducts.dynamiccrowd.Duct = class extends window.ducts.Duct {
 	    //
 	    //this.sendASRInput =
 	    //    (audio) => {return this._sendASRInput(this, audio);};
+
+        this.mystate = null;
+        this.childEventHandlers = {};
+        this.setChildEventHandler =
+            (state, eid, handler) => {
+                if(!this.childEventHandlers[state]) this.childEventHandlers[state] = {}
+                this.childEventHandlers[state][eid] = handler
+            }
+        this.catchall_event_handler = (rid, eid, data) => {
+            var state = this.mystate
+            if(this.childEventHandlers[state] && eid in this.childEventHandlers[state]){
+                this.childEventHandlers[state][eid](rid, eid, data)
+                console.log(`emitting handler eid=${eid} for ${state}`)
+            }
+        };
+        this.setState = (state) => { this.mystate = state }
 	    
 	    this._setup_handlers(this);
-	    
+
     }
     
     _setup_handlers(self) {

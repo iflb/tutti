@@ -9,7 +9,7 @@
                 <v-text-field id="input-args" type="text" v-model="selectedEventArgs" placeholder="Args separated by spaces"></v-text-field>
                 </v-col>
                 <v-col>
-                <v-btn color="primary" @click="emitWebSocketEvent()">実行</v-btn>
+                <v-btn color="primary" @click="sendDuctEvent()">実行</v-btn>
                 </v-col>
             </v-row>
             <v-row>
@@ -40,23 +40,22 @@ export default {
         events: [],
         selectedEventId: "",
         selectedEventArgs: "",
-        sentMsg: [],
         receivedMsg: [],
+        sentMsg: [],
+        componentName: "Operation"
     }),
+    props: ["duct"],
     mounted: function(){
-        this.initOnMount()
-    },
-    computed: {
-        ws() { return this.$store.getters.ws },
-        wsd() { return this.$store.getters.wsd },
-        isWSOpened() { return this.$store.getters.isWSOpened },
-        isTemplateSelectDisabled() { return this.templates.length==0 }
+        if(this.duct) {
+            this.duct.setState(this.componentName)
+            this.onDuctOpen()
+        }
     },
     methods: {
-        emitWebSocketEvent: function() {
+        sendDuctEvent: function() {
             const eid = this.selectedEventId
             const data = this.selectedEventArgs
-            this.$store.dispatch("sendWSMessage", [eid, data.split(" ")])
+            this.duct.send(this.duct.next_rid(), eid, data)
             this.appendSentMessage(eid, data)
         },
         appendSentMessage: function(eid, data){
@@ -65,25 +64,16 @@ export default {
         appendReceivedMessage: function(rid, eid, data) {
             this.receivedMsg.push(rid+'_'+eid+'_'+data);
         },
-        initOnMount(){
-            if(!this.ws || !this.wsd){ return }
-
-            this.$store.dispatch("removeAllOnMessageHandlers")
-            this.$store.dispatch("setOnMessageDefaultHandler", this.appendReceivedMessage)
-
-            if(this.isWSOpened){
-                var _events = []
-                for(let [key,id] of Object.entries(this.wsd.EVENT)){
-                    _events.push({id: id, key: key, label: `${id}:: ${key}`})
+        onDuctOpen(){
+            for(var key in this.duct.EVENT) {
+                var id = this.duct.EVENT[key]
+                if(id>=1000){
+                    this.duct.setChildEventHandler("Operation", id, this.appendReceivedMessage)
+                    this.events.push({id: id, key: key, label: `${id}:: ${key}`})
                 }
-                this.events = _events;
             }
+
         },
-    },
-    watch: {
-        isWSOpened(){
-            this.initOnMount()
-        }
     }
 }
 </script>

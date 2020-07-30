@@ -70,6 +70,7 @@ export default {
         duct: null,
         srvStatus: "connecting",
         srvBtns: null,
+        childEventHandlers: {}
     }),
     methods: {
         init() {
@@ -93,8 +94,6 @@ export default {
         main(wsd){
             this.duct = new window.ducts.dynamiccrowd.Duct(wsd);
 
-            this.duct.catchall_event_handler = (rid, eid) => {console.log('on_message eid='+eid)};
-            this.duct.uncaught_event_handler = (rid, eid) => {console.log('uncaught_message eid='+eid)};
             this.duct.event_error_handler = (rid, eid, data, error) => {console.error(error);};
 
             this.duct._connection_listener.on("onopen", () => {
@@ -131,7 +130,7 @@ export default {
         closeDuct(){
             this.duct.close()
             if(this.$refs.child.onDuctClose) this.$refs.child.onDuctClose();
-        }
+        },
     },
     created: function(){
         this.init()

@@ -41,11 +41,15 @@ export default {
         projects: [],
         templates: [],
         projectName: null,
-        templateName: null
+        templateName: null,
+        componentName: "NanotaskInspector"
     }),
     props: ["duct"],
-    mounted() {
-        this.onDuctOpen()
+    mounted: function(){
+        if(this.duct) {
+            this.duct.setState(this.componentName)
+            this.duct.send(this.duct.next_rid(), this.duct.EVENT.LIST_PROJECTS, null)
+        }
     },
     computed: {
         nanotaskTemplateComponent: {
@@ -62,8 +66,10 @@ export default {
     },
     methods: {
         onDuctOpen(){
-            this.duct.setEventHandler(this.duct.EVENT.LIST_PROJECTS, this.receivedProjectsList)
-            this.duct.setEventHandler(this.duct.EVENT.LIST_TEMPLATES, this.receivedTemplatesList)
+            this.duct.setChildEventHandler("NanotaskInspector", this.duct.EVENT.LIST_PROJECTS, this.receivedProjectsList)
+            this.duct.setChildEventHandler("NanotaskInspector", this.duct.EVENT.LIST_TEMPLATES, this.receivedTemplatesList)
+            this.duct.setState(this.componentName)
+
             this.duct.send(this.duct.next_rid(), this.duct.EVENT.LIST_PROJECTS, null)
         },
         receivedProjectsList(rid, eid, data){ this.projects = data },
