@@ -25,8 +25,9 @@ const router = new VueRouter({
             ]
         },
         {
-            path: "/private-prod",
-            component: PrivateProd
+            path: "/private-prod/:projectName",
+            component: PrivateProd,
+            props: true
         }
     ]
 })

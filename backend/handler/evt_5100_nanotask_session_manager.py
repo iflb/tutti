@@ -47,7 +47,10 @@ class NanotaskSessionManager():
         return session_id, self.get_session(session_id)
 
     def get_session(self, session_id):
-        return self.sessions[session_id]
+        if session_id in self.sessions:
+            return self.sessions[session_id]
+        else:
+            return None
 
     def set_session(self, project_name, session_id):
         try:
@@ -96,26 +99,44 @@ class Handler(EventHandler):
 
     async def handle(self, event):
         command = event.data[0]
-        project_name = event.data[1]
+        ans = {}
+        ans["Command"] = command
         if command=="REGISTER_SM":    # ナノタスクフローの定義。ワーカー数によらず１回のみでよい
+            project_name = event.data[1]
             try:
                 sm = NanotaskSessionStateMachine()
                 for t in templates:
                     sm.add_batch(NanotaskSessionState(t["name"], t["repeat_times"]))
                 self.session_manager.register_state_machine(project_name, sm)
-                return "successfully registered a state machine"
+                ans["Status"] = "success"
             except Exception as e:
-                return str(e)
+                ans["Status"] = "error"
+                ans["Reason"] = str(e)
+            return ans
         elif command=="CREATE_SESSION":    # フローをワーカーが開始するごとに作成
+            project_name = event.data[1]
             try:
                 session_id, session = self.session_manager.create_session(project_name)
-                return session_id
+                ans["Status"] = "success"
+                ans["SessionId"] = session_id
             except Exception as e:
-                return str(e)
+                ans["Status"] = "error"
+                ans["Reason"] = str(e)
+            return ans
         elif command=="GET":
+            session_id = event.data[1]
             try:
-                ### FIXME:: project_name -> session_id
-                session_id = project_name
-                return self.session_manager.get_session(session_id).get_next_status()
-            except:
-                return "Session already terminated"
+                session = self.session_manager.get_session(session_id)
+                if session:
+                    ans["Status"] = "success"
+                    ans["NextStatus"] = session.get_next_status()
+                else:
+                    ans["Status"] = "error"
+                    ans["Reason"] = "No session found"
+            except StopIteration as e:
+                ans["Status"] = "success"
+                ans["NextStatus"] = None
+            except Exception as e:
+                ans["Status"] = "error"
+                ans["Reason"] = str(e)
+            return ans

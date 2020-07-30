@@ -412,23 +412,23 @@ window.ducts.nds.AutomaticSpeechRecognizer = class {
 };
 */
 
-class HandlerAdapter {
-    constructor(EVENT){
-        this.events = EVENT
-        this.listeners = {}
-        this.state = null
-        for(var e in this.events) {
-            var eid = this.events[e]
-            this.handlers[eid] = (rid, eid, data) => {}
-        }
-    }
-    setListener(state, listener) {
-        this.listeners[state] = listener
-    }
-    setState(state) {
-        this.state = state
-    }
-}
+//class HandlerAdapter {
+//    constructor(EVENT){
+//        this.events = EVENT
+//        this.listeners = {}
+//        this.state = null
+//        for(var e in this.events) {
+//            var eid = this.events[e]
+//            this.handlers[eid] = (rid, eid, data) => {}
+//        }
+//    }
+//    setListener(state, listener) {
+//        this.listeners[state] = listener
+//    }
+//    setState(state) {
+//        this.state = state
+//    }
+//}
 
 window.ducts.dynamiccrowd.Duct = class extends window.ducts.Duct {
 
