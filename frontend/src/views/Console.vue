@@ -26,7 +26,7 @@
                     <v-list-item>
                         <v-list-item-content>
                             <v-list-item-title class="title">DynamicCrowd</v-list-item-title>
-                            <v-list-item-subtitle>Beta Version</v-list-item-subtitle>
+                            <v-list-item-subtitle>Alpha Version</v-list-item-subtitle>
                         </v-list-item-content>
                     </v-list-item>
 
@@ -43,10 +43,17 @@
                         </v-list-item-icon>
                         <v-list-item-title>Nanotask Inspector</v-list-item-title>
                     </v-list-item>
-
-                    <v-list-item to="/console/events/">
+               
+                    <v-list-item to="/console/flow/">
                         <v-list-item-icon>
                             <v-icon>mdi-puzzle</v-icon>
+                        </v-list-item-icon>
+                        <v-list-item-title>Task Flow Designer</v-list-item-title>
+                    </v-list-item>
+ 
+                    <v-list-item to="/console/events/">
+                        <v-list-item-icon>
+                            <v-icon>mdi-lightning-bolt</v-icon>
                         </v-list-item-icon>
                         <v-list-item-title>Event Handlers</v-list-item-title>
                     </v-list-item>
@@ -55,7 +62,7 @@
             </v-list>
         </v-navigation-drawer>
 
-        <v-sheet><router-view :child-props="childProps" ref="child"></router-view></v-sheet>
+        <router-view :child-props="childProps" ref="child"></router-view>
         
     </v-app>
 </template>
@@ -81,7 +88,11 @@ export default {
             },
             "/console/events/": {
                 events: []
-            }
+            },
+            "/console/flow/": {
+                projects: [],
+                templates: []
+            },
         }
     }),
     props: ["name"],
@@ -134,16 +145,28 @@ export default {
             this.duct._connection_listener.on("onopen", this.srvStatusProfile.connected.handler)
             this.duct._connection_listener.on(["onclose", "onerror"], this.srvStatusProfile.disconnected.handler)
             this.duct.setEventHandler(this.duct.EVENT.ALIVE_MONITORING, this.srvStatusProfile.connected.handler)
+            this.duct.setEventHandler(this.duct.EVENT.LIST_PROJECTS, (rid, eid, data) => {
+                this.childProps["/console/inspector/"].projects = data
+                this.childProps["/console/flow/"].projects = data
+            })
+            this.duct.setEventHandler(this.duct.EVENT.LIST_TEMPLATES, (rid, eid, data) => {
+                this.childProps["/console/inspector/"].templates = data
+                this.childProps["/console/flow/"].templates = data
+            })
 
 
             this.duct.addEvtHandler({
-                tag: "/console/inspector/", eid: this.duct.EVENT.LIST_PROJECTS,
-                handler: (rid, eid, data) => { this.childProps["/console/inspector/"].projects = data }
+                tag: "/console/flow/", eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
+                handler: (rid, eid, data) => {
+                    if(data["Command"]=="GET_SM_PROFILE"){
+                        this.childProps["/console/flow/"].profile = data["Profile"]
+                    }
+                }
             })
-            this.duct.addEvtHandler({
-                tag: "/console/inspector/", eid: this.duct.EVENT.LIST_TEMPLATES,
-                handler: (rid, eid, data) => { this.childProps["/console/inspector/"].templates = data }
-            })
+            //this.duct.addEvtHandler({
+            //    tag: "/console/inspector/", eid: this.duct.EVENT.LIST_TEMPLATES,
+            //    handler: (rid, eid, data) => { this.childProps["/console/inspector/"].templates = data }
+            //})
 
 
             var events = []

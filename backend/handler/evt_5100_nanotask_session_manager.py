@@ -9,6 +9,8 @@ from tortoise.backends.mysql.client import MySQLClient
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
 
+import json
+
 #@config_callback
 #def config(loader):
 #    loader.add_attr('root_path', os.getcwd(), help='')
@@ -36,6 +38,9 @@ class NanotaskSessionManager():
 
     def register_state_machine(self, project_name, sm):
         self.state_machines[project_name] = sm
+
+    def get_state_machine(self, project_name):
+        return self.state_machines[project_name]
 
     def create_session(self, project_name, session_id=None):
         if not session_id:
@@ -103,12 +108,24 @@ class Handler(EventHandler):
         ans["Command"] = command
         if command=="REGISTER_SM":    # ナノタスクフローの定義。ワーカー数によらず１回のみでよい
             project_name = event.data[1]
+            profile = event.data[2]
             try:
                 sm = NanotaskSessionStateMachine()
-                for t in templates:
+                sm.raw_profile = json.loads(profile)
+                for t in sm.raw_profile:
                     sm.add_batch(NanotaskSessionState(t["name"], t["repeat_times"]))
                 self.session_manager.register_state_machine(project_name, sm)
                 ans["Status"] = "success"
+            except Exception as e:
+                ans["Status"] = "error"
+                ans["Reason"] = str(e)
+            return ans
+        elif command=="GET_SM_PROFILE":
+            project_name = event.data[1]
+            try:
+                profile = self.session_manager.get_state_machine(project_name).raw_profile
+                ans["Status"] = "success"
+                ans["Profile"] = profile
             except Exception as e:
                 ans["Status"] = "error"
                 ans["Reason"] = str(e)

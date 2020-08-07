@@ -59,7 +59,7 @@ export default {
         currentAnswer() { return JSON.stringify(this.$store.getters.currentAnswer, undefined, 4) },
 
         isTemplateSelectDisabled() {
-            return !(this.name in this.childProps) || this.childProps[this.name].templates.length==0
+            return !(this.name in this.childProps) || this.childProps[this.name].templates.length==0 || !this.projectName
         }
     },
     methods: {

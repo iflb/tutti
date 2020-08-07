@@ -5,6 +5,7 @@ import Console from './views/Console'
 import Dashboard from './views/components/Dashboard'
 import NanotaskInspector from './views/components/NanotaskInspector'
 import Operation from './views/components/Operation'
+import TaskFlowDesigner from './views/components/TaskFlowDesigner'
 
 import PrivateProd from './views/PrivateProd'
 
@@ -26,7 +27,8 @@ const router = new VueRouter({
             children: [
                 { path: "dashboard", component: Dashboard, props: getPropsForRoute },
                 { path: "inspector", component: NanotaskInspector, props: getPropsForRoute },
-                { path: "events", component: Operation, props: getPropsForRoute }
+                { path: "events", component: Operation, props: getPropsForRoute },
+                { path: "flow", component: TaskFlowDesigner, props: getPropsForRoute }
             ]
         },
         {
