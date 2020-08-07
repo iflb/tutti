@@ -16,6 +16,7 @@
     "fs": "0.0.1-security",
     "material-design-icons-iconfont": "^5.0.1",
     "vue": "^2.6.11",
+    "vue-cli": "^2.9.6",
     "vue-jsonp": "^0.1.8",
     "vue-router": "^3.3.2",
     "vuetify": "^2.3.1",

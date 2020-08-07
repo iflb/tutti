@@ -7,13 +7,13 @@
             <v-spacer></v-spacer>
             <v-menu offset-y>
                 <template v-slot:activator="{ on, attrs }">
-                    <v-btn depressed :color="srvBtns[srvStatus].color" class="text-none" v-bind="attrs" v-on="on">
-                        {{ srvBtns[srvStatus].label }}
+                    <v-btn depressed :color="srvStatusProfile[srvStatus].btn.color" class="text-none" v-bind="attrs" v-on="on">
+                        {{ srvStatusProfile[srvStatus].btn.label }}
                         <span v-if="srvStatus == 'connected'" class="text-caption ml-2">(last pinged: {{ lastPinged }})</span>
                     </v-btn>
                 </template>
                 <v-list>
-                    <v-list-item v-for="(menu, index) in srvBtns[srvStatus].menu" :key="index" @click="menu.handler()">
+                    <v-list-item v-for="(menu, index) in srvStatusProfile[srvStatus].btn.menu" :key="index" @click="menu.handler()">
                         <v-list-item-title>{{ menu.title }}</v-list-item-title>
                     </v-list-item>
                 </v-list>
@@ -55,86 +55,108 @@
             </v-list>
         </v-navigation-drawer>
 
-        <v-sheet><router-view :duct="duct" ref="child"></router-view></v-sheet>
+        <v-sheet><router-view :child-props="childProps" ref="child"></router-view></v-sheet>
         
     </v-app>
 </template>
 
 <script>
 import dateFormat from 'dateformat'
+import store from '@/store.js'
+import { mapActions, mapGetters } from 'vuex'
 
 export default {
+    store,
     data: () => ({
         drawer: true,
+
         lastPinged: "",
-        duct: null,
         srvStatus: "connecting",
-        srvBtns: null,
-        childEventHandlers: {}
-    }),
-    methods: {
-        init() {
-            this.srvBtns = {
-                connected: {
-                    color: "success",
-                    label: `Connected to server`,
-                    menu: [ { title: "Disconnect", handler: this.closeDuct } ]
-                },
-                connecting: {
-                    color: "warning",
-                    label: "Connecting to server..."
-                },
-                disconnected: {
-                    color: "error",
-                    label: "No connection to server",
-                    menu: [ { title: "Connect", handler: this.openDuct } ]
-                }
+        srvStatusProfile: null,
+
+        childProps: {
+            "/console/inspector/": {
+                projects: [],
+                templates: []
+            },
+            "/console/events/": {
+                events: []
             }
-        },
-        main(wsd){
-            this.duct = new window.ducts.dynamiccrowd.Duct(wsd);
-
-            this.duct.event_error_handler = (rid, eid, data, error) => {console.error(error);};
-
-            this.duct._connection_listener.on("onopen", () => {
-                this.srvStatus = "connected"
-                this.lastPinged = dateFormat(new Date(), "HH:MM:ss")
-            })
-            this.duct._connection_listener.on(["onclose", "onerror"], () => {
-                this.srvStatus = "disconnected"
-            })
-            this.duct.setEventHandler(this.duct.EVENT.ALIVE_MONITORING, () => {
-                this.lastPinged = dateFormat(new Date(), "HH:MM:ss")
-            })
-
-            this.openDuct()
-        },
-        initDucts(ducts) {
-            ducts.user = 'guest';
-            ducts.context_url = '/ducts';
-            ducts.libs_plugin = [ducts.context_url + '/libs/libcrowd.js'];
-            ducts.main = this.main;
-                                                
-            let lib_script = document.createElement('script');
-            lib_script.src = ducts.context_url+'/libs/main.js';
-            document.body.appendChild(lib_script);
-        },
-        openDuct(){
-            return new Promise((resolve, reject) => {
-                this.duct.open().then(() => {
-                    if(this.$refs.child.onDuctOpen) this.$refs.child.onDuctOpen();
-                    resolve();
-                }).catch(reject);
-            })
-        },
-        closeDuct(){
-            this.duct.close()
-            if(this.$refs.child.onDuctClose) this.$refs.child.onDuctClose();
-        },
+        }
+    }),
+    props: ["name"],
+    computed: {
+        ...mapGetters("ductsModule", [
+            "duct"
+        ])
+    },
+    methods: {
+        ...mapActions("ductsModule", [
+            "initDuct",
+            "openDuct",
+            "closeDuct"
+        ])
     },
     created: function(){
-        this.init()
-        this.initDucts( window.ducts = window.ducts || {})
+        var self = this
+        this.srvStatusProfile = {
+            connected: {
+                handler() {
+                    self.srvStatus = "connected"
+                    self.lastPinged = dateFormat(new Date(), "HH:MM:ss")
+                },
+                btn: {
+                    color: "success",
+                    label: "Connected to server",
+                    menu: [ { title: "Disconnect", handler: self.closeDuct } ]
+                }
+            },
+            connecting: {
+                handler() {
+                },
+                btn: {
+                    color: "warning",
+                    label: "Connecting to server..."
+                }
+            },
+            disconnected: {
+                handler() {
+                    self.srvStatus = "disconnected"
+                },
+                btn: {
+                    color: "error",
+                    label: "No connection to server",
+                    menu: [ { title: "Connect", handler: self.openDuct } ]
+                }
+            }
+        }
+        this.initDuct(window.ducts = window.ducts || {}).then(() => {
+            this.duct._connection_listener.on("onopen", this.srvStatusProfile.connected.handler)
+            this.duct._connection_listener.on(["onclose", "onerror"], this.srvStatusProfile.disconnected.handler)
+            this.duct.setEventHandler(this.duct.EVENT.ALIVE_MONITORING, this.srvStatusProfile.connected.handler)
+
+
+            this.duct.addEvtHandler({
+                tag: "/console/inspector/", eid: this.duct.EVENT.LIST_PROJECTS,
+                handler: (rid, eid, data) => { this.childProps["/console/inspector/"].projects = data }
+            })
+            this.duct.addEvtHandler({
+                tag: "/console/inspector/", eid: this.duct.EVENT.LIST_TEMPLATES,
+                handler: (rid, eid, data) => { this.childProps["/console/inspector/"].templates = data }
+            })
+
+
+            var events = []
+            for(var key in this.duct.EVENT) {
+                var eid = this.duct.EVENT[key]
+                if(eid>=1000){ events.push({id: eid, key: key, label: `${eid}:: ${key}`}) }
+            }
+            this.childProps["/console/events/"].events = events
+
+            this.openDuct().then(() => {
+                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_PROJECTS, data: null })
+            })
+        })
     }
 }
 </script>

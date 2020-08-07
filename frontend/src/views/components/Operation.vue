@@ -9,7 +9,8 @@
                 <v-text-field id="input-args" type="text" v-model="selectedEventArgs" placeholder="Args separated by spaces"></v-text-field>
                 </v-col>
                 <v-col>
-                <v-btn color="primary" @click="sendDuctEvent()">実行</v-btn>
+                <v-btn color="primary" @click="duct.sendMsg({ tag: name, eid: selectedEventId, data: selectedEventArgs })">Send</v-btn>
+                <v-btn color="primary" @click="getDuct()">get duct</v-btn>
                 </v-col>
             </v-row>
             <v-row>
@@ -35,45 +36,44 @@
 </template>
 
 <script>
+import store from '@/store.js'
+import { mapGetters } from 'vuex'
+
 export default {
+    store,
     data: () => ({
-        events: [],
         selectedEventId: "",
         selectedEventArgs: "",
-        receivedMsg: [],
-        sentMsg: [],
-        componentName: "Operation"
     }),
-    props: ["duct"],
-    mounted: function(){
-        if(this.duct) {
-            this.duct.setState(this.componentName)
-            this.onDuctOpen()
-        }
+    props: ["childProps","name"],
+    computed: {
+        ...mapGetters("ductsModule", [
+            "duct"
+        ]),
+        events() { return this.childProps[this.name].events },
+        sentMsg() {
+            if(!this.duct) return []
+            var msg = []
+            for(var i in this.duct.log.sent){
+                var l = this.duct.log.sent[i]
+                msg.push(`${l.tag}__${l.rid}__${l.eid}__${l.data}`)
+            }
+            return msg
+        },
+        receivedMsg() {
+            if(!this.duct) return []
+            var msg = []
+            for(var i in this.duct.log.received){
+                var l = this.duct.log.received[i]
+                msg.push(`${l.rid}__${l.eid}__${JSON.stringify(l.data)}`)
+            }
+            return msg
+        },
     },
     methods: {
-        sendDuctEvent: function() {
-            const eid = this.selectedEventId
-            const data = this.selectedEventArgs
-            this.duct.send(this.duct.next_rid(), eid, data)
-            this.appendSentMessage(eid, data)
-        },
-        appendSentMessage: function(eid, data){
-            this.sentMsg.push(eid+'_'+data);
-        },
-        appendReceivedMessage: function(rid, eid, data) {
-            this.receivedMsg.push(rid+'_'+eid+'_'+data);
-        },
-        onDuctOpen(){
-            for(var key in this.duct.EVENT) {
-                var id = this.duct.EVENT[key]
-                if(id>=1000){
-                    this.duct.setChildEventHandler("Operation", id, this.appendReceivedMessage)
-                    this.events.push({id: id, key: key, label: `${id}:: ${key}`})
-                }
-            }
-
-        },
+        getDuct() {
+            console.log(this.duct.log)
+        }
     }
 }
 </script>

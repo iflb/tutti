@@ -10,6 +10,10 @@ import PrivateProd from './views/PrivateProd'
 
 Vue.use(VueRouter)
 
+function getPropsForRoute(route) {
+    return { name: route.path }
+}
+
 const router = new VueRouter({
     mode: "history",
     base: "/vue/",
@@ -18,10 +22,11 @@ const router = new VueRouter({
             path: "/console",
             redirect: "/console/dashboard",
             component: Console,
+            props: getPropsForRoute,
             children: [
-                { path: "dashboard", component: Dashboard },
-                { path: "inspector", component: NanotaskInspector },
-                { path: "events", component: Operation }
+                { path: "dashboard", component: Dashboard, props: getPropsForRoute },
+                { path: "inspector", component: NanotaskInspector, props: getPropsForRoute },
+                { path: "events", component: Operation, props: getPropsForRoute }
             ]
         },
         {

@@ -460,28 +460,61 @@ window.ducts.dynamiccrowd.Duct = class extends window.ducts.Duct {
 	    //this.sendASRInput =
 	    //    (audio) => {return this._sendASRInput(this, audio);};
 
-        this.mystate = null;
-        this.childEventHandlers = {};
-        this.setChildEventHandler =
-            (state, eid, handler) => {
-                if(!this.childEventHandlers[state]) this.childEventHandlers[state] = {}
-                this.childEventHandlers[state][eid] = handler
+        //this.mystate = null;
+
+        this.sendMsg = ({ tag, eid, data }) => {
+            const rid = this.next_rid()
+            if(data) { data = data.split(" ") } else { data = [] }
+            this.send(rid, eid, data)
+            this.log.sent.push({ tag, rid, eid, data })
+        }
+
+        this.log = {
+            sent: [],
+            received: []
+        }
+
+       this.evtHandlers = {}
+
+        this.addEvtHandler =
+            ({ tag, eid, handler }) => {
+                if(!(eid in this.evtHandlers)) this.evtHandlers[eid] = {}
+                this.evtHandlers[eid][tag] = handler
             }
+
         this.catchall_event_handler = (rid, eid, data) => {
-            var state = this.mystate
-            if(this.childEventHandlers[state] && eid in this.childEventHandlers[state]){
-                this.childEventHandlers[state][eid](rid, eid, data)
-                console.log(`emitting handler eid=${eid} for ${state}`)
+            if(eid>=1000) this.log.received.push({ rid, eid, data })
+            if(eid in this.evtHandlers) {
+                for(var tag in this.evtHandlers[eid]){
+                    this.evtHandlers[eid][tag](rid, eid, data)
+                }
             }
-        };
-        this.setState = (state) => { this.mystate = state }
+        }
+
+        //this.childEventHandlers = {};
+        //this.setChildEventHandler =
+        //    (state, eid, handler) => {
+        //        if(!this.childEventHandlers[state]) this.childEventHandlers[state] = {}
+        //        this.childEventHandlers[state][eid] = handler
+        //    }
+        //this.catchall_event_handler = (rid, eid, data) => {
+        //    for(var state in this.childEventHandlers){
+        //        var handlers = this.childEventHandlers[state]
+        //        if(eid in handlers){
+        //            handlers[eid](rid, eid, data)
+        //            console.log(`emitting handler eid=${eid} for ${state}`)
+        //        }
+        //    }
+        //};
+        //this.setState = (state) => { this.mystate = state }
 	    
-	    this._setup_handlers(this);
+	    //this._setup_handlers(this);
 
     }
-    
+
+ 
+    /*
     _setup_handlers(self) {
-        /*
 	    self.setEventHandler(
 	        self.EVENT.GET_SCENARIO_METADATA,
 	        (rid, eid, data) => {
@@ -594,8 +627,8 @@ window.ducts.dynamiccrowd.Duct = class extends window.ducts.Duct {
 	    	self._asr_listener.unavailable(
 	    	    new window.ducts.nds.asr.event.Unavailable(rid, eid, data));
 	        };
-        */
     }
+    */
 
     _onopen(self, event) {
 	    super._onopen(self, event);

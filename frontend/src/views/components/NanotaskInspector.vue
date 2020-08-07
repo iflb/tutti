@@ -5,10 +5,10 @@
             <v-toolbar-title>
             <v-row>
                 <v-col>
-                    <v-select :items="projects" v-model="projectName" label="Project name"></v-select>
+                    <v-select :items="childProps[name].projects" v-model="projectName" label="Project name"></v-select>
                 </v-col>
                 <v-col>
-                    <v-select :items="templates" v-model="templateName" label="Template name" :disabled="isTemplateSelectDisabled"></v-select>
+                    <v-select :items="childProps[name].templates" v-model="templateName" label="Template name" :disabled="isTemplateSelectDisabled"></v-select>
                 </v-col>
                 <v-col align="right">
                     <v-btn class="text-none" :disabled="projectName === null" @click="launchProductionMode()">Launch in production mode (private)</v-btn>
@@ -36,22 +36,18 @@
 </template>
 
 <script>
+import store from '@/store.js'
+import { mapGetters } from 'vuex'
+
 export default {
+    store,
     data: () => ({
-        projects: [],
-        templates: [],
         projectName: null,
         templateName: null,
-        componentName: "NanotaskInspector"
     }),
-    props: ["duct"],
-    mounted: function(){
-        if(this.duct) {
-            this.duct.setState(this.componentName)
-            this.duct.send(this.duct.next_rid(), this.duct.EVENT.LIST_PROJECTS, null)
-        }
-    },
+    props: ["childProps","name"],
     computed: {
+        ...mapGetters("ductsModule", ["duct"]),
         nanotaskTemplateComponent: {
             cache: true,
             get: function() {
@@ -62,23 +58,17 @@ export default {
         },
         currentAnswer() { return JSON.stringify(this.$store.getters.currentAnswer, undefined, 4) },
 
-        isTemplateSelectDisabled() { return this.templates.length==0 }
+        isTemplateSelectDisabled() {
+            return !(this.name in this.childProps) || this.childProps[this.name].templates.length==0
+        }
     },
     methods: {
-        onDuctOpen(){
-            this.duct.setChildEventHandler("NanotaskInspector", this.duct.EVENT.LIST_PROJECTS, this.receivedProjectsList)
-            this.duct.setChildEventHandler("NanotaskInspector", this.duct.EVENT.LIST_TEMPLATES, this.receivedTemplatesList)
-            this.duct.setState(this.componentName)
-
-            this.duct.send(this.duct.next_rid(), this.duct.EVENT.LIST_PROJECTS, null)
-        },
-        receivedProjectsList(rid, eid, data){ this.projects = data },
-        receivedTemplatesList(rid, eid, data){ this.templates = data },
         launchProductionMode(){ window.open(`/vue/prod/private/${this.projectName}`); }
     },
     watch: {
         projectName() {
-            this.duct.send(this.duct.next_rid(), this.duct.EVENT.LIST_TEMPLATES, this.projectName)
+            this.templateName = null
+            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_TEMPLATES, data: this.projectName })
         }
     }
 }

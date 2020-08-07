@@ -7,6 +7,8 @@ from ifconf import configure_module, config_callback
 
 #import db
 
+import logging
+
 @config_callback
 def config(loader):
     loader.add_attr('root_path', os.getcwd(), help='')

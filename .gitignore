@@ -2,3 +2,5 @@ dump.rdb
 **/__pycache__/
 handler_dump/
 **/*.txt
+**/.python-version
+backend/.pid
