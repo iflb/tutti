@@ -3,14 +3,13 @@
         <v-container justify="center">
             <v-row class="d-flex justify-center">
                 <v-col>
-                <v-select :items="events" item-text="label" item-value="id" label="Event" v-model="selectedEventId"></v-select>
+                <v-select :items="events" item-text="label" item-value="eid" label="Event" v-model="selectedEventId"></v-select>
                 </v-col>
                 <v-col>
                 <v-text-field id="input-args" type="text" v-model="selectedEventArgs" placeholder="Args separated by spaces"></v-text-field>
                 </v-col>
                 <v-col>
                 <v-btn color="primary" @click="duct.sendMsg({ tag: name, eid: selectedEventId, data: selectedEventArgs })">Send</v-btn>
-                <v-btn color="primary" @click="getDuct()">get duct</v-btn>
                 </v-col>
             </v-row>
             <v-row>
@@ -44,13 +43,13 @@ export default {
     data: () => ({
         selectedEventId: "",
         selectedEventArgs: "",
+        events: []
     }),
     props: ["childProps","name"],
     computed: {
         ...mapGetters("ductsModule", [
             "duct"
         ]),
-        events() { return this.childProps[this.name].events },
         sentMsg() {
             if(!this.duct) return []
             var msg = []
@@ -71,32 +70,22 @@ export default {
         },
     },
     methods: {
-        getDuct() {
-            console.log(this.duct.log)
+        loadEvents() {
+            if(!this.duct){ return }
+
+            var events = []
+            for(var key in this.duct.EVENT) {
+                var eid = this.duct.EVENT[key]
+                if(eid>=1000){ events.push({eid, label: `${eid}:: ${key}`}) }
+            }
+            this.events = events
         }
+    },
+    mounted() {
+        this.loadEvents()
+    },
+    watch: {
+        "duct.EVENT": function() { this.loadEvents() }
     }
 }
 </script>
-
-<style>
-#operation {
-    width: 90%;
-    margin: 50px auto;
-} 
-#operation>ul {
-    display: flex;
-    list-style: none;
-    padding: 0;
-}
-#msg-wrapper>* {
-    width: 50%;
-    height: 50%;
-}
-#select-event {
-    width: initial;
-    min-width: 200px;
-}
-#input-args {
-    width: 400px;
-}
-</style>

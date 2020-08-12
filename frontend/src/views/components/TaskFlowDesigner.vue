@@ -3,15 +3,11 @@
         <v-container>
         <v-row class="justify-center"><v-col cols="10" md="6">
             <v-row><v-col>
-            <v-select max-width="400px" class="mx-auto" :items="childProps[name].projects" v-model="projectName" label="Project name"></v-select>
-            </v-col></v-row>
-
-            <v-row><v-col>
             <v-alert type="error" v-if="error!=null">{{ error }}</v-alert>
             </v-col></v-row>
 
             <v-row><v-col>
-            <v-textarea id="task-flow" label="JSON for task flow profile" height="500px" outlined v-model="profile"></v-textarea>
+            <v-textarea id="task-flow" label="JSON for task flow profile" height="500px" outlined v-model="profileString"></v-textarea>
             </v-col></v-row>
 
             <v-row><v-col align="right">
@@ -70,7 +66,7 @@ export default {
     data: () => ({
         projectName: null,
         templateName: null,
-        profile: "",
+        profileString: "",
         error: null,
         snackbar: {
             visible: false,
@@ -82,16 +78,20 @@ export default {
     props: ["childProps","name"],
     computed: {
         ...mapGetters("ductsModule", [ "duct" ]),
-        storedProfile() { return this.childProps[this.name].profile }
+        project() { return this.childProps.project },
     },
     methods: {
         showSnackbar(info){
             Object.assign(this.snackbar, info)
             this.snackbar.visible = true
         },
+        displayProfile() {
+            if(this.project.profile) this.profileString = JSON.stringify(this.project.profile, null, 4)
+            else this.profileString = ""
+        },
         updateProfile() {
             try {
-                JSON.parse(this.profile)
+                JSON.parse(this.profileString)
                 this.error = null
             } catch(a) {
                 this.error = `${a.name}: ${a.message}`
@@ -99,25 +99,27 @@ export default {
                 return
             }
 
-            const inlineProfile = this.profile.replace(/ /g, "").replace(/\n/g, "")
+            const inlineProfile = this.profileString.replace(/ /g, "").replace(/\n/g, "")
             this.duct.sendMsg({
                 tag: this.name,
                 eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
-                data: `REGISTER_SM ${this.projectName} ${inlineProfile}`
+                data: `REGISTER_SM ${this.project.name} ${inlineProfile}`
             })
         }
     },
+    mounted() {
+        this.displayProfile()
+    },
     watch: {
-        projectName() {
+        "project.name": function(val) {
             this.duct.sendMsg({
                 tag: this.name,
                 eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
-                data: `GET_SM_PROFILE ${this.projectName}`
+                data: `GET_SM_PROFILE ${val}`
             })
         },
-        storedProfile(newVal) {
-            if(newVal) this.profile = JSON.stringify(newVal, null, 4)
-            else this.profile = ""
+        "project.profile": function(){
+            this.displayProfile()
         }
     }
 }

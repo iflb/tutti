@@ -5,13 +5,10 @@
             <v-toolbar-title>
             <v-row>
                 <v-col>
-                    <v-select :items="childProps[name].projects" v-model="projectName" label="Project name"></v-select>
-                </v-col>
-                <v-col>
-                    <v-select :items="childProps[name].templates" v-model="templateName" label="Template name" :disabled="isTemplateSelectDisabled"></v-select>
+                    <v-select :items="project.templates" v-model="templateName" label="Template name" :disabled="isTemplateSelectDisabled"></v-select>
                 </v-col>
                 <v-col align="right">
-                    <v-btn class="text-none" :disabled="projectName === null" @click="launchProductionMode()">Launch in production mode (private)</v-btn>
+                    <v-btn class="text-none" :disabled="project.name === null" @click="launchProductionMode()">Launch in production mode (private)</v-btn>
                 </v-col>
             </v-row>
             </v-toolbar-title>
@@ -42,34 +39,32 @@ import { mapGetters } from 'vuex'
 export default {
     store,
     data: () => ({
-        projectName: null,
         templateName: null,
     }),
     props: ["childProps","name"],
     computed: {
         ...mapGetters("ductsModule", ["duct"]),
+        project() { return this.childProps.project },
+
         nanotaskTemplateComponent: {
             cache: true,
             get: function() {
-                if(this.projectName && this.templateName){
-                    return require(`@/projects/${this.projectName}/templates/${this.templateName}/Main.vue`).default;
+                if(this.project.name && this.templateName){
+                    return require(`@/projects/${this.project.name}/templates/${this.templateName}/Main.vue`).default;
                 } else { return null }
             }
         },
         currentAnswer() { return JSON.stringify(this.$store.getters.currentAnswer, undefined, 4) },
 
         isTemplateSelectDisabled() {
-            return !(this.name in this.childProps) || this.childProps[this.name].templates.length==0 || !this.projectName
+            return this.project.templates.length==0 || !this.project.name
         }
     },
     methods: {
-        launchProductionMode(){ window.open(`/vue/prod/private/${this.projectName}`); }
+        launchProductionMode(){ window.open(`/vue/prod/private/${this.project.name}`); }
     },
     watch: {
-        projectName() {
-            this.templateName = null
-            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_TEMPLATES, data: this.projectName })
-        }
+        "project.name"() { this.templateName = null }
     }
 }
 </script>
