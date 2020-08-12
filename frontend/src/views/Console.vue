@@ -64,7 +64,7 @@
             </v-list>
         </v-navigation-drawer>
 
-        <router-view :child-props="childProps" ref="child"></router-view>
+        <router-view :shared-props="sharedProps" ref="child"></router-view>
         
     </v-app>
 </template>
@@ -126,17 +126,8 @@ export default {
         projects: [],
         project,
 
-        childProps: {
+        sharedProps: {
             project,
-            "/console/events/": {
-                events: []
-            },
-            "/console/flow/": {
-                projects: [],
-                templates: [],
-                projectName: "",
-                profile: ""
-            },
         }
     }),
     computed: {
@@ -150,8 +141,8 @@ export default {
         },
         "project.name" (val) {
             this.project = project
-
             this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_TEMPLATES, data: val })
+            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER, data: `GET_SM_PROFILE ${val}` })
         }
     },
     methods: {
@@ -162,11 +153,8 @@ export default {
         ]),
         querySelections (v) {
             this.loading = true
-            // Simulated ajax query
             setTimeout(() => {
-                this.items = this.projects.filter(e => {
-                    return (e || '').toLowerCase().indexOf((v || '').toLowerCase()) > -1
-                })
+                this.items = this.projects.filter(e => { return (e || '').toLowerCase().indexOf((v || '').toLowerCase()) > -1 })
                 this.loading = false
             }, 500)
         },
@@ -210,13 +198,10 @@ export default {
             this.duct.setEventHandler(this.duct.EVENT.ALIVE_MONITORING, this.srvStatusProfile.connected.handler)
             this.duct.setEventHandler(this.duct.EVENT.LIST_PROJECTS, (rid, eid, data) => {
                 this.projects = data
-                this.childProps["/console/flow/"].projects = data
             })
             this.duct.setEventHandler(this.duct.EVENT.LIST_TEMPLATES, (rid, eid, data) => {
                 this.project.templates = data
-                this.childProps.project = this.project
-
-                this.childProps["/console/flow/"].templates = data
+                this.sharedProps.project = this.project
             })
 
 
@@ -231,13 +216,13 @@ export default {
                     }
                     else if(data["Command"]=="GET_SM_PROFILE"){
                         if(data["Status"]=="error"){
-                            this.childProps.project.profile = null
+                            this.sharedProps.project.profile = null
                             this.$refs.child.showSnackbar({
                                 color: "warning",
                                 text: "Profile is not set"
                             })
                         } else {
-                            this.childProps.project.profile = data["Profile"]
+                            this.sharedProps.project.profile = data["Profile"]
                         }
                     }
                 }

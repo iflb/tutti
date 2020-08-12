@@ -45,7 +45,7 @@ export default {
         selectedEventArgs: "",
         events: []
     }),
-    props: ["childProps","name"],
+    props: ["sharedProps","name"],
     computed: {
         ...mapGetters("ductsModule", [
             "duct"

@@ -41,10 +41,10 @@ export default {
     data: () => ({
         templateName: null,
     }),
-    props: ["childProps","name"],
+    props: ["sharedProps","name"],
     computed: {
         ...mapGetters("ductsModule", ["duct"]),
-        project() { return this.childProps.project },
+        project() { return this.sharedProps.project },
 
         nanotaskTemplateComponent: {
             cache: true,

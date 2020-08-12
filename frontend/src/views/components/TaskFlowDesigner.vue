@@ -28,14 +28,14 @@
         <!--<v-container>
             <v-row class="justify-center">
                 <v-col cols="10" md="6">
-                    <v-select max-width="400px" class="mx-auto" :items="childProps[name].projects" v-model="projectName" label="Project name"></v-select>
+                    <v-select max-width="400px" class="mx-auto" :items="sharedProps[name].projects" v-model="projectName" label="Project name"></v-select>
                 </v-col>
             </v-row>
 
             <v-row class="justify-center">
                 <v-col cols="10" md="6">
                     <v-card class="pa-6">
-                        <v-select class="mr-3" :items="childProps[name].templates" label="Choose template..." solo>
+                        <v-select class="mr-3" :items="sharedProps[name].templates" label="Choose template..." solo>
                         </v-select>
                         <v-row align="center" class="d-flex px-4">
                             <div class="mr-3">Repeat:</div>
@@ -75,10 +75,10 @@ export default {
             text: ""
         }
     }),
-    props: ["childProps","name"],
+    props: ["sharedProps","name"],
     computed: {
         ...mapGetters("ductsModule", [ "duct" ]),
-        project() { return this.childProps.project },
+        project() { return this.sharedProps.project },
     },
     methods: {
         showSnackbar(info){
@@ -111,13 +111,6 @@ export default {
         this.displayProfile()
     },
     watch: {
-        "project.name": function(val) {
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
-                data: `GET_SM_PROFILE ${val}`
-            })
-        },
         "project.profile": function(){
             this.displayProfile()
         }
