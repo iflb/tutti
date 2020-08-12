@@ -23,7 +23,6 @@ const router = new VueRouter({
             path: "/console",
             redirect: "/console/dashboard",
             component: Console,
-            props: getPropsForRoute,
             children: [
                 { path: "dashboard", component: Dashboard, props: getPropsForRoute },
                 { path: "inspector", component: NanotaskInspector, props: getPropsForRoute },

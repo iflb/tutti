@@ -81,6 +81,8 @@ export default {
         srvStatus: "connecting",
         srvStatusProfile: null,
 
+        name: "/console/",
+
         childProps: {
             "/console/inspector/": {
                 projects: [],
@@ -91,11 +93,11 @@ export default {
             },
             "/console/flow/": {
                 projects: [],
-                templates: []
+                templates: [],
+                profile: ""
             },
         }
     }),
-    props: ["name"],
     computed: {
         ...mapGetters("ductsModule", [
             "duct"
@@ -158,16 +160,25 @@ export default {
             this.duct.addEvtHandler({
                 tag: "/console/flow/", eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
                 handler: (rid, eid, data) => {
-                    if(data["Command"]=="GET_SM_PROFILE"){
-                        this.childProps["/console/flow/"].profile = data["Profile"]
+                    if(data["Command"]=="REGISTER_SM"){
+                        this.$refs.child.showSnackbar({
+                            color: "success",
+                            text: "Successfully registered a state machine"
+                        })
+                    }
+                    else if(data["Command"]=="GET_SM_PROFILE"){
+                        if(data["Status"]=="error"){
+                            this.childProps["/console/flow/"].profile = null
+                            this.$refs.child.showSnackbar({
+                                color: "warning",
+                                text: "Profile is not set"
+                            })
+                        } else {
+                            this.childProps["/console/flow/"].profile = data["Profile"]
+                        }
                     }
                 }
             })
-            //this.duct.addEvtHandler({
-            //    tag: "/console/inspector/", eid: this.duct.EVENT.LIST_TEMPLATES,
-            //    handler: (rid, eid, data) => { this.childProps["/console/inspector/"].templates = data }
-            //})
-
 
             var events = []
             for(var key in this.duct.EVENT) {

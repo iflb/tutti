@@ -1,15 +1,34 @@
 <template>
     <v-main>
         <v-container>
-        <v-row class="justify-center">
-            <v-col cols="10" md="6">
-                <v-select max-width="400px" class="mx-auto" :items="childProps[name].projects" v-model="projectName" label="Project name"></v-select>
-            </v-col>
-        </v-row>
-        <v-row class="justify-center">
-        <v-col cols="10" md="6"><v-textarea id="task-flow" label="JSON for task flow profile" height="500px" outlined v-model="profileString"></v-textarea></v-col>
-        </v-row>
+        <v-row class="justify-center"><v-col cols="10" md="6">
+            <v-row><v-col>
+            <v-select max-width="400px" class="mx-auto" :items="childProps[name].projects" v-model="projectName" label="Project name"></v-select>
+            </v-col></v-row>
+
+            <v-row><v-col>
+            <v-alert type="error" v-if="error!=null">{{ error }}</v-alert>
+            </v-col></v-row>
+
+            <v-row><v-col>
+            <v-textarea id="task-flow" label="JSON for task flow profile" height="500px" outlined v-model="profile"></v-textarea>
+            </v-col></v-row>
+
+            <v-row><v-col align="right">
+            <v-btn @click="updateProfile()" class="primary">update</v-btn>
+            </v-col></v-row>
+        </v-col></v-row>
         </v-container>
+
+
+        <v-snackbar v-model="snackbar.visible" :timeout="snackbar.timeout" :color="snackbar.color">
+            {{ snackbar.text }}
+            <template v-slot:action="{ attrs }">
+            <v-btn color="white" text v-bind="attrs" @click="snackbar.visible = false">Close</v-btn>
+            </template>
+        </v-snackbar>
+
+
         <!--<v-container>
             <v-row class="justify-center">
                 <v-col cols="10" md="6">
@@ -51,43 +70,54 @@ export default {
     data: () => ({
         projectName: null,
         templateName: null,
-        profile: ""
+        profile: "",
+        error: null,
+        snackbar: {
+            visible: false,
+            timeout: 3000,
+            color: "",
+            text: ""
+        }
     }),
     props: ["childProps","name"],
     computed: {
-        ...mapGetters("ductsModule", [
-            "duct"
-        ]),
-        profileString() {
-            return JSON.stringify(this.childProps[this.name].profile)   // can't be synchronized with v-model
+        ...mapGetters("ductsModule", [ "duct" ]),
+        storedProfile() { return this.childProps[this.name].profile }
+    },
+    methods: {
+        showSnackbar(info){
+            Object.assign(this.snackbar, info)
+            this.snackbar.visible = true
+        },
+        updateProfile() {
+            try {
+                JSON.parse(this.profile)
+                this.error = null
+            } catch(a) {
+                this.error = `${a.name}: ${a.message}`
+                this.showSnackbar({ color: "error", text: "JSON parse error" })
+                return
+            }
+
+            const inlineProfile = this.profile.replace(/ /g, "").replace(/\n/g, "")
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
+                data: `REGISTER_SM ${this.projectName} ${inlineProfile}`
+            })
         }
-        //events() { return this.childProps[this.name].events },
-        //sentMsg() {
-        //    if(!this.duct) return []
-        //    var msg = []
-        //    for(var i in this.duct.log.sent){
-        //        var l = this.duct.log.sent[i]
-        //        msg.push(`${l.tag}__${l.rid}__${l.eid}__${l.data}`)
-        //    }
-        //    return msg
-        //},
-        //receivedMsg() {
-        //    if(!this.duct) return []
-        //    var msg = []
-        //    for(var i in this.duct.log.received){
-        //        var l = this.duct.log.received[i]
-        //        msg.push(`${l.rid}__${l.eid}__${JSON.stringify(l.data)}`)
-        //    }
-        //    return msg
-        //},
     },
     watch: {
         projectName() {
-            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER, data: `GET_SM_PROFILE ${this.projectName}`})
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
+                data: `GET_SM_PROFILE ${this.projectName}`
+            })
         },
-        childProps: {
-            deep: true,
-            handler: function(){ console.log(this.childProps) }
+        storedProfile(newVal) {
+            if(newVal) this.profile = JSON.stringify(newVal, null, 4)
+            else this.profile = ""
         }
     }
 }
@@ -102,9 +132,10 @@ document.addEventListener('keydown', function (e) {
         start = elem.selectionStart;
         end = elem.selectionEnd;
         value = elem.value;
-        console.log(elem, start, end, value)
-        elem.value = "" + (value.substring(0, start)) + "    " + (value.substring(end));
-        elem.selectionStart = elem.selectionEnd = start + 4;
+        if(value){
+            elem.value = "" + (value.substring(0, start)) + "    " + (value.substring(end));
+            elem.selectionStart = elem.selectionEnd = start + 4;
+        }
         return false;
     }
 });

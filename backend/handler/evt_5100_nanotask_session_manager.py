@@ -16,21 +16,6 @@ import json
 #    loader.add_attr('root_path', os.getcwd(), help='')
 #    loader.add_attr('root_path_templates', 'projects/{project_name}/templates/', help='')
 
-templates = [
-    {
-        "name": "first",
-        "repeat_times": 2,
-    },
-    {
-        "name": "main",
-        "repeat_times": 10,
-    },
-    {
-        "name": "last",
-        "repeat_times": 1
-    }
-]
-
 class NanotaskSessionManager():
     def __init__(self):
         self.state_machines = {}
@@ -119,7 +104,6 @@ class Handler(EventHandler):
             except Exception as e:
                 ans["Status"] = "error"
                 ans["Reason"] = str(e)
-            return ans
         elif command=="GET_SM_PROFILE":
             project_name = event.data[1]
             try:
@@ -129,7 +113,6 @@ class Handler(EventHandler):
             except Exception as e:
                 ans["Status"] = "error"
                 ans["Reason"] = str(e)
-            return ans
         elif command=="CREATE_SESSION":    # フローをワーカーが開始するごとに作成
             project_name = event.data[1]
             try:
@@ -139,7 +122,6 @@ class Handler(EventHandler):
             except Exception as e:
                 ans["Status"] = "error"
                 ans["Reason"] = str(e)
-            return ans
         elif command=="GET":
             session_id = event.data[1]
             try:
@@ -156,4 +138,7 @@ class Handler(EventHandler):
             except Exception as e:
                 ans["Status"] = "error"
                 ans["Reason"] = str(e)
-            return ans
+        else:
+            ans["Status"] = "error"
+            ans["Reason"] = "unknown command '{}'".format(command)
+        return ans

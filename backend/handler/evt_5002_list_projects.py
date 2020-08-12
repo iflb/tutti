@@ -1,12 +1,15 @@
-from datetime import datetime
 import os
 import asyncio
 from asyncio.subprocess import PIPE
 
-from tortoise.backends.mysql.client import MySQLClient
-
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
+
+from handler import paths
+
+
+import logging
+logger = logging.getLogger(__name__)
 
 @config_callback
 def config(loader):
@@ -25,8 +28,7 @@ class Handler(EventHandler):
         return handler_spec
 
     async def handle(self, event):
-        #project_name = event.data[0]
-        
+        logger.info(paths.projects)
         root_path_projects = os.path.join(self.conf.root_path, self.conf.root_path_projects)
 
         process = await asyncio.create_subprocess_shell("ls {}".format(root_path_projects), stdout=PIPE, shell=True)
