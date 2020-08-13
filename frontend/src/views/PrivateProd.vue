@@ -1,76 +1,84 @@
 <template>
     <v-app>
-        <!--<router-view :to=`${projectName}` :duct="duct"></router-view>-->
-        <v-btn @click="getNextState">get next state</v-btn>
+        {{ count }}
+        <component :is="template" @submit="submit" />
     </v-app>
 </template>
 
 <script>
+import store from '@/store.js'
+import { mapActions, mapGetters } from 'vuex'
+
 export default {
+    store,
     data: () => ({
-        duct: null,
-        sessionId: null
+        templateName: "",
+        count: 0,
+        sessionId: null,
+        answer: {},
+        name: "/private-prod/"
     }),
+    computed: {
+        ...mapGetters("ductsModule", [
+            "duct"
+        ]),
+        template() {
+            console.log(this.templateName)
+            try { return require(`@/projects/${this.projectName}/templates/${this.templateName}/Main.vue`).default }
+            catch { return null }
+        }
+    },
     props: ["projectName"],
     methods: {
-        initDucts(ducts) {
-            ducts.user = 'guest';
-            ducts.context_url = '/ducts';
-            ducts.libs_plugin = [ducts.context_url + '/libs/libcrowd.js'];
-            ducts.main = this.main;
-                                                
-            let lib_script = document.createElement('script');
-            lib_script.src = ducts.context_url+'/libs/main.js';
-            document.body.appendChild(lib_script);
+        ...mapActions("ductsModule", [
+            "initDuct",
+            "openDuct",
+            "closeDuct"
+        ]),
+        getNextTemplate() {
+            if(this.sessionId) {
+                this.duct.sendMsg({
+                    tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
+                    data: `GET ${this.sessionId}`
+                })
+            }
         },
-        main(wsd){
-            this.duct = new window.ducts.dynamiccrowd.Duct(wsd);
-
-            this.duct.catchall_event_handler = (rid, eid) => {console.log('on_message eid='+eid)};
-            this.duct.uncaught_event_handler = (rid, eid) => {console.log('uncaught_message eid='+eid)};
-            this.duct.event_error_handler = (rid, eid, data, error) => {console.error(error);};
-
+        submit($event) {
+            Object.assign(this.answer, $event);
+            console.log(this.answer);
+            this.getNextTemplate();
+        }
+    },
+    created: function(){
+        this.initDuct( window.ducts = window.ducts || {}).then(() => {
             this.duct.setEventHandler(this.duct.EVENT.NANOTASK_SESSION_MANAGER, (rid, eid, data) => {
-                console.log(data["Command"], data["Status"])
-                if(data["Status"]==="error") console.log(data["Reason"])
-                else {
-                    switch(data["Command"]){
-                        case "REGISTER_SM":
-                            break
-                        case "CREATE_SESSION":
-                            this.sessionId = data["SessionId"]
-                            console.log(this.sessionId)
-                            break
-                        case "GET":
-                            console.log(data["NextStatus"])
-                            break
+                if(data["Command"]=="CREATE_SESSION"){
+                    if(data["Status"]=="error") { console.error(`failed to create session ID: ${data["Reason"]}`); return; }
+
+                    console.log(`created session: ${data["SessionId"]}`);
+                    this.sessionId = data["SessionId"];
+                    this.getNextTemplate();
+                }
+                else if(data["Command"]=="GET"){
+                    if(data["Status"]=="error") { console.error(`failed to get from state machine: ${data["Reason"]}`); return; }
+
+
+                    if(data["NextTemplate"]){
+                        this.count += 1;
+                        this.templateName = data["NextTemplate"].name;
+                    } else {
+                        alert("finished!");
                     }
                 }
             })
 
             this.openDuct().then(() => {
-                this.duct.send(this.duct.next_rid(), this.duct.EVENT.NANOTASK_SESSION_MANAGER, ["REGISTER_SM", "fugapro"])
-                this.duct.send(this.duct.next_rid(), this.duct.EVENT.NANOTASK_SESSION_MANAGER, ["CREATE_SESSION", "fugapro"])
+                this.duct.sendMsg({
+                    tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
+                    data: `CREATE_SESSION ${this.projectName}`
+                })
             })
-        },
-        openDuct(){
-            return new Promise((resolve, reject) => {
-                this.duct.open().then(() => {
-                    //if(this.$refs.child.onDuctOpen) this.$refs.child.onDuctOpen();
-                    resolve();
-                }).catch(reject);
-            })
-        },
-        closeDuct(){
-            this.duct.close()
-            //if(this.$refs.child.onDuctClose) this.$refs.child.onDuctClose();
-        },
-        getNextState(){
-            if(this.sessionId) this.duct.send(this.duct.next_rid(), this.duct.EVENT.NANOTASK_SESSION_MANAGER, ["GET", this.sessionId])
-        }
-    },
-    created: function(){
-        this.initDucts( window.ducts = window.ducts || {})
+        })
     }
 }
 </script>

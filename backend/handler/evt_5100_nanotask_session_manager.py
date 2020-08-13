@@ -3,13 +3,18 @@ import os
 import asyncio
 from asyncio.subprocess import PIPE
 import random, string
+import json
+import copy
+import itertools
 
 from tortoise.backends.mysql.client import MySQLClient
 
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
 
-import json
+import logging
+logger = logging.getLogger(__name__)
+
 
 #@config_callback
 #def config(loader):
@@ -18,8 +23,8 @@ import json
 
 class NanotaskSessionManager():
     def __init__(self):
-        self.state_machines = {}
-        self.sessions = {}
+        self.state_machines = {}  # プロジェクト<->StateMachineのマッピング
+        self.sessions = {}   # sessionId<->StateMachineのマッピング
 
     def register_state_machine(self, project_name, sm):
         self.state_machines[project_name] = sm
@@ -44,9 +49,11 @@ class NanotaskSessionManager():
 
     def set_session(self, project_name, session_id):
         try:
-            self.sessions[session_id] = self.state_machines[project_name]
+            self.sessions[session_id] = itertools.tee(self.state_machines[project_name], 1)
         except Exception as e:
+            raise Exception(e)
             raise ValueError(f"state machine for project name '{project_name}' is not registered")
+
 
 class NanotaskSessionStateMachine():
     def __init__(self):
@@ -54,15 +61,16 @@ class NanotaskSessionStateMachine():
         self.total_finished_nanotasks = 0
         self.status_getter = self._next_status_generator()
 
+    # profile内の１つをバッチに加える
     def add_batch(self, batch):
         self.batches.append(batch)
 
     def _next_status_generator(self):
         for b in self.batches:
             for i in range(b.repeat_times):
-                yield f'{b.template_name} {i}'
+                yield b.template_name
 
-    def get_next_status(self):
+    def get_next_template(self):
         return self.status_getter.__next__()
 
     def refresh_generator(self, batch):
@@ -75,6 +83,28 @@ class NanotaskSessionState():
         self.template_name = template_name
         self.repeat_times = repeat_times
 
+
+profiles = {}    # project_name: profile
+sessions = {}    # session_id: iterator
+
+class MyIterator():
+    def __init__(self, profile):
+        self.profile = profile
+        self._tidx = 0
+        self._ridx = 0
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self._tidx==len(self.profile):  raise StopIteration()
+
+        template = self.profile[self._tidx]
+        self._ridx += 1
+        if self._ridx==self.profile[self._tidx]["repeat_times"]:
+            self._tidx += 1
+            self._ridx = 0
+        return template
 
 class Handler(EventHandler):
     def __init__(self):
@@ -94,50 +124,98 @@ class Handler(EventHandler):
         if command=="REGISTER_SM":    # ナノタスクフローの定義。ワーカー数によらず１回のみでよい
             project_name = event.data[1]
             profile = event.data[2]
+            
             try:
-                sm = NanotaskSessionStateMachine()
-                sm.raw_profile = json.loads(profile)
-                for t in sm.raw_profile:
-                    sm.add_batch(NanotaskSessionState(t["name"], t["repeat_times"]))
-                self.session_manager.register_state_machine(project_name, sm)
+                profiles[project_name] = json.loads(profile)
                 ans["Status"] = "success"
             except Exception as e:
                 ans["Status"] = "error"
                 ans["Reason"] = str(e)
+
+            #try:
+            #    sm = NanotaskSessionStateMachine()
+            #    sm.raw_profile = json.loads(profile)
+            #    for t in sm.raw_profile:
+            #        sm.add_batch(NanotaskSessionState(t["name"], t["repeat_times"]))
+            #    self.session_manager.register_state_machine(project_name, sm)
+            #    ans["Status"] = "success"
+            #except Exception as e:
+            #    ans["Status"] = "error"
+            #    ans["Reason"] = str(e)
         elif command=="GET_SM_PROFILE":
             project_name = event.data[1]
+
             try:
-                profile = self.session_manager.get_state_machine(project_name).raw_profile
+                profile = profiles[project_name]
                 ans["Status"] = "success"
                 ans["Profile"] = profile
             except Exception as e:
                 ans["Status"] = "error"
                 ans["Reason"] = str(e)
+
+            #try:
+            #    profile = self.session_manager.get_state_machine(project_name).raw_profile
+            #    ans["Status"] = "success"
+            #    ans["Profile"] = profile
+            #except Exception as e:
+            #    ans["Status"] = "error"
+            #    ans["Reason"] = str(e)
         elif command=="CREATE_SESSION":    # フローをワーカーが開始するごとに作成
             project_name = event.data[1]
+
+
+
+            # TODO:: what if duplicate?
             try:
-                session_id, session = self.session_manager.create_session(project_name)
+                session_id = ''.join([random.choice(string.ascii_letters + string.digits) for i in range(10)])
+                iterator = MyIterator(profiles[project_name])
+                sessions[session_id] = iterator
                 ans["Status"] = "success"
                 ans["SessionId"] = session_id
             except Exception as e:
                 ans["Status"] = "error"
                 ans["Reason"] = str(e)
+
+            #try:
+            #    session_id, session = self.session_manager.create_session(project_name)
+            #    ans["Status"] = "success"
+            #    ans["SessionId"] = session_id
+            #except Exception as e:
+            #    ans["Status"] = "error"
+            #    ans["Reason"] = str(e)
         elif command=="GET":
             session_id = event.data[1]
+
+
             try:
-                session = self.session_manager.get_session(session_id)
-                if session:
+                if session_id in sessions:
+                    ans["NextTemplate"] = next(sessions[session_id])
                     ans["Status"] = "success"
-                    ans["NextStatus"] = session.get_next_status()
                 else:
                     ans["Status"] = "error"
                     ans["Reason"] = "No session found"
             except StopIteration as e:
                 ans["Status"] = "success"
-                ans["NextStatus"] = None
+                ans["NextTemplate"] = None
             except Exception as e:
                 ans["Status"] = "error"
                 ans["Reason"] = str(e)
+
+
+            #try:
+            #    session = self.session_manager.get_session(session_id)
+            #    if session:
+            #        ans["Status"] = "success"
+            #        ans["NextTemplate"] = session.get_next_template()
+            #    else:
+            #        ans["Status"] = "error"
+            #        ans["Reason"] = "No session found"
+            #except StopIteration as e:
+            #    ans["Status"] = "success"
+            #    ans["NextTemplate"] = None
+            #except Exception as e:
+            #    ans["Status"] = "error"
+            #    ans["Reason"] = str(e)
         else:
             ans["Status"] = "error"
             ans["Reason"] = "unknown command '{}'".format(command)

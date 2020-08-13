@@ -40,6 +40,7 @@ class Handler(EventHandler):
             return "Error: template '{}' already exists".format(template_name)
 
         try:
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
             shutil.copyfile(src, dst)
             return "Success: created template '{}'".format(template_name)
         except Exception as e:

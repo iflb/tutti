@@ -61,7 +61,7 @@ export default {
         }
     },
     methods: {
-        launchProductionMode(){ window.open(`/vue/prod/private/${this.project.name}`); }
+        launchProductionMode(){ window.open(`/vue/private-prod/${this.project.name}`); }
     },
     watch: {
         "project.name"() { this.templateName = null }
