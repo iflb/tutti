@@ -5,7 +5,7 @@
             
             <v-toolbar-title>DynamicCrowd Management Console</v-toolbar-title>
             <v-spacer></v-spacer>
-            <v-autocomplete v-model="project.name" :items="projects" :search-input.sync="searchString" label="Project name" cache-items solo-inverted hide-no-data></v-autocomplete>
+            <v-autocomplete v-model="project.name" :items="projects" :search-input.sync="searchString" label="Project name" hide-details cache-items solo-inverted hide-no-data></v-autocomplete>
             <v-spacer></v-spacer>
             <v-menu offset-y>
                 <template v-slot:activator="{ on, attrs }">

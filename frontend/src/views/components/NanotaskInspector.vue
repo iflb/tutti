@@ -1,34 +1,36 @@
 <template>
-    <v-main>
-        <v-container mt-0 pa-0>
-        <v-toolbar prominent flat height="150px" fill-height>
-            <v-toolbar-title>
-            <v-row>
-                <v-col>
-                    <v-select :items="project.templates" v-model="templateName" label="Template name" :disabled="isTemplateSelectDisabled"></v-select>
+    <v-main class="mt-10 grey lighten-4">
+        <v-row justify="center">
+            <v-col cols="10">
+            <v-card class="pa-3">
+                <v-row class="justify-space-around">
+                <v-col cols="12" md="7" align="center">
+                <v-select width="80%" hide-details :items="project.templates" v-model="templateName" label="Template name" :disabled="isTemplateSelectDisabled"></v-select>
                 </v-col>
-                <v-col align="right">
-                    <v-btn class="text-none" :disabled="project.name === null" @click="launchProductionMode()">Launch in production mode (private)</v-btn>
+                <v-col cols="12" md="4" align="center">
+                <v-container>
+                <v-btn class="text-none" :disabled="project.name === null" @click="launchProductionMode()">Launch in production mode (private)</v-btn>
+                </v-container>
                 </v-col>
-            </v-row>
-            </v-toolbar-title>
-        </v-toolbar>
-        <v-row>
-            <v-col cols="9">
+                </v-row>
+            </v-card>
+            </v-col>
+        </v-row>
+        <v-row justify="center">
+            <v-col cols="10" md="7">
                 <v-card height="100%"><component :is="nanotaskTemplateComponent"/></v-card>
             </v-col>
-            <v-col cols="3">
-                <v-card height="100%" color="blue-grey lighten-4">
+            <v-col cols="10" md="3">
+                <v-card height="100%" color="grey lighten-3">
                     <v-list-item three-line>
                         <v-list-item-content>
                             <div class="overline mb-4">ANSWER DATA</div>
-                            <v-textarea :disabled="true" v-model="currentAnswer" height="100%"></v-textarea>
+                            <v-textarea auto-grow no-resize :disabled="true" v-model="currentAnswer"></v-textarea>
                         </v-list-item-content>
                     </v-list-item>
                 </v-card>
             </v-col>
         </v-row>
-        </v-container>
     </v-main>
 </template>
 

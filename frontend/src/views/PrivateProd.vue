@@ -46,6 +46,7 @@ export default {
         submit($event) {
             Object.assign(this.answer, $event);
             console.log(this.answer);
+            this.answer = {}
             this.getNextTemplate();
         }
     },

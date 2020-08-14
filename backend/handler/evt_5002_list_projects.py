@@ -5,8 +5,7 @@ from asyncio.subprocess import PIPE
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
 
-from handler import paths
-
+from handler import paths, common
 
 import logging
 logger = logging.getLogger(__name__)
@@ -28,10 +27,4 @@ class Handler(EventHandler):
         return handler_spec
 
     async def handle(self, event):
-        logger.info(paths.projects)
-        root_path_projects = os.path.join(self.conf.root_path, self.conf.root_path_projects)
-
-        process = await asyncio.create_subprocess_shell("ls {}".format(root_path_projects), stdout=PIPE, shell=True)
-        val = await process.communicate()
-
-        return val[0].decode().split("\n")[:-1]
+        return await common.get_projects()

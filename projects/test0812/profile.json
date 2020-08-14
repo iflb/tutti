@@ -1,0 +1,10 @@
+[
+    {
+        "name": "first",
+        "repeat_times": 4
+    },
+    {
+        "name": "main",
+        "repeat_times": 3
+    }
+]
