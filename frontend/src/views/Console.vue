@@ -142,7 +142,7 @@ export default {
         "project.name" (val) {
             this.project = project
             this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_TEMPLATES, data: val })
-            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER, data: `GET_SM_PROFILE ${val}` })
+            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER, data: `GET_FLOWS ${val}` })
         }
     },
     methods: {
@@ -214,7 +214,7 @@ export default {
                             text: "Successfully registered a state machine"
                         })
                     }
-                    else if(data["Command"]=="GET_SM_PROFILE"){
+                    else if(data["Command"]=="GET_FLOWS"){
                         if(data["Status"]=="error"){
                             this.sharedProps.project.profile = null
                             this.$refs.child.showSnackbar({
@@ -222,7 +222,7 @@ export default {
                                 text: "Profile is not set"
                             })
                         } else {
-                            this.sharedProps.project.profile = data["Profile"]
+                            this.sharedProps.project.profile = data["Flow"]
                         }
                     }
                 }

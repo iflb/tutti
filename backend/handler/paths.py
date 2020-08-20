@@ -4,5 +4,8 @@ from pathlib import Path
 root = Path(os.getcwd())
 projects = root / 'projects'
 
+def project_path(project_name):
+    return projects / project_name
+
 def project_profile_path(project_name):
-    return projects / project_name / "profile.json"
+    return project_path(project_name) / "profile.json"

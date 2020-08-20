@@ -1,7 +1,7 @@
 <template>
     <v-app>
         {{ count }}
-        <component :is="template" @submit="submit" />
+        <component :is="template" :nano-data="{ hoge: 1, fuga: 2}" @submit="submit" />
     </v-app>
 </template>
 
@@ -63,10 +63,9 @@ export default {
                 else if(data["Command"]=="GET"){
                     if(data["Status"]=="error") { console.error(`failed to get from state machine: ${data["Reason"]}`); return; }
 
-
                     if(data["NextTemplate"]){
                         this.count += 1;
-                        this.templateName = data["NextTemplate"].name;
+                        this.templateName = data["NextTemplate"];
                     } else {
                         alert("finished!");
                     }

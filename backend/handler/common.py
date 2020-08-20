@@ -1,10 +1,8 @@
+import os
 import asyncio
 from asyncio.subprocess import PIPE
 
 import handler.paths as paths
 
-async def get_projects():
-    process = await asyncio.create_subprocess_shell("ls {}".format(paths.projects), stdout=PIPE, shell=True)
-    val = await process.communicate()
-    
-    return val[0].decode().split("\n")[:-1]
+def get_projects():
+    return [name for name in os.listdir(paths.projects) if os.path.isdir(paths.project_path(name)) and not name.startswith(".")]

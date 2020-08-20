@@ -27,4 +27,4 @@ class Handler(EventHandler):
         return handler_spec
 
     async def handle(self, event):
-        return await common.get_projects()
+        return common.get_projects()

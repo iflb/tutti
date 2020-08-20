@@ -9,6 +9,8 @@ import TaskFlowDesigner from './views/components/TaskFlowDesigner'
 
 import PrivateProd from './views/PrivateProd'
 
+import Vuep from './views/Vuep'
+
 Vue.use(VueRouter)
 
 function getPropsForRoute(route) {
@@ -34,6 +36,10 @@ const router = new VueRouter({
             path: "/private-prod/:projectName",
             component: PrivateProd,
             props: true
+        },
+        {
+            path: "/vuep",
+            component: Vuep
         }
     ]
 })

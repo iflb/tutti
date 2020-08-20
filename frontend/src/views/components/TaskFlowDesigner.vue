@@ -86,7 +86,9 @@ export default {
             this.snackbar.visible = true
         },
         displayProfile() {
-            if(this.project.profile) this.profileString = JSON.stringify(this.project.profile, null, 4)
+            //if(this.project.profile) this.profileString = JSON.stringify(this.project.profile, null, 4)
+            console.log(this.project.profile)
+            if(this.project.profile) this.profileString = this.project.profile
             else this.profileString = ""
         },
         updateProfile() {
