@@ -12,8 +12,15 @@
                 <v-btn color="primary" @click="duct.sendMsg({ tag: name, eid: selectedEventId, data: selectedEventArgs })">Send</v-btn>
                 </v-col>
             </v-row>
-            <v-row>
-                <v-col>
+            <v-card>
+                <v-card-title>
+                    Communication Logs
+                    <v-spacer></v-spacer>
+                    <v-text-field v-model="searchStr" append-icon="mdi-magnify" label="Search" single-line hide-details>
+                    </v-text-field>
+                </v-card-title>
+                <v-data-table :headers="logTableHeaders" :items="serverLogTableRows" :items-per-page="10" :search="searchStr"></v-data-table>
+                <!--<v-col>
                     <v-simple-table>
                         <template v-slot:default>
                             <thead><tr><th class="text-left">Sent Messages</th></tr></thead>
@@ -29,7 +36,8 @@
                         </template>
                     </v-simple-table>
                 </v-col>
-            </v-row>
+                -->
+            </v-card>
         </v-container>
     </v-main>
 </template>
@@ -43,7 +51,16 @@ export default {
     data: () => ({
         selectedEventId: "",
         selectedEventArgs: "",
-        events: []
+        events: [],
+        serverLog: {},
+        logTableHeaders: [
+            { text: "Request ID", value: "rid" },
+            { text: "Tag", value: "tag" },
+            { text: "Sent Message", value: "sent" },
+            { text: "Received Message", value: "received" },
+        ],
+        serverLogTableRows: [],
+        searchStr: ""
     }),
     props: ["sharedProps","name"],
     computed: {
@@ -79,13 +96,33 @@ export default {
                 if(eid>=1000){ events.push({eid, label: `${eid}:: ${key}`}) }
             }
             this.events = events
+        },
+        aggregateLogs(log) {
+            const lastLog = log[log.length-1]
+            var key = "tag" in lastLog ? "sent" : "received";
+            if(lastLog){
+                if(!(lastLog.rid in this.serverLog)) this.serverLog[lastLog.rid] = {}
+                this.serverLog[lastLog.rid][key] = lastLog;
+            }
+            var rows = [];
+            for(const rid in this.serverLog){
+                const tag = this.serverLog[rid].sent.tag;
+                const s = this.serverLog[rid].sent;
+                const sent = s ? `${s.eid}__${s.data}` : ""
+                const r = this.serverLog[rid].received;
+                const received = r ? `${r.eid}__${JSON.stringify(r.data)}` : ""
+                rows.push({ rid, tag, sent, received })
+            }
+            this.serverLogTableRows = rows;
         }
     },
     mounted() {
         this.loadEvents()
     },
     watch: {
-        "duct.EVENT": function() { this.loadEvents() }
+        "duct.EVENT": function() { this.loadEvents() },
+        "duct.log.sent": function(newVal){ if(newVal.length) this.aggregateLogs(newVal); },
+        "duct.log.received": function(newVal){ if(newVal.length) this.aggregateLogs(newVal); },
     }
 }
 </script>
