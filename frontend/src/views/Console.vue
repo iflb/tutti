@@ -80,37 +80,6 @@ var project = {
     profile: null
 }
 
-//var connection = {
-//    status: "connecting",
-//    lastPinged: null,
-//    btnInfo() {
-//        switch(this.status){
-//            case "connected":
-//                return {
-//                    color: "success",
-//                    label: "Connected to server",
-//                    menu: [ { title: "Disconnect", handler: self.closeDuct } ]
-//                }
-//            case "connecting":
-//                return {
-//                    color: "warning",
-//                    label: "Connecting to server..."
-//                }
-//            case "disconnected":
-//                return {
-//                    color: "error",
-//                    label: "No connection to server",
-//                    menu: [ { title: "Connect", handler: self.openDuct } ]
-//                }               
-//            default:
-//                return null
-//        }
-//    }
-//}
-
-
-
-
 export default {
     store,
     data: () => ({
