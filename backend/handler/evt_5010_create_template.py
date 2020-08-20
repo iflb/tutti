@@ -28,21 +28,25 @@ class Handler(EventHandler):
 
     async def handle(self, event):
         project_name = event.data[0]
-        template_name = event.data[1]
+        template_names = event.data[1:]
         
         root_path_templates = os.path.join(self.conf.root_path, self.conf.root_path_project.format(project_name=project_name), self.conf.dir_presets)
         src = os.path.join(root_path_templates, self.conf.preset_default)
-        dst = os.path.join(root_path_templates, f"{template_name}/Main.vue")
 
         if not os.path.exists(src):
             return "Error: default preset does not exist ({})".format(src)
-        if os.path.exists(dst):
-            return "Error: template '{}' already exists".format(template_name)
 
-        try:
-            os.makedirs(os.path.dirname(dst), exist_ok=True)
-            shutil.copyfile(src, dst)
-            return "Success: created template '{}'".format(template_name)
-        except Exception as e:
-            return "{}".format(e)
-            return "Error: file could not be created" 
+        templates_success = []
+        for template_name in template_names:
+            dst = os.path.join(root_path_templates, f"{template_name}/Main.vue")
+    
+            if os.path.exists(dst):
+                return "Error: template '{}' already exists (Successful for templates: {})".format(template_name, templates_success)
+    
+            try:
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                shutil.copyfile(src, dst)
+                templates_success.append(template_name)
+            except Exception as e:
+                return "Error for '{}': {} (Successful for templates: {})".format(template_name, e, templates_success)
+        return "Success: created template '{}'".format(templates_success)
