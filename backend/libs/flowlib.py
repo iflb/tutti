@@ -1,5 +1,9 @@
 import copy
 
+import logging
+logger = logging.getLogger(__name__)
+
+
 def is_batch(elm):
     return isinstance(elm, BatchNode)
 
@@ -29,19 +33,21 @@ class TaskNode(Node):
 class BatchNode(Node):
     def __init__(self, tag, elms=None, **kwargs):
         super().__init__(tag, **kwargs)
-        if elms:
-            for elm in elms:
-                elm.cond_if = self.cond_if if not elm.cond_if else elm.cond_if
-                elm.cond_while = self.cond_while if not elm.cond_while else elm.cond_while
-            self.elms = elms
+        self.elms = self._propagate(elms) if elms else []
+
+    def _propagate(self, elm):
+        if type(elm)==list:
+            return [self._propagate(e) for e in elm]
         else:
-            self.elms = []
+            elm.cond_if = self.cond_if if not elm.cond_if else elm.cond_if
+            elm.cond_while = self.cond_while if not elm.cond_while else elm.cond_while
+        return elm
 
     def append(self, elm):
         if type(elm)==list:
-            self.elms.extend(elm)
+            self.elms.extend(self._propagate(elm))
         else:
-            self.elms.append(elm)
+            self.elms.append(self._propagate(elm))
 
     def retrieve(self, skip_while=False):
         ### ここは最下位のbatchまで

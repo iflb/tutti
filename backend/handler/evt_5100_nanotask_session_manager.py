@@ -21,45 +21,16 @@ logger = logging.getLogger(__name__)
 from handler import paths, common
 from libs.flowlib import Engine, is_batch, is_node
 
-class MyIterator():
-    def __init__(self, profile):
-        self.profile = profile
-        self._tidx = 0
-        self._ridx = 0
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        if self._tidx==len(self.profile):  raise StopIteration()
-
-        template = self.profile[self._tidx]
-        self._ridx += 1
-        if self._ridx==self.profile[self._tidx]["repeat_times"]:
-            self._tidx += 1
-            self._ridx = 0
-        return template
-
 class Handler(EventHandler):
     def __init__(self):
         super().__init__()
-        self.profiles = {}    # {project_name: profile}
+        self.flows = self.load_flows()   # {project_name: Engine}
         self.sessions = {}    # {session_id: iterator}
-        self.flows = self.load_flows()
 
     def setup(self, handler_spec, manager):
         handler_spec.set_description('テンプレート一覧を取得します。')
         handler_spec.set_as_responsive()
         return handler_spec
-
-    def get_existing_profiles(self):
-        for project_name in common.get_projects():
-            profile_path = paths.project_profile_path(project_name)
-            if os.path.exists(profile_path):
-                with open(profile_path, "r") as f:
-                    profile = f.read()
-                    profile_json = json.loads(profile)
-                    self.profiles[project_name] = profile_json
 
     def load_flows(self):
         flows = {}
@@ -70,7 +41,7 @@ class Handler(EventHandler):
                 flow.define()
                 flows[project_name] = flow.batch_all
             except Exception as e:
-                #logger.debug("{}, {}".format("projects.{}.flow".format(project_name), str(e)))
+                logger.debug("{}, {}".format("projects.{}.flow".format(project_name), str(e)))
                 continue   
         return flows
 
@@ -80,27 +51,7 @@ class Handler(EventHandler):
         ans = {}
         ans["Command"] = command
 
-        if len(self.profiles.keys())==0:  self.get_existing_profiles()
-
-        if command=="REGISTER_SM":    # ナノタスクフローの定義。ワーカー数によらず１回のみでよい
-            project_name = event.data[1]
-            profile = event.data[2]
-            
-            try:
-                profile_json = json.loads(profile)
-                with open(paths.project_profile_path(project_name), "w") as f:
-                    f.write(json.dumps(profile_json, indent=4))
-                self.profiles[project_name] = profile_json
-                ans["Status"] = "success"
-            except Exception as e:
-                ans["Status"] = "error"
-                ans["Reason"] = str(e)
-
-
-
-
-
-        elif command=="GET_FLOWS":
+        if command=="GET_FLOWS":
             project_name = event.data[1]
             try:
                 flow = self.flows[project_name]
@@ -115,28 +66,8 @@ class Handler(EventHandler):
                 ans["Status"] = "error"
                 ans["Reason"] = str(e)
 
-
-
-
-
-
-
-        elif command=="GET_SM_PROFILE":
-            project_name = event.data[1]
-
-            try:
-                profile = self.profiles[project_name]
-                ans["Status"] = "success"
-                ans["Profile"] = profile
-            except Exception as e:
-                ans["Status"] = "error"
-                ans["Reason"] = str(e)
-
         elif command=="CREATE_SESSION":    # フローをワーカーが開始するごとに作成
             project_name = event.data[1]
-
-
-
             try:
                 session_id = ''.join([random.choice(string.ascii_letters + string.digits) for i in range(10)])
                 self.sessions[session_id] = Engine(self.flows[project_name])
@@ -146,17 +77,6 @@ class Handler(EventHandler):
                 ans["Status"] = "error"
                 ans["Reason"] = str(e)
                 
-
-            ## TODO:: what if duplicate?
-            #try:
-            #    session_id = ''.join([random.choice(string.ascii_letters + string.digits) for i in range(10)])
-            #    self.sessions[session_id] = iterator
-            #    ans["Status"] = "success"
-            #    ans["SessionId"] = session_id
-            #except Exception as e:
-            #    ans["Status"] = "error"
-            #    ans["Reason"] = str(e)
-
         elif command=="GET":
             session_id = event.data[1]
 
