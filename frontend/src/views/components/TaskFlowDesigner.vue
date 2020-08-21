@@ -1,5 +1,5 @@
 <template>
-    <v-main>
+    <v-main class="mt-10 grey lighten-4">
         <v-container>
         <v-row class="justify-center"><v-col cols="10" md="6">
             <v-row><v-col>
@@ -7,7 +7,9 @@
             </v-col></v-row>
 
             <v-row><v-col>
-            <v-textarea id="task-flow" label="JSON for task flow profile" height="500px" outlined v-model="profileString"></v-textarea>
+            <v-card class="pa-6">
+            <v-textarea id="task-flow" label="JSON for task flow profile" v-model="profileString" rows="20" auto-grow></v-textarea>
+            </v-card>
             </v-col></v-row>
 
             <v-row><v-col align="right">

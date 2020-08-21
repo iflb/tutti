@@ -40,7 +40,7 @@ class BatchNode(Node):
             return [self._propagate(e) for e in elm]
         else:
             elm.cond_if = self.cond_if if not elm.cond_if else elm.cond_if
-            elm.cond_while = self.cond_while if not elm.cond_while else elm.cond_while
+            #elm.cond_while = self.cond_while if not elm.cond_while else elm.cond_while
         return elm
 
     def append(self, elm):

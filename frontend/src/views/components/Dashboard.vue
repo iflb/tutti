@@ -1,3 +1,4 @@
 <template>
-    <v-container>Blank dashboard!</v-container>
+    <v-main class="mt-10 grey lighten-4">
+    </v-main>
 </template>
