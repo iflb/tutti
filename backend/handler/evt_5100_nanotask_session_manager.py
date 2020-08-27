@@ -31,7 +31,7 @@ class PriorityNanotaskSet:
         self._set = set()
 
     def __repr__(self):
-        return str(self._heap)
+        return "<PriorityNanotaskSet {}>".format(str(self._heap))
 
     def add(self, item, priority):
         if not item in self._set:
@@ -43,17 +43,61 @@ class PriorityNanotaskSet:
         self._set.remove(item)
         return item 
 
+class DCStruct:   # lame
+    def __init__(self):
+        self.data_all = {}
+
+    def __repr__(self):
+        return "<DCStruct {}>".format(json.dumps(self.data_all, indent=4, default=lambda o: repr(o)))
+
+    def add(self, data, project_name, template_name=None, nanotask_id=None):
+        pn, tn, nid = project_name, template_name, nanotask_id
+        if tn==None:
+            self.data_all[pn] = data
+            return
+        else:
+            if pn not in self.data_all:  self.data_all[pn] = {}
+            if nid==None:
+                self.data_all[pn][tn] = data
+                return
+            else:
+                if tn not in self.data_all[pn]:  self.data_all[pn][tn] = {}
+                self.data_all[pn][tn][nid] = data
+                
+    def get(self, project_name=None, template_name=None, nanotask_id=None):
+        pn, tn, nid = project_name, template_name, nanotask_id
+        if nid:   return self.data_all[pn][tn][nid]
+        elif tn:  return self.data_all[pn][tn]
+        elif pn:  return self.data_all[pn]
+        else:     return self.data_all
+
+    def delete(self, project_name=None, template_name=None, nanotask_id=None):
+        pn, tn, nid = project_name, template_name, nanotask_id
+        if nid:   del self.data_all[pn][tn][nid]
+        elif tn:  del self.data_all[pn][tn]
+        elif pn:  del self.data_all[pn]
+        else:     del self.data_all
+
+    def project_names(self):
+        return self.data_all.keys()
+
+    def template_names(self, project_name):
+        return self.data_all[project_name].keys()
+
+    def nanotask_ids(self, project_name, template_name):
+        return self.data_all[project_name][template_name].keys()
+
+
 class Handler(EventHandler):
     def __init__(self):
         super().__init__()
         self.flows = self.load_flows()   # {project_name: Engine}
-        self.sessions = {}    # {session_id: iterator}
+        self.sessions = {}               # {session_id: iterator}
         self.db = MongoClient()
 
-        self.nt_memory = {}     # project_name -> template_name -> nanotask_id -> {nanotask}
-        #self.submitted_nids = {}    # worker_id -> project_name -> template_name -> "nanotask_id"
-        self.w_assignables = {}     # worker_id -> project_name -> template_name -> nanotask_id -> int(priority)
-        self.assignables_priority = {}    # project_name -> template_name -> nanotask_id -> int(priority)
+        self.nt_memory = DCStruct()             # DCStruct(project_name -> template_name -> nanotask_id) -> {nanotask}
+        self.assignables_priority = DCStruct()  # DCStruct(project_name -> template_name -> nanotask_id) -> int(priority)
+        self.w_assignables = {}                 # worker_id -> DCStruct(project_name -> template_name) -> PriorityNanotaskSet({nanotask_id})
 
         self.create_nanotask_memory()    
 
@@ -71,17 +115,11 @@ class Handler(EventHandler):
         for cn in _db.list_collection_names(filter=None):
             [pn, tn] = [project_name, template_name] = cn.split(".")
 
-            if pn not in nt_memory:  nt_memory[pn] = {}
-            if tn not in nt_memory[pn]: nt_memory[pn][tn] = {}
-
             for nt in _db[cn].find():
                 nid = nanotask_id = str(nt["_id"])
-                nt_memory[pn][tn][nid] = nt
-                nt_memory[pn][tn][nid]["#remaining"] = nt["#assignable"]
-
-                if pn not in assignables_priority:  assignables_priority[pn] = {}
-                if tn not in assignables_priority[pn]:  assignables_priority[pn][tn] = {}
-                assignables_priority[pn][tn][nid] = nt_memory[pn][tn][nid]["priority"]
+                nt["#remaining"] = nt["#assignable"]
+                nt_memory.add(nt, pn, tn, nid)
+                assignables_priority.add(nt_memory.get(pn,tn,nid)["priority"], pn, tn, nid)
 
     def update_assignability(self):
         nt_memory = self.nt_memory
@@ -91,36 +129,34 @@ class Handler(EventHandler):
         _db = self.db["answers"]
         for cn in _db.list_collection_names(filter=None):
             [pn, tn, nid] = [project_name, template_name, nanotask_id] = cn.split(".")
-            try:
-                answers = _db[cn].find()
-                nt_memory[pn][tn][nid]["#remaining"] -= answers.count()
-                if nt_memory[pn][tn][nid]["#remaining"]==0:  del assignables_priority[pn][tn][nid]
+            _n_answers = _db[cn].find()
 
-                for a in answers:
-                    #wid = a["workerId"]
-                    wid = a["sessionId"]
-                    if wid not in submitted_nids:  submitted_nids[wid] = {}
-                    if pn not in submitted_nids[wid]:  submitted_nids[wid][pn] = {}
-                    if tn not in submitted_nids[wid][pn]:  submitted_nids[wid][pn][tn] = set()
-                    submitted_nids[wid][pn][tn].add(nid)
+            try:     mem = nt_memory.get(pn, tn, nid)
+            except:  logger.debug("{}.{}.{} was not found in nanotask memory".format(pn, tn, nid))
 
-            except Exception as e:
-                logger.debug(str(e))
-                logger.debug("{}.{}.{} was not found in nanotask memory".format(pn, tn, nid))
+            mem["#remaining"] -= _n_answers.count()
+            if mem["#remaining"]<=0:  assignables_priority.delete(pn, tn, nid)
 
-        # assignables_priority ... priority values for all (globally-)assignable nanotasks
-        # submitted_nids ... per-worker structure of lists that contain already-submitted nanotask IDs 
-        # w_assignables ... per-worker priority set of nanotask IDs that remain unassigned
+            for a in _n_answers:
+                #wid = a["workerId"]
+                wid = a["sessionId"]
+                if wid not in submitted_nids:
+                    submitted_nids[wid] = DCStruct()
+                    submitted_nids[wid].add(set(), pn, tn)
+                submitted_nids[wid].get(pn, tn).add(nid)
+
         w_assignables = self.w_assignables
         for wid in submitted_nids.keys():
-            for pn in submitted_nids[wid].keys():
-                for tn in submitted_nids[wid][pn].keys():
-                    _assignables_priority = copy.copy(assignables_priority[pn][tn])
-                    for nid in submitted_nids[wid][pn][tn]:  del _assignables_priority[nid]
-                    if wid not in w_assignables:  w_assignables[wid] = {}
-                    if pn not in w_assignables[wid]:  w_assignables[wid][pn] = {}
-                    w_assignables[wid][pn][tn] = PriorityNanotaskSet()
-                    for nid, pr in _assignables_priority.items():  w_assignables[wid][pn][tn].add(nid, pr)
+            for pn in submitted_nids[wid].project_names():
+                for tn in submitted_nids[wid].template_names(pn):
+                    _t_assignables_priority = copy.copy(assignables_priority.get(pn,tn))
+                    for nid in submitted_nids[wid].get(pn, tn):
+                        del _t_assignables_priority[nid]
+
+                    if wid not in w_assignables:  w_assignables[wid] = DCStruct()
+                    _set = PriorityNanotaskSet()
+                    for nid, pr in _t_assignables_priority.items():  _set.add(nid, pr)
+                    w_assignables[wid].add(_set, pn, tn)
 
 
     def setup(self, handler_spec, manager):
