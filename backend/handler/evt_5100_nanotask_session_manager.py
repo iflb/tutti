@@ -25,6 +25,10 @@ from libs.flowlib import Engine, is_batch, is_node
 
 from pymongo import MongoClient
 
+class Nanotask:
+    def __init__(self, d_json):
+        self.json = d_json
+
 class PriorityNanotaskSet:
     def __init__(self):
         self._heap = []
@@ -95,9 +99,10 @@ class Handler(EventHandler):
         self.sessions = {}               # {session_id: iterator}
         self.db = MongoClient()
 
-        self.nt_memory = DCStruct()             # DCStruct(project_name -> template_name -> nanotask_id) -> {nanotask}
-        self.assignables_priority = DCStruct()  # DCStruct(project_name -> template_name -> nanotask_id) -> int(priority)
-        self.w_assignables = {}                 # worker_id -> DCStruct(project_name -> template_name) -> PriorityNanotaskSet({nanotask_id})
+        self.nt_memory = DCStruct()             # DCStruct(project_name -> template_name -> nanotask_id) -> nanotask
+        self.g_assignable = DCStruct()          # DCStruct(project_name -> template_name -> nanotask_id) -> nanotask
+        self.w_assignable = {}                  # worker_id -> DCStruct(project_name -> template_name) -> PriorityNanotaskSet(nanotask_id)
+        self.w_submitted = {}                   # worker_id -> DCStruct(project_name -> template_name) -> set(nanotask_id)
 
         self.create_nanotask_memory()    
 
@@ -105,11 +110,11 @@ class Handler(EventHandler):
         self.cache_nanotasks()
         self.update_assignability()
 
-        logger.debug(self.w_assignables)
+        logger.debug(self.w_assignable)
 
     def cache_nanotasks(self):
         nt_memory = self.nt_memory
-        assignables_priority = self.assignables_priority
+        g_assignable = self.g_assignable
 
         _db = self.db["nanotasks"]
         for cn in _db.list_collection_names(filter=None):
@@ -117,14 +122,15 @@ class Handler(EventHandler):
 
             for nt in _db[cn].find():
                 nid = nanotask_id = str(nt["_id"])
-                nt["#remaining"] = nt["#assignable"]
-                nt_memory.add(nt, pn, tn, nid)
-                assignables_priority.add(nt_memory.get(pn,tn,nid)["priority"], pn, tn, nid)
+                nt["num_remaining"] = nt["num_assignable"]
+                nanotask = Nanotask(nt)
+                nt_memory.add(nanotask, pn, tn, nid)
+                g_assignable.add(nt_memory.get(pn,tn,nid), pn, tn, nid)
 
     def update_assignability(self):
         nt_memory = self.nt_memory
-        assignables_priority = self.assignables_priority
-        submitted_nids = {}
+        g_assignable = self.g_assignable
+        w_submitted = self.w_submitted
 
         _db = self.db["answers"]
         for cn in _db.list_collection_names(filter=None):
@@ -134,29 +140,32 @@ class Handler(EventHandler):
             try:     mem = nt_memory.get(pn, tn, nid)
             except:  logger.debug("{}.{}.{} was not found in nanotask memory".format(pn, tn, nid))
 
-            mem["#remaining"] -= _n_answers.count()
-            if mem["#remaining"]<=0:  assignables_priority.delete(pn, tn, nid)
+            mem.json["num_remaining"] -= _n_answers.count()
+            if mem.json["num_remaining"]<=0:  g_assignable.delete(pn, tn, nid)
 
             for a in _n_answers:
                 #wid = a["workerId"]
                 wid = a["sessionId"]
-                if wid not in submitted_nids:
-                    submitted_nids[wid] = DCStruct()
-                    submitted_nids[wid].add(set(), pn, tn)
-                submitted_nids[wid].get(pn, tn).add(nid)
+                if wid not in w_submitted:
+                    w_submitted[wid] = DCStruct()
+                    w_submitted[wid].add(set(), pn, tn)
+                w_submitted[wid].get(pn, tn).add(nid)
 
-        w_assignables = self.w_assignables
-        for wid in submitted_nids.keys():
-            for pn in submitted_nids[wid].project_names():
-                for tn in submitted_nids[wid].template_names(pn):
-                    _t_assignables_priority = copy.copy(assignables_priority.get(pn,tn))
-                    for nid in submitted_nids[wid].get(pn, tn):
-                        del _t_assignables_priority[nid]
+        w_assignable = self.w_assignable
+        for wid in w_submitted.keys():
+            for pn in w_submitted[wid].project_names():
+                for tn in w_submitted[wid].template_names(pn):
+                    _t_assignable = copy.copy(g_assignable.get(pn,tn))
+                    logger.info(_t_assignable.keys())
+                    for nid in w_submitted[wid].get(pn, tn):
+                        if nid in _t_assignable:  del _t_assignable[nid]
 
-                    if wid not in w_assignables:  w_assignables[wid] = DCStruct()
+                    if wid not in w_assignable:  w_assignable[wid] = DCStruct()
                     _set = PriorityNanotaskSet()
-                    for nid, pr in _t_assignables_priority.items():  _set.add(nid, pr)
-                    w_assignables[wid].add(_set, pn, tn)
+                    logger.debug(_t_assignable)
+                    for nt in _t_assignable.values():
+                        _set.add(nt, nt.json["priority"])
+                    w_assignable[wid].add(_set, pn, tn)
 
 
     def setup(self, handler_spec, manager):
@@ -203,6 +212,20 @@ class Handler(EventHandler):
             try:
                 session_id = ''.join([random.choice(string.ascii_letters + string.digits) for i in range(10)])
                 self.sessions[session_id] = Engine(project_name, self.flows[project_name])
+
+                # g_assignable to w_assignable[worker_id]
+                _ga_copy = copy.copy(self.g_assignable)
+                _wa = DCStruct()
+                for pn in _ga_copy.get():
+                    for tn in _ga_copy.get(pn):
+                        _set = PriorityNanotaskSet()
+                        for nt in _ga_copy.get(pn,tn).values():
+                            _set.add(nt, nt.json["priority"])
+                        _wa.add(_set, pn, tn)
+                self.w_assignable[session_id] = _wa
+
+                logger.info(self.w_assignable)
+
                 ans["Status"] = "success"
                 ans["SessionId"] = session_id
             except Exception as e:
@@ -210,16 +233,18 @@ class Handler(EventHandler):
                 ans["Reason"] = str(e)
                 
         elif command=="GET":
-            session_id = event.data[1]
+            pn = project_name = event.data[1]
+            session_id = event.data[2]
 
             try:
                 if session_id in self.sessions:
                     session = self.sessions[session_id]
-                    template_name = session.get_next_template()
-                    ans["NextTemplate"] = template_name
-                    nanotask = self.db["nanotasks"].get_collection("{}.{}".format(session.project_name, template_name)).find_one()
-                    self.db["answers"].get_collection("{}.{}.{}".format(session.project_name, template_name, nanotask["_id"])).insert_one({"sessionId": session_id, "answers": None})
-                    ans["Props"] = nanotask["props"]
+                    tn = session.get_next_template()
+                    ans["NextTemplate"] = tn
+                    logger.debug(self.w_assignable)
+                    nanotask = self.w_assignable[session_id].get(pn, tn).pop()
+                    ans["Props"] = nanotask.json["props"]
+                    ans["NanotaskId"] = str(nanotask.json["_id"])
                     ans["Status"] = "success"
                 else:
                     ans["Status"] = "error"
@@ -231,6 +256,33 @@ class Handler(EventHandler):
                 ans["Status"] = "error"
                 ans["Reason"] = str(e)
 
+        elif command=="ANSWER":
+            sid = session_id = event.data[1]
+            [pn, tn, nid] = [project_name, template_name, nanotask_id] = event.data[2:5]
+            answers = json.loads(event.data[5])
+
+            logger.debug(sid)
+            logger.debug(pn)
+            logger.debug(tn)
+            logger.debug(nid)
+            logger.debug(answers)
+
+            
+            try:
+                wid = sid
+                w_submitted = self.w_submitted
+                if wid not in w_submitted:
+                    w_submitted[wid] = DCStruct()
+                    w_submitted[wid].add(set(), pn, tn)
+                w_submitted[wid].get(pn, tn).add(nid)
+                self.db["answers"]["{}.{}.{}".format(pn, tn, nid)].insert_one({"sessionId": sid, "answers": answers})
+                ans["Status"] = "success"
+                ans["SentAnswer"] = answers
+            except Exception as e:
+                ans["Status"] = "error"
+                ans["Reason"] = str(e)
+                
+            
         else:
             ans["Status"] = "error"
             ans["Reason"] = "unknown command '{}'".format(command)

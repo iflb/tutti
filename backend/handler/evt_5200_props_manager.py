@@ -34,15 +34,15 @@ class Handler(EventHandler):
         return handler_spec
 
     def save_nanotasks(self, iterable, project_name, template_name, **meta):
-        def add_meta(props):
+        def add_meta(props, priority):
             return {
                 "tag": meta["tag"],
-                "#assignable": meta["num_assignments"],
-                "priority": meta["priority"],
+                "num_assignable": meta["num_assignable"],
+                "priority": priority,
                 "props": props
             }
 
-        res = self.db.get_collection("{}.{}".format(project_name, template_name)).insert_many([add_meta(props) for props in iterable])
+        res = self.db.get_collection("{}.{}".format(project_name, template_name)).insert_many([add_meta(props, i) for i, props in enumerate(iterable)])
         return res.inserted_ids
 
     async def handle(self, event):
@@ -56,7 +56,7 @@ class Handler(EventHandler):
         if command=="add_csv":
             with open(paths.template_dirpath(project_name, template_name) / (tag+".csv"), "r") as f:
                 try:
-                    inserted_ids = self.save_nanotasks(csv.DictReader(f), project_name, template_name, tag=tag, num_assignments=3, priority=0)
+                    inserted_ids = self.save_nanotasks(csv.DictReader(f), project_name, template_name, tag=tag, num_assignable=3)
                     ans["Status"] = "success"
                     ans["NumInserted"] = len(inserted_ids)
                 except Exception as e:

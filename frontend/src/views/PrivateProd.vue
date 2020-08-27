@@ -1,7 +1,7 @@
 <template>
     <v-app>
         {{ count }}
-        <component :is="template" :nano-data="nanoData" @submit="submit" />
+        <component :is="template" :nano-data="nanoPropData" @submit="submit" />
     </v-app>
 </template>
 
@@ -15,6 +15,7 @@ export default {
         templateName: "",
         count: 0,
         sessionId: null,
+        nanotaskId: null,
         answer: {},
         name: "/private-prod/",
         nanoData: null
@@ -27,6 +28,9 @@ export default {
             console.log(this.templateName)
             try { return require(`@/projects/${this.projectName}/templates/${this.templateName}/Main.vue`).default }
             catch { return null }
+        },
+        nanoPropData() {
+            return this.nanoData;
         }
     },
     props: ["projectName"],
@@ -40,15 +44,17 @@ export default {
             if(this.sessionId) {
                 this.duct.sendMsg({
                     tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
-                    data: `GET ${this.sessionId}`
+                    data: `GET ${this.projectName} ${this.sessionId}`
                 })
             }
         },
         submit($event) {
             Object.assign(this.answer, $event);
             console.log(this.answer);
-            this.answer = {}
-            this.getNextTemplate();
+            this.duct.sendMsg({
+                tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
+                data: `ANSWER ${this.sessionId} ${this.projectName} ${this.templateName} ${this.nanotaskId} ${JSON.stringify(this.answer)}`
+            })
         }
     },
     created: function(){
@@ -68,9 +74,18 @@ export default {
                         this.count += 1;
                         this.templateName = data["NextTemplate"];
                         this.nanoData = data["Props"];
+                        this.nanotaskId = data["NanotaskId"];
+                        console.log(this.templateName, this.nanoData, this.nanotaskId);
                     } else {
                         alert("finished!");
                     }
+                }
+                else if(data["Command"]=="ANSWER"){
+                    if(data["Status"]=="error") { console.error(`failed to send answer: ${data["Reason"]}`); return; }
+
+                    console.log(`successfully sent answer: ${data["SentAnswer"]}`);
+                    this.answer = {}
+                    this.getNextTemplate();
                 }
             })
 
