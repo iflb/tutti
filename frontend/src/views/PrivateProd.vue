@@ -18,7 +18,9 @@ export default {
         nanotaskId: null,
         answer: {},
         name: "/private-prod/",
-        nanoData: null
+        nanoData: null,
+
+        inputData: ""
     }),
     computed: {
         ...mapGetters("ductsModule", [
@@ -30,6 +32,7 @@ export default {
             catch { return null }
         },
         nanoPropData() {
+            console.log("nanoPropData", this.nanoData);
             return this.nanoData;
         }
     },
@@ -55,6 +58,10 @@ export default {
                 tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
                 data: `ANSWER ${this.sessionId} ${this.projectName} ${this.templateName} ${this.nanotaskId} ${JSON.stringify(this.answer)}`
             })
+        },
+        hoge() {
+            console.log("hoge");
+            this.nanoData = this.inputData;
         }
     },
     created: function(){
