@@ -1,19 +1,44 @@
 <template>
     <v-main class="mt-10 grey lighten-4">
         <v-container>
-        <v-row class="justify-center"><v-col cols="10" md="6">
+        <v-card align="center" class="mx-auto py-2 text-h5" width="200">Start</v-card>
+        <flow-arrow/>
+        <v-card class="mx-auto py-5" width="350">
+            <v-card tile class="mx-auto" width="300">
+                <v-list>
+                    <v-list-group>
+                        <template v-slot:activator>
+                            <v-list-item-title>Hoge</v-list-item-title>
+                        </template>
+                        <v-list-item dense>
+                                <v-list-item-icon> <v-icon>mdi-plus-circle-outline</v-icon> </v-list-item-icon>
+                                <v-list-item-content>Add condition ...</v-list-item-content>
+                        </v-list-item>
+                    </v-list-group>
+                </v-list>
+            </v-card>
+        </v-card>
+            <flow-arrow/>
+        <v-row class="text-center">
+            <v-hover v-slot:default="{ hover }"><v-card :elevation="hover ? 16 : 2" class="mx-auto py-5" width="300"></v-card></v-hover>
+        </v-row>
+        <flow-arrow/>
+        <v-row class="text-center">
+            <v-col cols="12"><v-card align="center" class="mx-auto py-2 text-h5" width="200">End</v-card></v-col>
+        </v-row>
+        <v-row><v-col cols="12" md="6">
             <v-row><v-col>
-            <v-alert type="error" v-if="error!=null">{{ error }}</v-alert>
+                <v-alert type="error" v-if="error!=null">{{ error }}</v-alert>
             </v-col></v-row>
 
             <v-row><v-col>
-            <v-card class="pa-6">
-            <v-textarea id="task-flow" label="JSON for task flow profile" v-model="profileString" rows="20" auto-grow></v-textarea>
-            </v-card>
+                <v-card class="pa-6">
+                <v-textarea id="task-flow" label="JSON for task flow profile" v-model="profileString" rows="20" auto-grow></v-textarea>
+                </v-card>
             </v-col></v-row>
 
             <v-row><v-col align="right">
-            <v-btn @click="updateProfile()" class="primary">update</v-btn>
+                <v-btn @click="updateProfile()" class="primary">update</v-btn>
             </v-col></v-row>
         </v-col></v-row>
         </v-container>
@@ -63,6 +88,8 @@
 import store from '@/store.js'
 import { mapGetters } from 'vuex'
 
+import FlowArrow from './FlowArrow.vue'
+
 export default {
     store,
     data: () => ({
@@ -77,6 +104,9 @@ export default {
             text: ""
         }
     }),
+    components: {
+        "flow-arrow": FlowArrow
+    },
     props: ["sharedProps","name"],
     computed: {
         ...mapGetters("ductsModule", [ "duct" ]),

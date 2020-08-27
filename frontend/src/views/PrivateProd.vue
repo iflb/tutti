@@ -1,7 +1,7 @@
 <template>
     <v-app>
         {{ count }}
-        <component :is="template" :nano-data="{ hoge: 1, fuga: 2}" @submit="submit" />
+        <component :is="template" :nano-data="nanoData" @submit="submit" />
     </v-app>
 </template>
 
@@ -16,7 +16,8 @@ export default {
         count: 0,
         sessionId: null,
         answer: {},
-        name: "/private-prod/"
+        name: "/private-prod/",
+        nanoData: null
     }),
     computed: {
         ...mapGetters("ductsModule", [
@@ -66,6 +67,7 @@ export default {
                     if(data["NextTemplate"]){
                         this.count += 1;
                         this.templateName = data["NextTemplate"];
+                        this.nanoData = data["Props"];
                     } else {
                         alert("finished!");
                     }

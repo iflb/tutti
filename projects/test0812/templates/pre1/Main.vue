@@ -1,8 +1,8 @@
 <template>
     <v-container pa-10>
         This is the first template!<br>
-        ... and this is hogedata: {{ nano.data.hoge }}<br>
-        ... nad this is fugadata: {{ nano.data.fuga }}<br>
+        ... and this is hogedata: {{ nano.data.field1 }}<br>
+        ... nad this is fugadata: {{ nano.data.field2 }}<br>
 
         <v-select v-model="nano.ans.select" :items="selectItems"></v-select>
         <v-btn @click="submit()">next</v-btn>

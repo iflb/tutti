@@ -5,10 +5,10 @@ from asyncio.subprocess import PIPE
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
 
-from handler import paths, common
-
 import logging
 logger = logging.getLogger(__name__)
+
+from handler import common
 
 @config_callback
 def config(loader):

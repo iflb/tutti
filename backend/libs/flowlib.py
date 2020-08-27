@@ -4,20 +4,25 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def is_batch(elm):
-    return isinstance(elm, BatchNode)
+def is_batch(node):
+    return isinstance(node, BatchNode)
 
-def is_node(elm):
-    return isinstance(elm, TaskNode)
+def is_node(node):
+    return isinstance(node, TemplateNode)
 
 
 class Node:
-    def __init__(self, tag, cond_if=None, cond_while=None):
+    def __init__(self, tag, cond_if=None, cond_while=None, is_skippable=True):
         self.tag = tag
         self.cond_if = cond_if
         self.cond_while = cond_while
+
+        # FIXME
         self.acc = 0
         self.cnt = 0
+
+        # TODO
+        self.is_skippable = is_skippable
         
     def set_if(self, cond):
         self.cond_if = cond
@@ -25,47 +30,50 @@ class Node:
     def set_while(self, cond):
         self.cond_while = cond
 
-class TaskNode(Node):
+class TemplateNode(Node):
     def __init__(self, tag, template=None, **kwargs):
         super().__init__(tag, **kwargs)
         self.template = template if template else tag
 
 class BatchNode(Node):
-    def __init__(self, tag, elms=None, **kwargs):
+    def __init__(self, tag, children=None, child_order="natural", **kwargs):
         super().__init__(tag, **kwargs)
-        self.elms = self._propagate(elms) if elms else []
+        self.children = self._propagate(children) if children else []
 
-    def _propagate(self, elm):
-        if type(elm)==list:
-            return [self._propagate(e) for e in elm]
+        # TODO
+        self.child_order = child_order
+
+    def _propagate(self, node):
+        if type(node)==list:
+            return [self._propagate(e) for e in node]
         else:
-            elm.cond_if = self.cond_if if not elm.cond_if else elm.cond_if
-            #elm.cond_while = self.cond_while if not elm.cond_while else elm.cond_while
-        return elm
+            node.cond_if = self.cond_if if not node.cond_if else node.cond_if
+            #node.cond_while = self.cond_while if not node.cond_while else node.cond_while
+        return node
 
-    def append(self, elm):
-        if type(elm)==list:
-            self.elms.extend(self._propagate(elm))
+    def append(self, node):
+        if type(node)==list:
+            self.children.extend(self._propagate(node))
         else:
-            self.elms.append(self._propagate(elm))
+            self.children.append(self._propagate(node))
 
-    def retrieve(self, skip_while=False):
+    def retrieve(self):
         ### ここは最下位のbatchまで
-        for elm in self.elms:
-            if not elm.cond_if or elm.cond_if(elm):
+        for node in self.children:
+            if not node.cond_if or node.cond_if(node):
                 _cnt = 0
-                if not elm.cond_while:  _cond_while = lambda elm: _cnt==0
-                else:                   _cond_while = elm.cond_while
-                while _cond_while(elm):
-                    yield elm
-                    if is_batch(elm): yield from elm.retrieve(skip_while=skip_while)
-                    if skip_while: break
-                    elm.cnt += 1
+                _cond_while = node.cond_while if node.cond_while else (lambda node: _cnt==0)
+
+                while _cond_while(node):
+                    yield node
+                    if is_batch(node): yield from node.retrieve()
+                    node.cnt += 1
                     _cnt += 1
 
 
 class Engine:
-    def __init__(self, root_batch):
+    def __init__(self, project_name, root_batch):
+        self.project_name = project_name
         self.root = copy.deepcopy(root_batch)
         self.root_gen = self.root.retrieve()
 
@@ -75,8 +83,8 @@ class Engine:
 
     def _get_next_template(self):
         while True:
-            elm = self.root_gen.__next__()
-            if is_node(elm): return elm
+            n = self.root_gen.__next__()
+            if is_node(n): return n
 
     def get_next_template(self):
         return self._get_next_template().tag
