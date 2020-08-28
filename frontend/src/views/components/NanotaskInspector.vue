@@ -18,7 +18,7 @@
         </v-row>
         <v-row justify="center">
             <v-col cols="10" md="7">
-                <v-card height="100%"><component :is="nanotaskTemplateComponent"/></v-card>
+                <v-card height="100%"><component :is="nanotaskTemplateComponent" @submit="submit" @updateAnswer="updateAnswer"/></v-card>
             </v-col>
             <v-col cols="10" md="3">
                 <v-card height="100%" color="grey lighten-3">
@@ -31,6 +31,16 @@
                 </v-card>
             </v-col>
         </v-row>
+        <v-dialog v-model="dialog" persistent max-width="700">
+      <v-card>
+        <v-card-title class="text-h6"><v-icon class="mr-2" color="green">mdi-check-circle</v-icon>Answers are submitted successfully</v-card-title>
+        <v-card-text><v-textarea v-model="sentAnswer" label="Submitted answers" color="black" auto-grow outlined disabled></v-textarea></v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="blue darken-1" text @click="dialog = false">Close</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
     </v-main>
 </template>
 
@@ -42,6 +52,9 @@ export default {
     store,
     data: () => ({
         templateName: null,
+        currentAnswer: "",
+        dialog: false,
+        sentAnswer: ""
     }),
     props: ["sharedProps","name"],
     computed: {
@@ -56,14 +69,21 @@ export default {
                 } else { return null }
             }
         },
-        currentAnswer() { return JSON.stringify(this.$store.getters.currentAnswer, undefined, 4) },
+        //currentAnswer() { return JSON.stringify(this.$store.getters.currentAnswer, undefined, 4) },
 
         isTemplateSelectDisabled() {
             return this.project.templates.length==0 || !this.project.name
         }
     },
     methods: {
-        launchProductionMode(){ window.open(`/vue/private-prod/${this.project.name}`); }
+        launchProductionMode(){ window.open(`/vue/private-prod/${this.project.name}`); },
+        updateAnswer($event) {
+            this.currentAnswer = JSON.stringify($event, null, "\t");
+        },
+        submit($event) {
+            this.dialog = true;
+            this.sentAnswer = JSON.stringify($event, null, "\t");
+        }
     },
     watch: {
         "project.name"() { this.templateName = null }
