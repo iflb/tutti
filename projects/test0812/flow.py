@@ -5,7 +5,7 @@ class TaskFlow:
         self.batch_all = None
 
     def define(self):
-        self.batch_all = BatchNode("all", children=[TemplateNode("pre1", cond_while=lambda t: t.cnt<6)])
+        self.batch_all = BatchNode("all", children=[TemplateNode("main1", cond_while=lambda t: t.cnt<10)])
         #batch_pre = BatchNode("pre", cond_if=lambda b: b.acc>=0)
         #batch_pre.append([
         #    TemplateNode("pre1"),

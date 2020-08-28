@@ -259,7 +259,9 @@ class Handler(EventHandler):
         elif command=="ANSWER":
             sid = session_id = event.data[1]
             [pn, tn, nid] = [project_name, template_name, nanotask_id] = event.data[2:5]
-            answers = json.loads(event.data[5])
+
+            ### FIXME
+            answers = json.loads(" ".join(event.data[5:]))
 
             logger.debug(sid)
             logger.debug(pn)

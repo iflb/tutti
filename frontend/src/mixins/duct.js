@@ -16,7 +16,7 @@ export default {
         }
     },
     watch: {
-        nanoData() {
+        nanoData() {   // = when a new nanotask is loaded
             this.nano.data = this.nanoData;
             this.nano.ans = {};
         },
@@ -26,5 +26,9 @@ export default {
                 this.updateAnswer();
             }
         }
+    },
+    mounted() {
+        if(!this.nanoData) this.nano.data = this.defaultProps;
+        else this.nano.data = this.nanoData;
     }
 };

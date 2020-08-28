@@ -21,8 +21,6 @@ export default {
         answer: {},
         name: "/private-prod/",
         nanoData: null,
-
-        inputData: ""
     }),
     computed: {
         ...mapGetters("ductsModule", [
@@ -61,10 +59,6 @@ export default {
                 data: `ANSWER ${this.sessionId} ${this.projectName} ${this.templateName} ${this.nanotaskId} ${JSON.stringify(this.answer)}`
             })
         },
-        hoge() {
-            console.log("hoge");
-            this.nanoData = this.inputData;
-        }
     },
     created: function(){
         this.initDuct( window.ducts = window.ducts || {}).then(() => {
