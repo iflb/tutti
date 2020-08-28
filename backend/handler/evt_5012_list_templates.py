@@ -8,6 +8,8 @@ from tortoise.backends.mysql.client import MySQLClient
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
 
+from handler import common
+
 @config_callback
 def config(loader):
     loader.add_attr('root_path', os.getcwd(), help='')
@@ -26,10 +28,4 @@ class Handler(EventHandler):
 
     async def handle(self, event):
         project_name = event.data[0]
-
-        root_path_templates = os.path.join(self.conf.root_path, self.conf.root_path_templates)
-
-        process = await asyncio.create_subprocess_shell("ls {}".format(root_path_templates.format(project_name=project_name)), stdout=PIPE, shell=True)
-        val = await process.communicate()
-
-        return val[0].decode().split("\n")[:-1]
+        return common.get_templates(project_name)

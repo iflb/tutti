@@ -33,7 +33,7 @@ class Handler(EventHandler):
         if not os.path.exists(root_path_project):
             return "Error: project '{}' does not exist".format(project_name)
 
-        client = MySQLClient(connection_name="dummy",user="root",password="root",database=project_name,host="127.0.0.1",port=3306)
+        #client = MySQLClient(connection_name="dummy",user="root",password="root",database=project_name,host="127.0.0.1",port=3306)
         #await client.db_delete()
         process = await asyncio.create_subprocess_shell("rm -rf {}".format(root_path_project), shell=True)
         retcode = await process.wait()
