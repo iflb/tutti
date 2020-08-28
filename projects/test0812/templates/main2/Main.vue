@@ -1,51 +1,43 @@
 <template>
     <v-container pa-10>
-        <v-text-field v-model="nano.textinput"></v-text-field>
-        <v-textarea v-model="nano.textarea" rows="3"></v-textarea>
+        <div class="text-h4">Survey Sample</div>
 
-        <v-checkbox v-model="nano.checkbox" label="Orange" value="orange"></v-checkbox>
-        <v-checkbox v-model="nano.checkbox" label="Apple" value="apple"></v-checkbox>
-        <v-checkbox v-model="nano.checkbox" label="Pineapple" value="pineapple"></v-checkbox>
-        <v-checkbox v-model="nano.checkbox" label="Grape" value="grape"></v-checkbox>
+        <v-card width="600" class="mx-auto my-6 pa-6">
+            <v-row>
+                <v-col cols="12"><header><b>Pre-survey.</b> Please answer the following questions first.</header></v-col>
+                <v-col cols="12"><header><b>Q1.</b> Which is the fruit you like the most?</header></v-col>
+                <v-col cols="12"><v-select solo v-model="nano.ans.fruit" :items="fruits" label="Select one"></v-select></v-col>
+                <v-col cols="12"><header><b>Q2.</b> Select all your hobbies that apply.</header></v-col>
+                <v-checkbox v-model="nano.ans.hobbies" value="Sport" class="mx-2" label="Sport"/>
+                <v-checkbox v-model="nano.ans.hobbies" value="Bookreading" class="mx-2" label="Bookreading"/>
+                <v-checkbox v-model="nano.ans.hobbies" value="Traveling" class="mx-2" label="Traveling"/>
+                <v-checkbox v-model="nano.ans.hobbies" value="Music" class="mx-2" label="Music"/>
+                <v-col cols="12"><header><b>Q3.</b> Select one that describes your personality the best.</header></v-col>
+                <v-col cols="12">
+                <v-radio-group v-model="nano.ans.personality" row>
+                    <v-radio label="Inspector" value="Inspector"/>
+                    <v-radio label="Performer" value="Performer"/>
+                    <v-radio label="Counselor" value="Counselor"/>
+                    <v-radio label="Giver" value="Giver"/>
+                </v-radio-group>
+                </v-col>
+            </v-row>
+            <v-row class="d-flex" justify="end"><v-btn class="mr-3 mb-3" @click="submit()">next</v-btn></v-row>
+        </v-card>
 
-        <v-radio-group v-model="nano.radio">
-            <v-radio label="A" value="A">Option A</v-radio>
-            <v-radio label="B" value="B">Option B</v-radio>
-            <v-radio label="C" value="C">Option C</v-radio>
-        </v-radio-group>
 
-        <v-btn @click="setAnswerValue('button', 'primary')" color="primary">button1</v-btn>
-        <v-btn @click="setAnswerValue('button', 'secondary')" color="error">button2</v-btn>
-        <v-btn @click="setAnswerValue('button', 'success')">button3</v-btn>
-
-        <v-select v-model="nano.select" :items="selectItems" label="Select"></v-select>
     </v-container>
 </template>
 
 <script>
+import ductMixIn from "@/mixins/duct";
 export default {
+    mixins: [ductMixIn],
     data: () => ({
-        nano: {},
-        selectItems: ["select 1", "select 2"]
+        fruits: ["Banana", "Apple", "Grapes", "Orange", "Watermelon"],
     }),
-    methods: {
-        setAnswerValue(key,val) {
-            this.$set(this.nano, key, val);
-        },
-        updateAnswer() {
-            this.$store.dispatch("updateAnswer", this.nano);
-        }
-    },
-    watch: {
-        nano: {
-            handler: function(){
-                this.updateAnswer();
-            },
-            deep: true
-        }
+    mounted() {
+        this.$set(this.nano.ans, "hobbies", []);
     }
 };
 </script>
-
-<style scoped>
-</style>

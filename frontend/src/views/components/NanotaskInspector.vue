@@ -18,7 +18,11 @@
         </v-row>
         <v-row justify="center">
             <v-col cols="10" md="7">
-                <v-card height="100%"><component :is="nanotaskTemplateComponent" @submit="submit" @updateAnswer="updateAnswer"/></v-card>
+                <v-card height="100%">
+                    <v-fade-transition hide-on-leave>
+                    <component :is="nanotaskTemplateComponent" @submit="submit" @updateAnswer="updateAnswer"/>
+                    </v-fade-transition>
+                </v-card>
             </v-col>
             <v-col cols="10" md="3">
                 <v-card height="100%" color="grey lighten-3">
@@ -69,7 +73,6 @@ export default {
                 } else { return null }
             }
         },
-        //currentAnswer() { return JSON.stringify(this.$store.getters.currentAnswer, undefined, 4) },
 
         isTemplateSelectDisabled() {
             return this.project.templates.length==0 || !this.project.name
@@ -86,7 +89,8 @@ export default {
         }
     },
     watch: {
-        "project.name"() { this.templateName = null }
+        "project.name"() { this.templateName = null },
+        templateName() { this.currentAnswer = "" }
     }
 }
 </script>

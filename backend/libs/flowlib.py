@@ -20,6 +20,7 @@ class Node:
         # FIXME
         self.acc = 0
         self.cnt = 0
+        self.scores = []
 
         # TODO
         self.is_skippable = is_skippable
@@ -29,6 +30,17 @@ class Node:
 
     def set_while(self, cond):
         self.cond_while = cond
+
+    def score(self, drange="all", num=1, stat="mean"):
+        if drange=="all":      _scores = self.scores
+        elif drange=="first":  _scores = self.scores[:num]
+        elif drange=="last":   _scores = self.scores[-num:]
+
+        if len(_scores)==1:
+            return _scores[0]
+        else:
+            #if stat=="mean":  return sum(_scores) / len(_scores)
+            return sum(_scores) / len(_scores)
 
 class TemplateNode(Node):
     def __init__(self, tag, template=None, **kwargs):

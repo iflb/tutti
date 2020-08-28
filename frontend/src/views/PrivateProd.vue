@@ -1,7 +1,9 @@
 <template>
     <v-app>
         {{ count }}
-        <component :is="template" :nano-data="nanoPropData" @submit="submit" />
+        <v-slide-x-reverse-transition hide-on-leave>
+            <component :is="template" :nano-data="nanoPropData" @submit="submit" />
+        </v-slide-x-reverse-transition>
     </v-app>
 </template>
 

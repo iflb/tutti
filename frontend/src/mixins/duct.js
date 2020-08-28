@@ -13,13 +13,12 @@ export default {
         submit(ans) {
             if(ans) this.$emit("submit", ans);
             else this.$emit("submit", this.nano.ans);
-
-            this.nano.ans = {};
         }
     },
     watch: {
         nanoData() {
             this.nano.data = this.nanoData;
+            this.nano.ans = {};
         },
         "nano.ans": {
             deep: true,
