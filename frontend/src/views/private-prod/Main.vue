@@ -123,7 +123,7 @@ export default {
                         this.templateName = data["NextTemplate"];
                         this.nanoData = data["Props"];
                         this.nanotaskId = data["NanotaskId"];
-                        console.log(this.templateName, this.nanoData, this.nanotaskId);
+                        //console.log(this.templateName, this.nanoData, this.nanotaskId);
                     } else {
                         alert("finished!");
                     }
@@ -140,7 +140,7 @@ export default {
             this.openDuct().then(() => {
                 this.duct.sendMsg({
                     tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
-                    data: `CREATE_SESSION ${this.projectName}`
+                    data: `CREATE_SESSION ${this.projectName} ${this.workerId}`
                 })
             })
         })

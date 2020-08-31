@@ -102,6 +102,18 @@ class DCStruct:   # lame
         return self.data_all[project_name][template_name].keys()
 
 
+class TaskSession:
+    def __init__(self, worker_id, engine=None):
+        self.id = self._generate_id()
+        self.worker_id = worker_id
+        self.engine = engine
+
+    def _generate_id(self):
+        return ''.join([random.choice(string.ascii_letters + string.digits) for i in range(10)])
+
+    def get_engine(self):
+        return self.engine
+
 class Handler(EventHandler):
     def __init__(self):
         super().__init__()
@@ -119,8 +131,6 @@ class Handler(EventHandler):
     def create_nanotask_memory(self):
         self.cache_nanotasks()
         self.update_assignability()
-
-        logger.debug(self.w_assignable)
 
     def cache_nanotasks(self):
         nt_memory = self.nt_memory
@@ -161,11 +171,9 @@ class Handler(EventHandler):
                 logger.debug("{}.{}.{} was not found in nanotask memory".format(pn, tn, nid))
 
             for a in _n_answers:
-                #wid = a["workerId"]
-                wid = a["sessionId"]
-                if wid not in w_submitted:
-                    w_submitted[wid] = DCStruct()
-                    w_submitted[wid].add(set(), pn, tn)
+                wid = a["workerId"]
+                if wid not in w_submitted:  w_submitted[wid] = DCStruct()
+                if w_submitted[wid].get(pn, tn) is None:  w_submitted[wid].add(set(), pn, tn)
                 w_submitted[wid].get(pn, tn).add(nid)
 
         w_assignable = self.w_assignable
@@ -176,7 +184,7 @@ class Handler(EventHandler):
 
                     ### FIXME
                     if wid not in w_assignable:  w_assignable[wid] = DCStruct()
-                    if _t_assignable==None:  # for static nanotask
+                    if _t_assignable is None:  # for static nanotask
                         w_assignable[wid].add(None, pn, tn)
                     else:  # when props are registered
                         for nid in w_submitted[wid].get(pn, tn):
@@ -184,7 +192,6 @@ class Handler(EventHandler):
 
                         # for new worker
                         _set = PriorityNanotaskSet()
-                        logger.debug(_t_assignable)
                         for nt in _t_assignable.values():
                             _set.add(nt, nt.json["priority"])
                         w_assignable[wid].add(_set, pn, tn)
@@ -231,43 +238,49 @@ class Handler(EventHandler):
 
         elif command=="CREATE_SESSION":    # フローをワーカーが開始するごとに作成
             project_name = event.data[1]
+            wid = event.data[2]
+
             try:
-                session_id = ''.join([random.choice(string.ascii_letters + string.digits) for i in range(10)])
-                self.sessions[session_id] = Engine(project_name, self.flows[project_name])
+                engine = Engine(project_name, self.flows[project_name])
+                session = TaskSession(worker_id=wid, engine=engine)
+                self.sessions[session.id] = session
 
-                # g_assignable to w_assignable[worker_id]
-                _ga_copy = copy.copy(self.g_assignable)
-                _wa = DCStruct()
-                for pn in _ga_copy.get():
-                    for tn in _ga_copy.get(pn):
-                        _set = PriorityNanotaskSet()
-                        if _ga_copy.get(pn,tn) is None:
-                            _wa.add(None, pn, tn)
-                        else:
-                            for nt in _ga_copy.get(pn,tn).values():
-                                _set.add(nt, nt.json["priority"])
-                            _wa.add(_set, pn, tn)
-                self.w_assignable[session_id] = _wa
-
-                logger.info(self.w_assignable)
+                if wid not in self.w_assignable:
+                    # g_assignable to w_assignable[wid]
+                    _ga_copy = copy.copy(self.g_assignable)
+                    _wa = DCStruct()
+                    for pn in _ga_copy.get():
+                        for tn in _ga_copy.get(pn):
+                            _set = PriorityNanotaskSet()
+                            if _ga_copy.get(pn,tn) is None:
+                                _wa.add(None, pn, tn)
+                            else:
+                                for nt in _ga_copy.get(pn,tn).values():
+                                    _set.add(nt, nt.json["priority"])
+                                _wa.add(_set, pn, tn)
+                    self.w_assignable[wid] = _wa
 
                 ans["Status"] = "success"
-                ans["SessionId"] = session_id
+                ans["SessionId"] = session.id
             except Exception as e:
                 ans["Status"] = "error"
                 ans["Reason"] = str(e)
                 
         elif command=="GET":
-            pn = project_name = event.data[1]
+            pn = event.data[1]
             session_id = event.data[2]
 
             try:
                 if session_id in self.sessions:
                     session = self.sessions[session_id]
-                    tn = session.get_next_template()
+                    engine = session.get_engine()
+                    wid = session.worker_id
+
+                    tn = engine.get_next_template()
                     ans["NextTemplate"] = tn
-                    if self.w_assignable[session_id].get(pn, tn) is not None:
-                        nanotask = self.w_assignable[session_id].get(pn, tn).pop()
+                    assignable_nids = self.w_assignable[wid].get(pn, tn)
+                    if assignable_nids is not None:
+                        nanotask = assignable_nids.pop()
                         ans["Props"] = nanotask.json["props"]
                         ans["NanotaskId"] = str(nanotask.json["_id"])
                     else:
@@ -297,18 +310,19 @@ class Handler(EventHandler):
             logger.debug(answers)
 
             
-            #try:
-            wid = sid
-            w_submitted = self.w_submitted
-            if wid not in w_submitted:  w_submitted[wid] = DCStruct()
-            if w_submitted[wid].get(pn, tn) is None:  w_submitted[wid].add(set(), pn, tn)
-            w_submitted[wid].get(pn, tn).add(nid)
-            self.db["answers"]["{}.{}.{}".format(pn, tn, nid)].insert_one({"sessionId": sid, "answers": answers})
-            ans["Status"] = "success"
-            ans["SentAnswer"] = answers
-            #except Exception as e:
-            #    ans["Status"] = "error"
-            #    ans["Reason"] = str(e)
+            try:
+                session = self.sessions[sid]
+                wid = session.worker_id
+                w_submitted = self.w_submitted
+                if wid not in w_submitted:  w_submitted[wid] = DCStruct()
+                if w_submitted[wid].get(pn, tn) is None:  w_submitted[wid].add(set(), pn, tn)
+                w_submitted[wid].get(pn, tn).add(nid)
+                self.db["answers"]["{}.{}.{}".format(pn, tn, nid)].insert_one({"sessionId": sid, "workerId": wid, "answers": answers})
+                ans["Status"] = "success"
+                ans["SentAnswer"] = answers
+            except Exception as e:
+                ans["Status"] = "error"
+                ans["Reason"] = str(e)
                 
             
         else:
