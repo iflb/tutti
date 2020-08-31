@@ -1,47 +1,55 @@
-import Vue from 'vue'
+    import Vue from 'vue'
 import VueRouter from 'vue-router'
-
-import Console from './views/Console'
-import Dashboard from './views/components/Dashboard'
-import NanotaskInspector from './views/components/NanotaskInspector'
-import Operation from './views/components/Operation'
-import TaskFlowDesigner from './views/components/TaskFlowDesigner'
-
-import PrivateProd from './views/PrivateProd'
-
-import Vuep from './views/Vuep'
-
 Vue.use(VueRouter)
 
 function getPropsForRoute(route) {
     return { name: route.path }
 }
 
-const router = new VueRouter({
+export default new VueRouter({
     mode: "history",
     base: "/vue/",
     routes: [
         {
             path: "/console",
-            redirect: "/console/dashboard",
-            component: Console,
+            redirect: "console/dashboard",
+            component: () => import("./views/Console"),
             children: [
-                { path: "dashboard", component: Dashboard, props: getPropsForRoute },
-                { path: "inspector", component: NanotaskInspector, props: getPropsForRoute },
-                { path: "events", component: Operation, props: getPropsForRoute },
-                { path: "flow", component: TaskFlowDesigner, props: getPropsForRoute }
+                {
+                    path: "dashboard",
+                    component: () => import("./views/components/Dashboard"),
+                    props: getPropsForRoute
+                },
+                {
+                    path: "inspector",
+                    component: () => import("./views/components/NanotaskInspector"),
+                    props: getPropsForRoute
+                },
+                {
+                    path: "events",
+                    component: () => import("./views/components/Operation"),
+                    props: getPropsForRoute
+                },
+                {
+                    path: "flow",
+                    component: () => import("./views/components/TaskFlowDesigner"),
+                    props: getPropsForRoute
+                }
             ]
         },
         {
             path: "/private-prod/:projectName",
-            component: PrivateProd,
+            component: () => import("./views/private-prod/Main.vue"),
+            props: true
+        },
+        {
+            path: "/private-prod-login",
+            component: () => import("./views/PrivateProdLogin.vue"),
             props: true
         },
         {
             path: "/vuep",
-            component: Vuep
+            component: () => import("./views/Vuep")
         }
     ]
 })
-
-export default router
