@@ -9,7 +9,7 @@
                 </v-col>
                 <v-col cols="12" md="4" align="center">
                 <v-container>
-                <v-btn class="text-none" :disabled="project.name === null" @click="launchProductionMode()">Launch in production mode (private)</v-btn>
+                <v-btn class="text-none" :disabled="project.name==''" @click="launchProductionMode()">Launch in production mode (private)</v-btn>
                 </v-container>
                 </v-col>
                 </v-row>

@@ -43,15 +43,13 @@ import { mapActions, mapGetters } from 'vuex'
 export default {
     store,
     beforeRouteEnter: (to,from,next) => {
-        const cookieKey = "workerId";
-        var workerId = null;
-        document.cookie.split("; ").some((q) => {
-            const [key,val] = q.split("=");
-            if(key==cookieKey) { workerId = val; return true; }
-        });
-        if(!workerId) next({ path: "/private-prod-login" })
-        else next(vm => {
-            vm.workerId = workerId;
+        var workerId = localStorage.getItem("workerId");
+        next(vm => {
+            if(!workerId) next({ path: `/private-prod-login?project=${vm.projectName}` })
+            else {
+                vm.workerId = workerId;
+                next();
+            }
         });
     },
     data: () => ({
@@ -103,7 +101,7 @@ export default {
             })
         },
         logout() {
-            document.cookie = "workerId=; max-age=0; Path=/";
+            localStorage.removeItem("workerId");
             window.location.href = `../private-prod-login?project=${this.projectName}`;
         }
     },

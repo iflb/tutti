@@ -10,13 +10,7 @@
               </v-toolbar>
               <v-card-text>
                 <v-form ref="form" @submit.prevent="mySubmit">
-                  <v-text-field
-                    label="Worker ID"
-                    v-model="workerId"
-                    prepend-icon="mdi-account"
-                    type="text"
-                    :rules="workerIdRules"
-                  ></v-text-field>
+                  <v-text-field label="Worker ID" v-model="workerId" prepend-icon="mdi-account" type="text" :rules="workerIdRules" ></v-text-field>
                 </v-form>
               </v-card-text>
               <v-card-actions>
@@ -53,9 +47,8 @@ export default {
     methods: {
         mySubmit() {
             if(this.$refs.form.validate()){
-                document.cookie = `workerId=${this.workerId}; Path=/`;
+                localStorage.setItem("workerId", this.workerId);
                 window.location.href = `./private-prod/${this.projectName}`;
-                //this.$router.push({ name: "private-prod-main", params: { projectName: this.projectName } })
             }
         }
     }
