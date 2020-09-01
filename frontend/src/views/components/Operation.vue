@@ -25,7 +25,11 @@
                     <v-text-field v-model="searchStr" append-icon="mdi-magnify" label="Search" single-line hide-details>
                     </v-text-field>
                 </v-card-title>
-                <v-data-table :headers="logTableHeaders" :items="serverLogTableRows" :items-per-page="10" :search="searchStr"></v-data-table>
+                <v-data-table :headers="logTableHeaders" :items="serverLogTableRows" :items-per-page="10" :search="searchStr">
+                    <template v-slot:item.received="{ item }">
+                        <vue-json-pretty :data="item.received" deep=1 style="font-size:0.6em;"></vue-json-pretty>
+                    </template>
+                </v-data-table>
             </v-card>
         </v-col></v-row>
     </v-main>
@@ -34,9 +38,13 @@
 <script>
 import store from '@/store.js'
 import { mapGetters } from 'vuex'
+import VueJsonPretty from 'vue-json-pretty'
 
 export default {
     store,
+    components: {
+        VueJsonPretty
+    },
     data: () => ({
         selectedEventId: "",
         selectedEventArgs: "",
@@ -63,7 +71,8 @@ export default {
                     const rid = s.rid;
                     const tag = s.tag;
                     const sent = `${s.eid}__${s.data}`;
-                    const received = "";
+                    //const received = "";
+                    const received = null;
                     rows.unshift({ rid, tag, sent, received })
                 }
     
@@ -72,7 +81,8 @@ export default {
                     const r = receivedAll[i];
                     const rid = r.rid;
                     var row = rows.find(e => e.rid==rid);
-                    row.received = `${r.eid}__${JSON.stringify(r.data)}`;
+                    //row.received = `${r.eid}__${JSON.stringify(r.data)}`;
+                    row.received = r.data;
                 }
             }
             return rows;
@@ -98,3 +108,9 @@ export default {
     }
 }
 </script>
+
+<style>
+.is-root, .is-root div {
+    font-size: 9pt;
+}
+</style>

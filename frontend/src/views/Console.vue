@@ -1,11 +1,11 @@
 <template>
     <v-app>
-        <v-app-bar color="indigo" dark app clipped-left>
+        <v-app-bar color="indigo" dark app clipped-left dense>
             <v-app-bar-nav-icon @click="drawer = !drawer"></v-app-bar-nav-icon>
             
             <v-toolbar-title>DynamicCrowd Management Console</v-toolbar-title>
             <v-spacer></v-spacer>
-            <v-autocomplete v-model="project.name" :items="projects" :search-input.sync="searchString" label="Project name" hide-details cache-items solo-inverted hide-no-data></v-autocomplete>
+            <v-autocomplete v-model="project.name" :items="projects" :search-input.sync="searchString" label="Select project" hide-details cache-items solo-inverted hide-no-data dense rounded></v-autocomplete>
             <v-spacer></v-spacer>
             <v-menu offset-y>
                 <template v-slot:activator="{ on, attrs }">
@@ -23,43 +23,50 @@
         </v-app-bar>
 
         <v-navigation-drawer v-model="drawer" app clipped>
-            <v-list nav>
+            <v-list nav shaped>
                 <v-list-item-group active-class="indigo--text text--accent-4">
-                    <v-list-item>
+                    <!--<v-list-item>
                         <v-list-item-content>
                             <v-list-item-title class="title">DynamicCrowd</v-list-item-title>
                             <v-list-item-subtitle>Alpha Version</v-list-item-subtitle>
                         </v-list-item-content>
-                    </v-list-item>
+                    </v-list-item>-->
 
                     <v-list-item to="/console/dashboard/">
                         <v-list-item-icon>
                             <v-icon>mdi-home</v-icon>
                         </v-list-item-icon>
-                        <v-list-item-title>Home</v-list-item-title>
+                        <v-list-item-title>Dashboard</v-list-item-title>
                     </v-list-item>
                     
                     <v-list-item to="/console/inspector/">
                         <v-list-item-icon>
                             <v-icon>mdi-iframe-braces-outline</v-icon>
                         </v-list-item-icon>
-                        <v-list-item-title>Nanotask Inspector</v-list-item-title>
+                        <v-list-item-title>Templates</v-list-item-title>
                     </v-list-item>
                
                     <v-list-item to="/console/flow/">
                         <v-list-item-icon>
                             <v-icon>mdi-puzzle</v-icon>
                         </v-list-item-icon>
-                        <v-list-item-title>Task Flow Designer</v-list-item-title>
+                        <v-list-item-title>Task Flow</v-list-item-title>
                     </v-list-item>
  
+                    <v-list-item to="/console/answers/">
+                        <v-list-item-icon>
+                            <v-icon>mdi-comment-text-multiple-outline</v-icon>
+                        </v-list-item-icon>
+                        <v-list-item-title>Answers</v-list-item-title>
+                    </v-list-item>
+                
                     <v-list-item to="/console/events/">
                         <v-list-item-icon>
                             <v-icon>mdi-lightning-bolt</v-icon>
                         </v-list-item-icon>
-                        <v-list-item-title>Event Handlers</v-list-item-title>
+                        <v-list-item-title>Duct Events</v-list-item-title>
                     </v-list-item>
-                
+
                 </v-list-item-group>
             </v-list>
         </v-navigation-drawer>
@@ -192,6 +199,17 @@ export default {
                             })
                         } else {
                             this.sharedProps.project.profile = data["Flow"]
+                        }
+                    }
+                    else if(data["Command"]=="ANSWERS"){
+                        if(data["Status"]=="error"){
+                            this.sharedProps.project.profile = null
+                            this.$refs.child.showSnackbar({
+                                color: "warning",
+                                text: "Profile is not set"
+                            })
+                        } else {
+                            this.sharedProps.answers = data["Answers"]
                         }
                     }
                 }

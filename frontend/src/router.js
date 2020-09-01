@@ -34,6 +34,11 @@ export default new VueRouter({
                     path: "flow",
                     component: () => import("./views/components/TaskFlowDesigner"),
                     props: getPropsForRoute
+                },
+                {
+                    path: "answers",
+                    component: () => import("./views/components/AnswerViewer"),
+                    props: getPropsForRoute
                 }
             ]
         },

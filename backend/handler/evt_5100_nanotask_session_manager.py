@@ -220,27 +220,24 @@ class Handler(EventHandler):
         command = event.data[0]
         ans = {}
         ans["Command"] = command
+        ans["Status"] = "success"
 
-        if command=="GET_FLOWS":
-            project_name = event.data[1]
-            try:
+        try:
+            if command=="GET_FLOWS":
+                project_name = event.data[1]
+
                 flow = self.flows[project_name]
                 engine = Engine(project_name, flow)
                 log = ""
                 for elm in engine.test_generator():
                     if is_batch(elm):   log += "entering batch {}\n".format(elm.tag)
                     elif is_node(elm):  log += "--> executing node {}\n".format(elm.tag)
-                ans["Status"] = "success"
                 ans["Flow"] = log
-            except Exception as e:
-                ans["Status"] = "error"
-                ans["Reason"] = str(e)
 
-        elif command=="CREATE_SESSION":    # フローをワーカーが開始するごとに作成
-            project_name = event.data[1]
-            wid = event.data[2]
+            elif command=="CREATE_SESSION":    # フローをワーカーが開始するごとに作成
+                project_name = event.data[1]
+                wid = event.data[2]
 
-            try:
                 engine = Engine(project_name, self.flows[project_name])
                 session = TaskSession(worker_id=wid, engine=engine)
                 self.sessions[session.id] = session
@@ -260,57 +257,40 @@ class Handler(EventHandler):
                                 _wa.add(_set, pn, tn)
                     self.w_assignable[wid] = _wa
 
-                ans["Status"] = "success"
                 ans["SessionId"] = session.id
-            except Exception as e:
-                ans["Status"] = "error"
-                ans["Reason"] = str(e)
                 
-        elif command=="GET":
-            pn = event.data[1]
-            session_id = event.data[2]
+            elif command=="GET":
+                pn = event.data[1]
+                session_id = event.data[2]
 
-            try:
-                if session_id in self.sessions:
-                    session = self.sessions[session_id]
-                    engine = session.get_engine()
-                    wid = session.worker_id
+                try:
+                    if session_id in self.sessions:
+                        session = self.sessions[session_id]
+                        engine = session.get_engine()
+                        wid = session.worker_id
 
-                    tn = engine.get_next_template()
-                    ans["NextTemplate"] = tn
-                    assignable_nids = self.w_assignable[wid].get(pn, tn)
-                    if assignable_nids is not None:
-                        nanotask = assignable_nids.pop()
-                        ans["Props"] = nanotask.json["props"]
-                        ans["NanotaskId"] = str(nanotask.json["_id"])
+                        tn = engine.get_next_template()
+                        ans["NextTemplate"] = tn
+                        assignable_nids = self.w_assignable[wid].get(pn, tn)
+                        if assignable_nids is not None:
+                            nanotask = assignable_nids.pop()
+                            ans["Props"] = nanotask.json["props"]
+                            ans["NanotaskId"] = str(nanotask.json["_id"])
+                        else:
+                            ans["NanotaskId"] = "static"  ### FIXME
                     else:
-                        ans["NanotaskId"] = "static"  ### FIXME
-                    ans["Status"] = "success"
-                else:
-                    ans["Status"] = "error"
-                    ans["Reason"] = "No session found"
-            except StopIteration as e:
-                ans["Status"] = "success"
-                ans["NextTemplate"] = None
-            except Exception as e:
-                ans["Status"] = "error"
-                ans["Reason"] = str(e)
+                        raise Exception("No session found")
 
-        elif command=="ANSWER":
-            sid = session_id = event.data[1]
-            [pn, tn, nid] = [project_name, template_name, nanotask_id] = event.data[2:5]
+                except StopIteration as e:
+                    ans["NextTemplate"] = None
 
-            ### FIXME
-            answers = json.loads(" ".join(event.data[5:]))
+            elif command=="ANSWER":
+                sid = session_id = event.data[1]
+                [pn, tn, nid] = [project_name, template_name, nanotask_id] = event.data[2:5]
 
-            logger.debug(sid)
-            logger.debug(pn)
-            logger.debug(tn)
-            logger.debug(nid)
-            logger.debug(answers)
+                ### FIXME
+                answers = json.loads(" ".join(event.data[5:]))
 
-            
-            try:
                 session = self.sessions[sid]
                 wid = session.worker_id
                 w_submitted = self.w_submitted
@@ -318,14 +298,13 @@ class Handler(EventHandler):
                 if w_submitted[wid].get(pn, tn) is None:  w_submitted[wid].add(set(), pn, tn)
                 w_submitted[wid].get(pn, tn).add(nid)
                 self.db["answers"]["{}.{}.{}".format(pn, tn, nid)].insert_one({"sessionId": sid, "workerId": wid, "answers": answers})
-                ans["Status"] = "success"
                 ans["SentAnswer"] = answers
-            except Exception as e:
-                ans["Status"] = "error"
-                ans["Reason"] = str(e)
-                
-            
-        else:
+
+            else:
+                raise Exception("unknown command '{}'".format(command))
+
+        except Exception as e:
             ans["Status"] = "error"
-            ans["Reason"] = "unknown command '{}'".format(command)
+            ans["Reason"] = str(e)
+            
         return ans

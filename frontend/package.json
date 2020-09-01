@@ -18,6 +18,7 @@
     "material-design-icons-iconfont": "^5.0.1",
     "vue": "^2.6.11",
     "vue-cli": "^2.9.6",
+    "vue-json-pretty": "^1.6.7",
     "vue-jsonp": "^0.1.8",
     "vue-router": "^3.3.2",
     "vuep": "^0.8.1",
