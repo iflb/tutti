@@ -1,17 +1,49 @@
 import os
 from pathlib import Path
 
-root = Path(os.getcwd())
-projects = root / 'projects'
+from ifconf import configure_module, config_callback
 
-def project_dirpath(project_name):
-    return projects / project_name
+@config_callback
+def config(loader):
+    loader.add_attr_path('root', '/Users/susumu/programming/dynamiccrowd/backend', help='Absolute path to backend folder')
+    loader.add_attr_path('projects', 'projects', help='relative path to projects folder')
+    loader.add_attr_path('templates', 'templates', help='relative path to templates folder')
+    loader.add_attr_path('default_project', '.defaultproject', help='default project filename')
+    loader.add_attr_path('project_profile', 'profile.json', help='project profile filename')
+    loader.add_attr_path('template_presets', '.presets', help='template presets dirname')
+    loader.add_attr_path('template_main', 'Main', help='template main filename')
 
-def project_profile_filepath(project_name):
-    return project_dirpath(project_name) / "profile.json"
+cf = configure_module(config)
 
-def templates_dirpath(project_name):
-    return project_dirpath(project_name) / "templates"
+def projects():
+    return cf.root / cf.projects
 
-def template_dirpath(project_name, template_name):
-    return templates_dirpath(project_name) / template_name
+def default_project():
+    return projects() / cf.default_project
+
+def default_project_templates():
+    return default_project() / cf.templates
+
+def project(project_name):
+    return projects() / project_name
+
+def project_profile(project_name):
+    return project(project_name) / cf.project_profile
+
+def template_presets(project_name=None):
+    if project_name:
+        return templates(project_name) / cf.template_presets
+    else:
+        return default_project_templates() / cf.template_presets
+
+def templates(project_name):
+    return project(project_name) / cf.templates
+
+def template(project_name, template_name):
+    return templates(project_name) / template_name
+
+def template_preset(preset_name, project_name=None):
+    return template_presets(project_name) / preset_name+".vue"
+
+def template_main(project_name, template_name):
+    return template(project_name, template_name) / cf.template_main+".vue"

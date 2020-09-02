@@ -1,17 +1,8 @@
-from datetime import datetime
-import os
-import sys
-import asyncio
-from asyncio.subprocess import PIPE
 import random, string
 import json
 import copy
-import itertools
-import glob
 import importlib.util
 import heapq
-
-from tortoise.backends.mysql.client import MySQLClient
 
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
@@ -19,7 +10,7 @@ from ifconf import configure_module, config_callback
 import logging
 logger = logging.getLogger(__name__)
 
-from handler import paths, common
+from handler import common
 from libs.flowlib import Engine, is_batch, is_node
 
 

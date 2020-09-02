@@ -39,6 +39,7 @@ class Handler(EventHandler):
         template_name = event.data[2]
 
         ans = {}
+        ans["Command"] = command
         ans["Status"] = "success"
         try:
             if command=="get":
