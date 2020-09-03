@@ -1,47 +1,34 @@
 <template>
     <v-main class="mt-10 grey lighten-4">
-        <v-container>
-        <v-card align="center" class="mx-auto py-2 text-h5" width="200">Start</v-card>
-        <flow-arrow/>
-        <v-card class="mx-auto py-5" width="350">
-            <v-card tile class="mx-auto" width="300">
-                <v-list>
-                    <v-list-group>
-                        <template v-slot:activator>
-                            <v-list-item-title>Hoge</v-list-item-title>
-                        </template>
-                        <v-list-item dense>
-                                <v-list-item-icon> <v-icon>mdi-plus-circle-outline</v-icon> </v-list-item-icon>
-                                <v-list-item-content>Add condition ...</v-list-item-content>
-                        </v-list-item>
-                    </v-list-group>
-                </v-list>
-            </v-card>
-        </v-card>
-            <flow-arrow/>
-        <v-row class="text-center">
-            <v-hover v-slot:default="{ hover }"><v-card :elevation="hover ? 16 : 2" class="mx-auto py-5" width="300"></v-card></v-hover>
-        </v-row>
-        <flow-arrow/>
-        <v-row class="text-center">
-            <v-col cols="12"><v-card align="center" class="mx-auto py-2 text-h5" width="200">End</v-card></v-col>
-        </v-row>
-        <v-row><v-col cols="12" md="6">
-            <v-row><v-col>
-                <v-alert type="error" v-if="error!=null">{{ error }}</v-alert>
-            </v-col></v-row>
+        <v-row class="justify-center"><v-col cols="6">
+            <v-container>
+                <v-card align="center" class="ma-3 py-2 text-h5">Start</v-card>
 
-            <v-row><v-col>
-                <v-card class="pa-6">
-                <v-textarea id="task-flow" label="JSON for task flow profile" v-model="profileString" rows="20" auto-grow></v-textarea>
-                </v-card>
-            </v-col></v-row>
+                <flow-arrow/>
 
-            <v-row><v-col align="right">
-                <v-btn @click="updateProfile()" class="primary">update</v-btn>
-            </v-col></v-row>
+                <Recursive :node="flow" :is-last="true" :depth="1"></Recursive>
+
+                <flow-arrow/>
+
+                <v-card align="center" class="ma-3 py-2 text-h5">End</v-card>
+
+                <!--<v-row><v-col cols="12" md="6">
+                    <v-row><v-col>
+                        <v-alert type="error" v-if="error!=null">{{ error }}</v-alert>
+                    </v-col></v-row>
+
+                    <v-row><v-col>
+                        <v-card class="pa-6">
+                        <v-textarea id="task-flow" label="JSON for task flow profile" v-model="profileString" rows="20" auto-grow></v-textarea>
+                        </v-card>
+                    </v-col></v-row>
+
+                    <v-row><v-col align="right">
+                        <v-btn @click="updateProfile()" class="primary">update</v-btn>
+                    </v-col></v-row>
+                </v-col></v-row>-->
+            </v-container>
         </v-col></v-row>
-        </v-container>
 
 
         <v-snackbar v-model="snackbar.visible" :timeout="snackbar.timeout" :color="snackbar.color">
@@ -51,36 +38,6 @@
             </template>
         </v-snackbar>
 
-
-        <!--<v-container>
-            <v-row class="justify-center">
-                <v-col cols="10" md="6">
-                    <v-select max-width="400px" class="mx-auto" :items="sharedProps[name].projects" v-model="projectName" label="Project name"></v-select>
-                </v-col>
-            </v-row>
-
-            <v-row class="justify-center">
-                <v-col cols="10" md="6">
-                    <v-card class="pa-6">
-                        <v-select class="mr-3" :items="sharedProps[name].templates" label="Choose template..." solo>
-                        </v-select>
-                        <v-row align="center" class="d-flex px-4">
-                            <div class="mr-3">Repeat:</div>
-                            <div style="width:70px" class="mx-3"><v-text-field type="number"></v-text-field></div>
-                            <div class="mx-3">times</div>
-                        </v-row>
-                    </v-card>
-                </v-col>
-            </v-row>
-            <v-row class="justify-center my-10">
-                <v-tooltip bottom>
-                    <template v-slot:activator="{ on }">
-                    <v-btn icon v-on="on"><v-icon x-large>mdi-plus</v-icon></v-btn>
-                    </template>
-                    <span>Add flow</span>
-                </v-tooltip>
-            </v-row>
-        </v-container>-->
     </v-main>
 </template>
 
@@ -89,6 +46,7 @@ import store from '@/store.js'
 import { mapGetters } from 'vuex'
 
 import FlowArrow from './FlowArrow.vue'
+import Recursive from './Recursive.vue'
 
 export default {
     store,
@@ -105,12 +63,14 @@ export default {
         }
     }),
     components: {
-        "flow-arrow": FlowArrow
+        "flow-arrow": FlowArrow,
+        Recursive
     },
     props: ["sharedProps","name"],
     computed: {
         ...mapGetters("ductsModule", [ "duct" ]),
         project() { return this.sharedProps.project },
+        flow() { return this.sharedProps.project.profile }
     },
     methods: {
         showSnackbar(info){

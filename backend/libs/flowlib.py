@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 def is_batch(node):
     return isinstance(node, BatchNode)
 
-def is_node(node):
+def is_template(node):
     return isinstance(node, TemplateNode)
 
 
@@ -96,7 +96,7 @@ class Engine:
     def _get_next_template(self):
         while True:
             n = self.root_gen.__next__()
-            if is_node(n): return n
+            if is_template(n): return n
 
     def get_next_template(self):
         return self._get_next_template().tag

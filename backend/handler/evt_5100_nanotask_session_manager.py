@@ -3,6 +3,7 @@ import json
 import copy
 import importlib.util
 import heapq
+import inspect
 
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
@@ -11,10 +12,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 from handler import common
-from libs.flowlib import Engine, is_batch, is_node
+from libs.flowlib import Engine, is_batch, is_template
 
 
 from pymongo import MongoClient
+from datetime import datetime
 
 class Nanotask:
     def __init__(self, d_json):
@@ -219,11 +221,44 @@ class Handler(EventHandler):
 
                 flow = self.flows[project_name]
                 engine = Engine(project_name, flow)
-                log = ""
-                for elm in engine.test_generator():
-                    if is_batch(elm):   log += "entering batch {}\n".format(elm.tag)
-                    elif is_node(elm):  log += "--> executing node {}\n".format(elm.tag)
-                ans["Flow"] = log
+
+                root = engine.root
+                def lambda_to_str(lmd):
+                    try:
+                        return str(inspect.getsourcelines(lmd)[0]).strip("['\\n']").split(" = ")[1]
+                    except:
+                        return ""
+
+                def get_batch_info(child):
+                    if is_template(child):
+                        return {
+                            "tag": child.tag,
+                            "cond_if": lambda_to_str(child.cond_if),
+                            "cond_while": lambda_to_str(child.cond_while),
+                            "is_skippable": child.is_skippable,
+                            "template": child.template
+                        }
+                    else:
+                        _info = []
+                        for c in child.children:
+                            _info.append(get_batch_info(c))
+                        return {
+                            "tag": child.tag,
+                            "cond_if": lambda_to_str(child.cond_if),
+                            "cond_while": lambda_to_str(child.cond_while),
+                            "is_skippable": child.is_skippable,
+                            "children": _info
+                        }
+
+                info = get_batch_info(root)
+                logger.debug(json.dumps(info,indent=4))
+                ans["Flow"] = info
+
+                #log = ""
+                #for elm in engine.test_generator():
+                #    if is_batch(elm):   log += "entering batch {}\n".format(elm.tag)
+                #    elif is_template(elm):  log += "--> executing node {}\n".format(elm.tag)
+                #ans["Flow"] = log
 
             elif command=="CREATE_SESSION":    # フローをワーカーが開始するごとに作成
                 project_name = event.data[1]
@@ -288,7 +323,7 @@ class Handler(EventHandler):
                 if wid not in w_submitted:  w_submitted[wid] = DCStruct()
                 if w_submitted[wid].get(pn, tn) is None:  w_submitted[wid].add(set(), pn, tn)
                 w_submitted[wid].get(pn, tn).add(nid)
-                self.db["answers"]["{}.{}.{}".format(pn, tn, nid)].insert_one({"sessionId": sid, "workerId": wid, "answers": answers})
+                self.db["answers"]["{}.{}.{}".format(pn, tn, nid)].insert_one({"sessionId": sid, "workerId": wid, "nanotaskId": nid, "answers": answers, "timestamp": datetime.now()})
                 ans["SentAnswer"] = answers
 
             else:
