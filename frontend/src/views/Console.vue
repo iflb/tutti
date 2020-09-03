@@ -104,6 +104,7 @@ export default {
 
         sharedProps: {
             project,
+            answers: {}
         }
     }),
     computed: {
@@ -201,17 +202,13 @@ export default {
                             this.sharedProps.project.profile = data["Flow"]
                         }
                     }
-                    else if(data["Command"]=="ANSWERS"){
-                        if(data["Status"]=="error"){
-                            this.sharedProps.project.profile = null
-                            this.$refs.child.showSnackbar({
-                                color: "warning",
-                                text: "Profile is not set"
-                            })
-                        } else {
-                            this.sharedProps.answers = data["Answers"]
-                        }
-                    }
+                }
+            })
+
+            this.duct.addEvtHandler({
+                tag: "/console/answers/", eid: this.duct.EVENT.ANSWERS,
+                handler: (rid, eid, data) => {
+                    this.sharedProps.answers = data["Answers"];
                 }
             })
 

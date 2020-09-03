@@ -71,7 +71,6 @@ export default {
                     const rid = s.rid;
                     const tag = s.tag;
                     const sent = `${s.eid}__${s.data}`;
-                    //const received = "";
                     const received = null;
                     rows.unshift({ rid, tag, sent, received })
                 }
@@ -81,7 +80,6 @@ export default {
                     const r = receivedAll[i];
                     const rid = r.rid;
                     var row = rows.find(e => e.rid==rid);
-                    //row.received = `${r.eid}__${JSON.stringify(r.data)}`;
                     row.received = r.data;
                 }
             }
