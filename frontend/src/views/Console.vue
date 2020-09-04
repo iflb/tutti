@@ -61,7 +61,7 @@
                         <v-list-item-title>Dashboard</v-list-item-title>
                     </v-list-item>
                     
-                    <v-list-item to="/console/inspector/">
+                    <v-list-item to="/console/template/">
                         <v-list-item-icon>
                             <v-icon>mdi-iframe-outline</v-icon>
                         </v-list-item-icon>
@@ -75,14 +75,14 @@
                         <v-list-item-title>Task Flow</v-list-item-title>
                     </v-list-item>
  
-                    <v-list-item to="/console/answers/">
+                    <v-list-item to="/console/answer/">
                         <v-list-item-icon>
                             <v-icon>mdi-comment-text-multiple-outline</v-icon>
                         </v-list-item-icon>
                         <v-list-item-title>Answers</v-list-item-title>
                     </v-list-item>
                 
-                    <v-list-item to="/console/events/">
+                    <v-list-item to="/console/event/">
                         <v-list-item-icon>
                             <v-icon>mdi-lightning-bolt</v-icon>
                         </v-list-item-icon>

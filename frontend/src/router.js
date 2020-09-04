@@ -17,27 +17,27 @@ export default new VueRouter({
             children: [
                 {
                     path: "dashboard",
-                    component: () => import("./views/components/Dashboard"),
+                    component: () => import("./views/Console/Dashboard"),
                     props: getPropsForRoute
                 },
                 {
-                    path: "inspector",
-                    component: () => import("./views/components/NanotaskInspector"),
+                    path: "template",
+                    component: () => import("./views/Console/Template"),
                     props: getPropsForRoute
                 },
                 {
-                    path: "events",
-                    component: () => import("./views/components/Operation"),
+                    path: "event",
+                    component: () => import("./views/Console/Event"),
                     props: getPropsForRoute
                 },
                 {
                     path: "flow",
-                    component: () => import("./views/components/TaskFlowDesigner"),
+                    component: () => import("./views/Console/TaskFlow"),
                     props: getPropsForRoute
                 },
                 {
-                    path: "answers",
-                    component: () => import("./views/components/AnswerViewer"),
+                    path: "answer",
+                    component: () => import("./views/Console/Answer"),
                     props: getPropsForRoute
                 }
             ]
