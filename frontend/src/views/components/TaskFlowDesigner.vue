@@ -1,16 +1,31 @@
 <template>
     <v-main class="mt-10 grey lighten-4">
-        <v-row class="justify-center"><v-col cols="6">
+        <v-row class="justify-center"><v-col cols="5">
+            <v-card class="pa-8">
             <v-container>
-                <v-card align="center" class="ma-3 py-2 text-h5">Start</v-card>
+                <v-row>
+                    <v-col align="right">
+                        <v-btn text icon @click="refreshFlow()"><v-icon>mdi-refresh</v-icon></v-btn>
+                    </v-col>
+                </v-row>
+                <v-card align="center" class="mx-auto py-2 text-h6" color="grey lighten-2" width="200">Start</v-card>
 
-                <flow-arrow/>
+                <flow-arrow :color="templateColor" depth="1" />
 
-                <Recursive :node="flow" :is-last="true" :depth="1"></Recursive>
+                <div v-if="flow">
+                    <Recursive
+                        v-for="(child, idx) in flow.children"
+                        :key="idx"
+                        :templates="sharedProps.project.templates"
+                        :node="child"
+                        :is-last="idx==flow.children.length-1"
+                        :depth="1"
+                        :template-color="templateColor"></Recursive>
+                </div>
 
-                <flow-arrow/>
+                <flow-arrow :color="templateColor" depth="1" />
 
-                <v-card align="center" class="ma-3 py-2 text-h5">End</v-card>
+                <v-card align="center" class="mx-auto py-2 text-h6" color="grey lighten-2" width="200">End</v-card>
 
                 <!--<v-row><v-col cols="12" md="6">
                     <v-row><v-col>
@@ -28,6 +43,7 @@
                     </v-col></v-row>
                 </v-col></v-row>-->
             </v-container>
+            </v-card>
         </v-col></v-row>
 
 
@@ -60,7 +76,8 @@ export default {
             timeout: 3000,
             color: "",
             text: ""
-        }
+        },
+        templateColor: "blue-grey lighten-4"
     }),
     components: {
         "flow-arrow": FlowArrow,
@@ -78,8 +95,6 @@ export default {
             this.snackbar.visible = true
         },
         displayProfile() {
-            //if(this.project.profile) this.profileString = JSON.stringify(this.project.profile, null, 4)
-            console.log(this.project.profile)
             if(this.project.profile) this.profileString = this.project.profile
             else this.profileString = ""
         },
@@ -98,6 +113,13 @@ export default {
                 tag: this.name,
                 eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
                 data: `REGISTER_SM ${this.project.name} ${inlineProfile}`
+            })
+        },
+        refreshFlow(){
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
+                data: `LOAD_FLOW ${this.project.name}`
             })
         }
     },

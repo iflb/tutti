@@ -2,6 +2,7 @@ import random, string
 import json
 import copy
 import importlib.util
+from importlib import reload
 import heapq
 import inspect
 
@@ -195,18 +196,50 @@ class Handler(EventHandler):
         handler_spec.set_as_responsive()
         return handler_spec
 
+    def get_flow(self, project_name):
+        mod_flow = importlib.import_module("projects.{}.flow".format(project_name))
+        reload(mod_flow)
+        flow = mod_flow.TaskFlow()
+        flow.define()
+        return flow.batch_all
+
     def load_flows(self):
         flows = {}
         for project_name in common.get_projects():
             try:
-                mod_flow = importlib.import_module("projects.{}.flow".format(project_name))
-                flow = mod_flow.TaskFlow()
-                flow.define()
-                flows[project_name] = flow.batch_all
+                flows[project_name] = self.get_flow(project_name)
             except Exception as e:
                 logger.debug("{}, {}".format("projects.{}.flow".format(project_name), str(e)))
                 continue   
         return flows
+
+    def get_batch_info(self, child):
+        def lambda_to_str(lmd):
+            return lmd
+            #try:
+            #    return str(inspect.getsourcelines(lmd)[0]).strip("['\\n']").split(" = ")[1]
+            #except:
+            #    return ""
+    
+        if is_template(child):
+            return {
+                "tag": child.tag,
+                "cond_if": lambda_to_str(child.cond_if),
+                "cond_while": lambda_to_str(child.cond_while),
+                "is_skippable": child.is_skippable,
+                "template": child.template
+            }
+        else:
+            _info = []
+            for c in child.children:
+                _info.append(self.get_batch_info(c))
+            return {
+                "tag": child.tag,
+                "cond_if": lambda_to_str(child.cond_if),
+                "cond_while": lambda_to_str(child.cond_while),
+                "is_skippable": child.is_skippable,
+                "children": _info
+            }
 
     async def handle(self, event):
 
@@ -223,42 +256,23 @@ class Handler(EventHandler):
                 engine = Engine(project_name, flow)
 
                 root = engine.root
-                def lambda_to_str(lmd):
-                    try:
-                        return str(inspect.getsourcelines(lmd)[0]).strip("['\\n']").split(" = ")[1]
-                    except:
-                        return ""
-
-                def get_batch_info(child):
-                    if is_template(child):
-                        return {
-                            "tag": child.tag,
-                            "cond_if": lambda_to_str(child.cond_if),
-                            "cond_while": lambda_to_str(child.cond_while),
-                            "is_skippable": child.is_skippable,
-                            "template": child.template
-                        }
-                    else:
-                        _info = []
-                        for c in child.children:
-                            _info.append(get_batch_info(c))
-                        return {
-                            "tag": child.tag,
-                            "cond_if": lambda_to_str(child.cond_if),
-                            "cond_while": lambda_to_str(child.cond_while),
-                            "is_skippable": child.is_skippable,
-                            "children": _info
-                        }
-
-                info = get_batch_info(root)
-                logger.debug(json.dumps(info,indent=4))
+                info = self.get_batch_info(root)
                 ans["Flow"] = info
 
-                #log = ""
-                #for elm in engine.test_generator():
-                #    if is_batch(elm):   log += "entering batch {}\n".format(elm.tag)
-                #    elif is_template(elm):  log += "--> executing node {}\n".format(elm.tag)
-                #ans["Flow"] = log
+            elif command=="LOAD_FLOW":
+                project_name = event.data[1]
+
+                flow = self.get_flow(project_name)
+                self.flows[project_name] = flow
+                engine = Engine(project_name, flow)
+                info = self.get_batch_info(engine.root)
+                #logger.debug(json.dumps(info, indent=4))
+                log = "\n"
+                for elm in engine.test_generator():
+                    if is_batch(elm):   log += "entering batch {}\n".format(elm.tag)
+                    elif is_template(elm):  log += "--> executing node {}\n".format(elm.tag)
+                logger.debug(log)
+                ans["Flow"] = info
 
             elif command=="CREATE_SESSION":    # フローをワーカーが開始するごとに作成
                 project_name = event.data[1]

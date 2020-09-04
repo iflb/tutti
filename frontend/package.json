@@ -27,7 +27,8 @@
     "what-the-pack": "^2.0.3"
   },
   "devDependencies": {
-    "@mdi/font": "^5.3.45",
+    "@fortawesome/fontawesome-free": "^5.14.0",
+    "@mdi/font": "^5.5.55",
     "@vue/cli-plugin-babel": "~4.4.0",
     "@vue/cli-plugin-eslint": "~4.4.0",
     "@vue/cli-service": "~4.4.0",

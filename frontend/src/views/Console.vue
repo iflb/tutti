@@ -5,7 +5,13 @@
             
             <v-toolbar-title>DynamicCrowd Management Console</v-toolbar-title>
             <v-spacer></v-spacer>
-            <v-autocomplete v-model="project.name" :items="projects" :search-input.sync="searchString" label="Select project" hide-details cache-items solo-inverted hide-no-data dense rounded></v-autocomplete>
+            <v-autocomplete v-model="project.name" :items="projects" :search-input.sync="searchString" label="Select existing project" hide-details cache-items solo-inverted hide-no-data dense rounded></v-autocomplete>
+            <v-tooltip bottom>
+                <template v-slot:activator="{ on, attrs }">
+                    <v-btn fab dark small icon v-on="on" v-bind="attrs" @click.stop="dialog.createProject = true"><v-icon dark>mdi-plus-box-multiple-outline</v-icon></v-btn>
+                </template>
+                <span>Create New Project...</span>
+            </v-tooltip>
             <v-spacer></v-spacer>
             <v-menu offset-y>
                 <template v-slot:activator="{ on, attrs }">
@@ -22,6 +28,22 @@
             </v-menu>
         </v-app-bar>
 
+        <v-dialog v-model="dialog.createProject" max-width="400" >
+          <v-card>
+            <v-card-title class="headline">Create New Project</v-card-title>
+            <v-form v-model="isFormValid.createProject" @submit.prevent="createProject(); dialog.createProject = false">
+                <v-card-text>
+                    <v-text-field v-model="newProjectName" filled prepend-icon="mdi-pencil" label="Enter Project Name" :rules="[rules.required, rules.alphanumeric]"></v-text-field>
+                </v-card-text>
+                <v-card-actions>
+                  <v-spacer></v-spacer>
+                  <v-btn text @click="dialog.createProject = false" >Cancel</v-btn>
+                  <v-btn color="primary" text :disabled="!isFormValid.createProject" @click="createProject(); dialog.createProject = false" >Create</v-btn>
+                </v-card-actions>
+            </v-form>
+          </v-card>
+        </v-dialog>
+
         <v-navigation-drawer v-model="drawer" app clipped>
             <v-list nav shaped>
                 <v-list-item-group active-class="indigo--text text--accent-4">
@@ -34,21 +56,21 @@
 
                     <v-list-item to="/console/dashboard/">
                         <v-list-item-icon>
-                            <v-icon>mdi-home</v-icon>
+                            <v-icon>mdi-view-dashboard</v-icon>
                         </v-list-item-icon>
                         <v-list-item-title>Dashboard</v-list-item-title>
                     </v-list-item>
                     
                     <v-list-item to="/console/inspector/">
                         <v-list-item-icon>
-                            <v-icon>mdi-iframe-braces-outline</v-icon>
+                            <v-icon>mdi-iframe-outline</v-icon>
                         </v-list-item-icon>
                         <v-list-item-title>Templates</v-list-item-title>
                     </v-list-item>
                
                     <v-list-item to="/console/flow/">
                         <v-list-item-icon>
-                            <v-icon>mdi-puzzle</v-icon>
+                            <v-icon>mdi-transit-connection</v-icon>
                         </v-list-item-icon>
                         <v-list-item-title>Task Flow</v-list-item-title>
                     </v-list-item>
@@ -84,7 +106,7 @@ import { mapActions, mapGetters } from 'vuex'
 var project = {
     name: "",
     templates: [],
-    profile: null
+    profile: null,
 }
 
 export default {
@@ -101,10 +123,25 @@ export default {
 
         projects: [],
         project,
+        newProjectName: "",
 
         sharedProps: {
             project,
             answers: {}
+        },
+        dialog: {
+            createProject: false
+        },
+
+        isFormValid: {
+            createProject: false
+        },
+        rules: {
+            required: value => !!value || "This field is required",
+            alphanumeric: value => {
+                const pattern = /^[a-zA-Z0-9_-]*$/;
+                return pattern.test(value) || 'Alphabets, numbers, "_", or "-" is only allowed';
+            }
         }
     }),
     computed: {
@@ -135,6 +172,9 @@ export default {
                 this.loading = false
             }, 500)
         },
+        createProject() {
+            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.CREATE_PROJECT, data: this.newProjectName })
+        }
     },
     created: function(){
         var self = this
@@ -173,6 +213,9 @@ export default {
             this.duct._connection_listener.on("onopen", this.srvStatusProfile.connected.handler)
             this.duct._connection_listener.on(["onclose", "onerror"], this.srvStatusProfile.disconnected.handler)
             this.duct.setEventHandler(this.duct.EVENT.ALIVE_MONITORING, this.srvStatusProfile.connected.handler)
+            this.duct.setEventHandler(this.duct.EVENT.CREATE_PROJECT, () => {
+                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_PROJECTS, data: null })
+            })
             this.duct.setEventHandler(this.duct.EVENT.LIST_PROJECTS, (rid, eid, data) => {
                 this.projects = data
             })
@@ -191,12 +234,12 @@ export default {
                             text: "Successfully registered a state machine"
                         })
                     }
-                    else if(data["Command"]=="GET_FLOWS"){
+                    else if(data["Command"]=="GET_FLOWS" || data["Command"]=="LOAD_FLOW"){
                         if(data["Status"]=="error"){
                             this.sharedProps.project.profile = null
                             this.$refs.child.showSnackbar({
                                 color: "warning",
-                                text: "Profile is not set"
+                                text: data["Reason"]
                             })
                         } else {
                             this.sharedProps.project.profile = data["Flow"]

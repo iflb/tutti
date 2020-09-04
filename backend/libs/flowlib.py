@@ -72,9 +72,9 @@ class BatchNode(Node):
     def retrieve(self):
         ### ここは最下位のbatchまで
         for node in self.children:
-            if not node.cond_if or node.cond_if(node):
+            if not node.cond_if or eval(node.cond_if)(node):
                 _cnt = 0
-                _cond_while = node.cond_while if node.cond_while else (lambda node: _cnt==0)
+                _cond_while = eval(node.cond_while) if node.cond_while else (lambda node: _cnt==0)
 
                 while _cond_while(node):
                     yield node
