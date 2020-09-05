@@ -8,12 +8,8 @@ from tortoise.backends.mysql.client import MySQLClient
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
 
-@config_callback
-def config(loader):
-    loader.add_attr('root_path', os.getcwd(), help='')
-    loader.add_attr('root_path_project', 'projects/{project_name}', help='')
-    loader.add_attr('dir_presets', 'templates', help='')
-    loader.add_attr('preset_default', '.presets/Default.vue', help='')
+import logging
+logger = logging.getLogger(__name__)
 
 class Handler(EventHandler):
 
@@ -28,12 +24,12 @@ class Handler(EventHandler):
 
     async def handle(self, event):
         project_name = event.data[0]
-        template_names = event.data[2:-1]
+        template_names = event.data[1:-1]
         preset_name = event.data[-1]
         
         preset = self.path.template_preset(preset_name, project_name)
 
-        if not os.path.exists(preset_name):
+        if not os.path.exists(preset):
             return "Error: default preset does not exist ({})".format(preset)
 
         templates_success = []

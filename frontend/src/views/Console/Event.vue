@@ -27,7 +27,7 @@
                 </v-card-title>
                 <v-data-table :headers="logTableHeaders" :items="serverLogTableRows" :items-per-page="10" :search="searchStr">
                     <template v-slot:item.received="{ item }">
-                        <vue-json-pretty :data="item.received" deep=1 style="font-size:0.6em;"></vue-json-pretty>
+                        <vue-json-pretty :data="item.received" :deep="1" style="font-size:0.6em;"></vue-json-pretty>
                     </template>
                 </v-data-table>
             </v-card>

@@ -6,12 +6,14 @@
             <v-toolbar-title>DynamicCrowd Management Console</v-toolbar-title>
             <v-spacer></v-spacer>
             <v-autocomplete v-model="project.name" :items="projects" :search-input.sync="searchString" label="Select existing project" hide-details cache-items solo-inverted hide-no-data dense rounded></v-autocomplete>
+
             <v-tooltip bottom>
                 <template v-slot:activator="{ on, attrs }">
                     <v-btn fab dark small icon v-on="on" v-bind="attrs" @click.stop="dialog.createProject = true"><v-icon dark>mdi-plus-box-multiple-outline</v-icon></v-btn>
                 </template>
                 <span>Create New Project...</span>
             </v-tooltip>
+
             <v-spacer></v-spacer>
             <v-menu offset-y>
                 <template v-slot:activator="{ on, attrs }">
@@ -28,12 +30,12 @@
             </v-menu>
         </v-app-bar>
 
-        <v-dialog v-model="dialog.createProject" max-width="400" >
+        <v-dialog v-model="dialog.createProject" max-width="400">
           <v-card>
             <v-card-title class="headline">Create New Project</v-card-title>
             <v-form v-model="isFormValid.createProject" @submit.prevent="createProject(); dialog.createProject = false">
                 <v-card-text>
-                    <v-text-field v-model="newProjectName" filled prepend-icon="mdi-pencil" label="Enter Project Name" :rules="[rules.required, rules.alphanumeric]"></v-text-field>
+                    <v-text-field autofocus v-model="newProjectName" filled prepend-icon="mdi-pencil" label="Enter Project Name" :rules="[rules.required, rules.alphanumeric]"></v-text-field>
                 </v-card-text>
                 <v-card-actions>
                   <v-spacer></v-spacer>
@@ -215,6 +217,9 @@ export default {
             this.duct.setEventHandler(this.duct.EVENT.ALIVE_MONITORING, this.srvStatusProfile.connected.handler)
             this.duct.setEventHandler(this.duct.EVENT.CREATE_PROJECT, () => {
                 this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_PROJECTS, data: null })
+            })
+            this.duct.setEventHandler(this.duct.EVENT.CREATE_TEMPLATE, () => {
+                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_TEMPLATES, data: this.project.name })
             })
             this.duct.setEventHandler(this.duct.EVENT.LIST_PROJECTS, (rid, eid, data) => {
                 this.projects = data

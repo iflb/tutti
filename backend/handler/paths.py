@@ -11,7 +11,7 @@ def config(loader):
     loader.add_attr_path('default_project', '.defaultproject', help='default project filename')
     loader.add_attr_path('project_profile', 'profile.json', help='project profile filename')
     loader.add_attr_path('template_presets', '.presets', help='template presets dirname')
-    loader.add_attr_path('template_main', 'Main', help='template main filename')
+    loader.add_attr('template_main', 'Main', help='template main filename')
 
 cf = configure_module(config)
 
@@ -25,7 +25,7 @@ def default_project_templates():
     return default_project() / cf.templates
 
 def project(project_name):
-    return projects() / project_name
+    return projects() / Path(project_name)
 
 def project_profile(project_name):
     return project(project_name) / cf.project_profile
@@ -40,10 +40,10 @@ def templates(project_name):
     return project(project_name) / cf.templates
 
 def template(project_name, template_name):
-    return templates(project_name) / template_name
+    return templates(project_name) / Path(template_name)
 
 def template_preset(preset_name, project_name=None):
-    return template_presets(project_name) / preset_name+".vue"
+    return template_presets(project_name) / Path(preset_name+".vue")
 
 def template_main(project_name, template_name):
-    return template(project_name, template_name) / cf.template_main+".vue"
+    return template(project_name, template_name) / Path(cf.template_main+".vue")
