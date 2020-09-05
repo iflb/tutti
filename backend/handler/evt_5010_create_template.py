@@ -41,7 +41,7 @@ class Handler(EventHandler):
     
             try:
                 os.makedirs(os.path.dirname(dst), exist_ok=True)
-                shutil.copyfile(preset_name, dst)
+                shutil.copyfile(preset, dst)
                 templates_success.append(template_name)
             except Exception as e:
                 return "Error for '{}': {} (Successful for templates: {})".format(template_name, e, templates_success)
