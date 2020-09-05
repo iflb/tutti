@@ -52,8 +52,9 @@ class DCStruct:   # lame
         if not template_name:
             return project_name in self.data_all
         if not nanotask_id:
-            return template_name in self.data_all[project_name]
-        return nanotask_id in self.data_all[project_name][template_name]
+            return (project_name in self.data_all) and (template_name in self.data_all[project_name])
+
+        return (project_name in self.data_all) and (template_name in self.data_all[project_name]) and (nanotask_id in self.data_all[project_name][template_name])
 
     def add(self, data, project_name, template_name=None, nanotask_id=None):
         pn, tn, nid = project_name, template_name, nanotask_id

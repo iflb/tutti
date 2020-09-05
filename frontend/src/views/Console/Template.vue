@@ -3,7 +3,7 @@
         <v-row justify="center">
             <v-col cols="10">
             <v-card class="pa-3">
-                <v-row>
+                <v-row justify="center">
                     <v-col cols="12" lg="8">
                         <v-row class="justify-start ml-5 mr-0 pr-0" align="center">
                             <v-col cols="10">
@@ -18,11 +18,6 @@
                                 </v-tooltip>
                             </v-col>
                         </v-row>
-                    </v-col>
-                    <v-col cols="12" lg="4">
-                        <v-container class="text-center">
-                        <v-btn class="text-none" :disabled="project.name==''" @click="launchProductionMode()">Launch in production mode (private)</v-btn>
-                        </v-container>
                     </v-col>
                 </v-row>
             </v-card>
@@ -127,12 +122,11 @@ export default {
         }
     },
     methods: {
-        launchProductionMode(){ window.open(`/vue/private-prod/${this.project.name}`); },
         updateAnswer($event) {
             this.currentAnswer = $event;
         },
         submit($event) {
-            this.dialog = true;
+            this.dialog.submitAnswer = true;
             this.sentAnswer = $event;
         },
         createTemplate() {

@@ -1,6 +1,6 @@
 <template>
     <div>
-    <v-card class="ma-3 mt-0 px-3" :color="cardColor" :tile="hasChildren">
+    <v-card class="ma-3 mt-0 px-3" :color="cardColor" :tile="hasChildren" :shaped="!hasChildren">
         <v-container>
             <v-row>
                 <v-col cols="8" class="pb-0">
