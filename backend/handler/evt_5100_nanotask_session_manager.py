@@ -20,8 +20,12 @@ from pymongo import MongoClient
 from datetime import datetime
 
 class Nanotask:
-    def __init__(self, d_json):
-        self.json = d_json
+    def __init__(self, **kwargs):
+        for k,v in kwargs.items():
+            setattr(self, k, v)
+
+    def get(self, attr):
+        return getattr(self, attr)
 
 class PriorityNanotaskSet:
     def __init__(self):
@@ -109,6 +113,84 @@ class TaskSession:
     def get_engine(self):
         return self.engine
 
+from typing import Dict, Set
+
+class DCModel:
+    def __init__(self):
+        self.projects: Dict[str, Project] = {}
+
+    def list_projects(self):
+        return self.projects.keys()
+
+    def add_project(self, project):
+        self.projects[project.name] = project
+        return project
+
+    def get_project(self, name):
+        return self.projects[name] if (name in self.projects) else None
+
+class Project:
+    def __init__(self, name):
+        self.name = name
+        self.templates: Dict[str, Template] = {}
+
+    def list_templates(self):
+        return self.templates.keys()
+
+    def add_template(self, template):
+        self.templates[template.name] = template
+        return template
+
+    def get_template(self, name):
+        return self.templates[name] if (name in self.templates) else None
+            
+
+class Template:
+    def __init__(self, name):
+        self.name = name
+        self.nids = set()
+
+    def has_nanotasks(self):
+        return len(self.nids)>0
+
+    def add_nanotask_ids(self, nids: Set[str]):
+        self.nids = self.nids | nids
+        return self.nids
+
+
+class TaskQueue:
+    def __init__(self):
+        self.queue_all = {}  # wid -> project_name -> template_name -> heapq
+
+    def get_queue(self, wid, pn, tn):
+        try:
+            return self.queue_all[wid][pn][tn]
+        except:
+            try: self.queue_all[wid]
+            except: self.queue_all[wid] = {}
+
+            try: self.queue_all[wid][pn]
+            except: self.queue_all[wid][pn] = {}
+
+            try: self.queue_all[wid][pn][tn]
+            except:
+                self.queue_all[wid][pn][tn] = []
+                heapq.heapify(self.queue_all[wid][pn][tn])
+            
+            return self.queue_all[wid][pn][tn]
+
+    def push(self, queue, nid, priority):
+        heapq.heappush(queue, (priority, nid))
+
+    def get_first(self, queue):
+        try:    return queue[0][1]
+        except: return None
+
+    def pop(self, queue):
+        try:    return heapq.heappop(queue)[1]
+        except: return None
+
+
 class Handler(EventHandler):
     def __init__(self):
         super().__init__()
@@ -116,10 +198,16 @@ class Handler(EventHandler):
         self.sessions = {}               # {session_id: iterator}
         self.db = MongoClient()
 
-        self.nt_memory = DCStruct()             # DCStruct(project_name -> template_name -> nanotask_id) -> nanotask
-        self.g_assignable = DCStruct()          # DCStruct(project_name -> template_name -> nanotask_id) -> nanotask
-        self.w_assignable = {}                  # worker_id -> DCStruct(project_name -> template_name) -> PriorityNanotaskSet(nanotask)
-        self.w_submitted = {}                   # worker_id -> DCStruct(project_name -> template_name) -> set(nanotask_id)
+        self.dcmodel = DCModel()
+        self.nt_memory = {}                     # { nid: Nanotask }
+        self.g_assignable = set()               # set(nid)
+        self.tqueue = TaskQueue()
+        self.w_submitted = {}                   # worker_id -> set(nanotask_id)
+
+        #self.nt_memory = DCStruct()            # DCStruct(project_name -> template_name -> nanotask_id) -> nanotask
+        #self.g_assignable = DCStruct()         # DCStruct(project_name -> template_name -> nanotask_id) -> nanotask
+        #self.w_assignable = {}                  # worker_id -> DCStruct(project_name -> template_name) -> PriorityNanotaskSet(nanotask)
+        #self.w_submitted = {}                   # worker_id -> DCStruct(project_name -> template_name) -> set(nanotask_id)
 
         self.create_nanotask_memory()    
 
@@ -131,75 +219,77 @@ class Handler(EventHandler):
         nt_memory = self.nt_memory
         g_assignable = self.g_assignable
 
+        for pn in common.get_projects():
+            prj = self.dcmodel.add_project(Project(pn))
+            for tn in common.get_templates(pn):
+                prj.add_template(Template(tn))
+
         _db = self.db["nanotasks"]
         for cn in _db.list_collection_names(filter=None):
             [pn, tn] = [project_name, template_name] = cn.split(".")
 
+            nids = set()
             for nt in _db[cn].find():
-                nid = nanotask_id = str(nt["_id"])
+                nid = nt["_id"] = str(nt["_id"])
+                nids.add(nid)
+                nt["project_name"] = pn
+                nt["template_name"] = tn
                 nt["num_remaining"] = nt["num_assignable"]
-                nanotask = Nanotask(nt)
-                nt_memory.add(nanotask, pn, tn, nid)
-                g_assignable.add(nt_memory.get(pn,tn,nid), pn, tn, nid)
+                nt_memory[nid] = Nanotask(**nt)
+                g_assignable.add(nid)
+            self.dcmodel.get_project(pn).get_template(tn).add_nanotask_ids(nids)
 
-        for pn in common.get_projects():
-            for tn in common.get_templates(pn):
-                if not g_assignable.exists(pn, tn):
-                    g_assignable.add(None, pn, tn)
-
+    def create_task_queue_for_worker(self, wid):
+        _w_assignable = self.g_assignable - self.w_submitted[wid]
+        for nid in _w_assignable:
+            nt = self.nt_memory[nid]
+            pn = nt.get("project_name")
+            tn = nt.get("template_name")
+            q = self.tqueue.get_queue(wid, pn, tn)
+            self.tqueue.push(q, nid, nt.priority)
 
     def update_assignability(self):
         nt_memory = self.nt_memory
         g_assignable = self.g_assignable
         w_submitted = self.w_submitted
+        tqueue = self.tqueue
 
         _db = self.db["answers"]
         for cn in _db.list_collection_names(filter=None):
-            [pn, tn, nid] = [project_name, template_name, nanotask_id] = cn.split(".")
+            try:
+                [pn, tn, nid] = [project_name, template_name, nanotask_id] = cn.split(".")
+            except ValueError: 
+                [pn, tn] = [project_name, template_name] = cn.split(".")
+                nid = None
+
             _n_answers = _db[cn].find()
+            prj = self.dcmodel.get_project(pn)
+            if prj is not None:
+                tmpl = prj.get_template(tn)
+                if tmpl is None:
+                    logger.debug("template '{}' in project '{}' is not found in memory".format(tn, pn))
+                elif tmpl.has_nanotasks():
+                    nt = nt_memory[nid]
+                    nt.num_remaining -= _n_answers.count()
+                    if nt.num_remaining<=0:  g_assignable.remove(nid)
 
-            mem = nt_memory.get(pn, tn, nid)
-            if mem:
-                mem.json["num_remaining"] -= _n_answers.count()
-                if mem.json["num_remaining"]<=0:  g_assignable.delete(pn, tn, nid)
+                for a in _n_answers:
+                    wid = a["workerId"]
+                    if wid not in w_submitted:  w_submitted[wid] = set()
+                    if nid: w_submitted[wid].add(nid)
             else:
-                logger.debug("{}.{}.{} was not found in nanotask memory".format(pn, tn, nid))
+                logger.debug("project '{}' is not found in memory".format(pn))
 
-            for a in _n_answers:
-                wid = a["workerId"]
-                if wid not in w_submitted:  w_submitted[wid] = DCStruct()
-                if w_submitted[wid].get(pn, tn) is None:  w_submitted[wid].add(set(), pn, tn)
-                w_submitted[wid].get(pn, tn).add(nid)
-
-        w_assignable = self.w_assignable
         for wid in w_submitted.keys():
-            for pn in w_submitted[wid].project_names():
-                for tn in w_submitted[wid].template_names(pn):
-                    _t_assignable = copy.copy(g_assignable.get(pn,tn))
+            self.create_task_queue_for_worker(wid)
 
-                    ### FIXME
-                    if wid not in w_assignable:  w_assignable[wid] = DCStruct()
-                    if _t_assignable is None:  # for static nanotask
-                        w_assignable[wid].add(None, pn, tn)
-                    else:  # when props are registered
-                        for nid in w_submitted[wid].get(pn, tn):
-                            if nid in _t_assignable:  del _t_assignable[nid]
-
-                        # for new worker
-                        _set = PriorityNanotaskSet()
-                        for nt in _t_assignable.values():
-                            _set.add(nt, nt.json["priority"])
-                        w_assignable[wid].add(_set, pn, tn)
-
-
-    def setup(self, handler_spec, manager):
+    def setup(self, handler_spec, dcmodel):
         handler_spec.set_description('テンプレート一覧を取得します。')
         handler_spec.set_as_responsive()
         return handler_spec
 
     def get_flow(self, project_name):
         mod_flow = importlib.import_module("projects.{}.flow".format(project_name))
-        reload(mod_flow)
         flow = mod_flow.TaskFlow()
         flow.define()
         return flow.batch_all
@@ -267,37 +357,26 @@ class Handler(EventHandler):
                 self.flows[project_name] = flow
                 engine = Engine(project_name, flow)
                 info = self.get_batch_info(engine.root)
-                #logger.debug(json.dumps(info, indent=4))
-                log = "\n"
-                for elm in engine.test_generator():
-                    if is_batch(elm):   log += "entering batch {}\n".format(elm.tag)
-                    elif is_template(elm):  log += "--> executing node {}\n".format(elm.tag)
-                logger.debug(log)
                 ans["Flow"] = info
+
+                #logger.debug(json.dumps(info, indent=4))
+                #log = "\n"
+                #for elm in engine.test_generator():
+                #    if is_batch(elm):   log += "entering batch {}\n".format(elm.tag)
+                #    elif is_template(elm):  log += "--> executing node {}\n".format(elm.tag)
+                #logger.debug(log)
 
             elif command=="CREATE_SESSION":    # フローをワーカーが開始するごとに作成
                 project_name = event.data[1]
                 wid = event.data[2]
 
+                if wid not in self.w_submitted:
+                    self.w_submitted[wid] = set()
+                    self.create_task_queue_for_worker(wid)
+
                 engine = Engine(project_name, self.flows[project_name])
                 session = TaskSession(worker_id=wid, engine=engine)
                 self.sessions[session.id] = session
-
-                if wid not in self.w_assignable:
-                    # g_assignable to w_assignable[wid]
-                    _ga_copy = copy.copy(self.g_assignable)
-                    _wa = DCStruct()
-                    for pn in _ga_copy.get():
-                        for tn in _ga_copy.get(pn):
-                            _set = PriorityNanotaskSet()
-                            if _ga_copy.get(pn,tn) is None:
-                                _wa.add(None, pn, tn)
-                            else:
-                                for nt in _ga_copy.get(pn,tn).values():
-                                    _set.add(nt, nt.json["priority"])
-                                _wa.add(_set, pn, tn)
-                    self.w_assignable[wid] = _wa
-
                 ans["SessionId"] = session.id
                 
             elif command=="GET":
@@ -312,13 +391,20 @@ class Handler(EventHandler):
 
                         tn = engine.get_next_template()
                         ans["NextTemplate"] = tn
-                        assignable_nids = self.w_assignable[wid].get(pn, tn)
-                        if assignable_nids is not None:
-                            nanotask = assignable_nids.pop()
-                            ans["Props"] = nanotask.json["props"]
-                            ans["NanotaskId"] = str(nanotask.json["_id"])
+                        tmpl = self.dcmodel.get_project(pn).get_template(tn)
+                        if tmpl.has_nanotasks():
+                            q = self.tqueue.get_queue(wid, pn, tn)
+                            if len(q)>0:
+                                nid = self.tqueue.pop(q)
+                                nt = self.nt_memory[nid]
+                                ans["IsStatic"] = False
+                                ans["NanotaskId"] = nid
+                                ans["Props"] = nt.props
+                            else:
+                                ans["NanotaskId"] = None
                         else:
-                            ans["NanotaskId"] = "static"  ### FIXME
+                            ans["IsStatic"] = True
+                            
                     else:
                         raise Exception("No session found")
 
@@ -334,11 +420,11 @@ class Handler(EventHandler):
 
                 session = self.sessions[sid]
                 wid = session.worker_id
-                w_submitted = self.w_submitted
-                if wid not in w_submitted:  w_submitted[wid] = DCStruct()
-                if w_submitted[wid].get(pn, tn) is None:  w_submitted[wid].add(set(), pn, tn)
-                w_submitted[wid].get(pn, tn).add(nid)
-                self.db["answers"]["{}.{}.{}".format(pn, tn, nid)].insert_one({"sessionId": sid, "workerId": wid, "nanotaskId": nid, "answers": answers, "timestamp": datetime.now()})
+                self.w_submitted[wid].add(nid)
+                if nid=="null":
+                    self.db["answers"]["{}.{}".format(pn, tn)].insert_one({"sessionId": sid, "workerId": wid, "answers": answers, "timestamp": datetime.now()})
+                else:
+                    self.db["answers"]["{}.{}.{}".format(pn, tn, nid)].insert_one({"sessionId": sid, "workerId": wid, "nanotaskId": nid, "answers": answers, "timestamp": datetime.now()})
                 ans["SentAnswer"] = answers
 
             else:

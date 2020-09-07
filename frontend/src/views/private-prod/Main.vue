@@ -121,9 +121,15 @@ export default {
                     if(data["NextTemplate"]){
                         this.count += 1;
                         this.templateName = data["NextTemplate"];
-                        this.nanoData = data["Props"];
-                        this.nanotaskId = data["NanotaskId"];
-                        //console.log(this.templateName, this.nanoData, this.nanotaskId);
+                        if(data["IsStatic"]) {
+                            console.log("loading static task");
+                            this.nanoData = null;
+                            this.nanotaskId = null;
+                        }
+                        else {
+                            this.nanoData = data["Props"];
+                            this.nanotaskId = data["NanotaskId"];
+                        }
                     } else {
                         alert("finished!");
                     }
