@@ -22,9 +22,9 @@
 </template>
 
 <script>
-import ductMixIn from "@/mixins/duct";
+import nanoMixIn from "@/mixins/nano";
 export default {
-    mixins: [ductMixIn],
+    mixins: [nanoMixIn],
     data: () => ({
         enjoyment: ["Never", "Slightly", "Moderately", "Definitely"]
     })

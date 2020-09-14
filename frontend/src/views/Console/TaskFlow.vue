@@ -1,7 +1,7 @@
 <template>
     <v-main class="mt-10 grey lighten-4">
-        <v-row class="justify-center"><v-col cols="5">
-            <v-card class="pa-8">
+        <v-row class="justify-center"><v-col cols="11" md="8" lg="6">
+            <v-card class="pa-3">
             <v-container>
                 <v-row>
                     <v-col align="right">
@@ -26,22 +26,6 @@
                 <arrow :color="templateColor" depth="1" />
 
                 <v-card align="center" class="mx-auto py-2 text-h6" color="grey lighten-2" width="200">End</v-card>
-
-                <!--<v-row><v-col cols="12" md="6">
-                    <v-row><v-col>
-                        <v-alert type="error" v-if="error!=null">{{ error }}</v-alert>
-                    </v-col></v-row>
-
-                    <v-row><v-col>
-                        <v-card class="pa-6">
-                        <v-textarea id="task-flow" label="JSON for task flow profile" v-model="profileString" rows="20" auto-grow></v-textarea>
-                        </v-card>
-                    </v-col></v-row>
-
-                    <v-row><v-col align="right">
-                        <v-btn @click="updateProfile()" class="primary">update</v-btn>
-                    </v-col></v-row>
-                </v-col></v-row>-->
             </v-container>
             </v-card>
         </v-col></v-row>

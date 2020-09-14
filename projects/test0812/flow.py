@@ -10,7 +10,7 @@ class TaskFlow:
             TemplateNode("pre1"),
             TemplateNode("pre2")
         ])
-        
+
         batch_main = BatchNode("main", cond_while="lambda b: b.cnt<3")
         batch_main.append([
             TemplateNode("main1"),

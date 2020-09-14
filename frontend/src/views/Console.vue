@@ -30,14 +30,6 @@
                 </v-list>
             </v-menu>
 
-            <!--<v-tooltip bottom>
-                <template v-slot:activator="{ on, attrs }">
-                    <v-btn fab dark small icon v-on="on" v-bind="attrs" @click.stop="dialog.createProject = true"><v-icon dark>mdi-plus-box-multiple-outline</v-icon></v-btn>
-                </template>
-                <span>Create New Project...</span>
-            </v-tooltip>
-
-            <v-btn dark outlined class="text-none" :disabled="project.name==''" @click="launchProductionMode()">Launch in production mode (private)</v-btn>-->
             <v-spacer></v-spacer>
             <v-menu offset-y>
                 <template v-slot:activator="{ on, attrs }">

@@ -41,9 +41,9 @@
 </template>
 
 <script>
-import ductMixIn from "@/mixins/duct";
+import nanoMixIn from "@/mixins/nano";
 export default {
-    mixins: [ductMixIn],
+    mixins: [nanoMixIn],
     data: () => ({
         defaultProps: {
             "img_url0": "https://www.biography.com/.image/ar_1:1%2Cc_fill%2Ccs_srgb%2Cg_face%2Cq_80%2Cw_300/MTQxNzI4NTg2OTU1NDk5MDE3/donald_trump_photo_michael_stewartwireimage_gettyimages_169093538_croppedjpg.jpg",

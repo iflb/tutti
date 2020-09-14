@@ -290,6 +290,7 @@ class Handler(EventHandler):
 
     def get_flow(self, project_name):
         mod_flow = importlib.import_module("projects.{}.flow".format(project_name))
+        importlib.reload(mod_flow)
         flow = mod_flow.TaskFlow()
         flow.define()
         return flow.batch_all
