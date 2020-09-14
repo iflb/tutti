@@ -463,8 +463,8 @@ window.ducts.dynamiccrowd.Duct = class extends window.ducts.Duct {
         //this.mystate = null;
 
         this.sendMsg = ({ tag, eid, data }) => {
-            const rid = this.next_rid()
-            if(data) { data = data.split(" ") } else { data = [] }
+            const rid = this.next_rid();
+            if(typeof data === "string") { data = data.split(" ") }
             this.send(rid, eid, data)
             this.log.sent.push({ tag, rid, eid, data })
         }

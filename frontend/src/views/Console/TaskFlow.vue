@@ -16,6 +16,7 @@
                     <recursive-batch
                         v-for="(child, idx) in flow.children"
                         :key="idx"
+                        :project="sharedProps.project.name"
                         :templates="sharedProps.project.templates"
                         :node="child"
                         :is-last="idx==flow.children.length-1"
@@ -51,10 +52,10 @@ import RecursiveBatch from './TaskFlow/RecursiveBatch.vue'
 export default {
     store,
     data: () => ({
-        projectName: null,
-        templateName: null,
-        profileString: "",
-        error: null,
+        //projectName: null,
+        //templateName: null,
+        //profileString: "",
+        //error: null,
         snackbar: {
             visible: false,
             timeout: 3000,
@@ -77,27 +78,27 @@ export default {
             Object.assign(this.snackbar, info)
             this.snackbar.visible = true
         },
-        displayProfile() {
-            if(this.project.profile) this.profileString = this.project.profile
-            else this.profileString = ""
-        },
-        updateProfile() {
-            try {
-                JSON.parse(this.profileString)
-                this.error = null
-            } catch(a) {
-                this.error = `${a.name}: ${a.message}`
-                this.showSnackbar({ color: "error", text: "JSON parse error" })
-                return
-            }
+        //displayProfile() {
+        //    if(this.project.profile) this.profileString = this.project.profile
+        //    else this.profileString = ""
+        //},
+        //updateProfile() {
+        //    try {
+        //        JSON.parse(this.profileString)
+        //        this.error = null
+        //    } catch(a) {
+        //        this.error = `${a.name}: ${a.message}`
+        //        this.showSnackbar({ color: "error", text: "JSON parse error" })
+        //        return
+        //    }
 
-            const inlineProfile = this.profileString.replace(/ /g, "").replace(/\n/g, "")
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
-                data: `REGISTER_SM ${this.project.name} ${inlineProfile}`
-            })
-        },
+        //    const inlineProfile = this.profileString.replace(/ /g, "").replace(/\n/g, "")
+        //    this.duct.sendMsg({
+        //        tag: this.name,
+        //        eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
+        //        data: `REGISTER_SM ${this.project.name} ${inlineProfile}`
+        //    })
+        //},
         refreshFlow(){
             this.duct.sendMsg({
                 tag: this.name,
@@ -106,14 +107,14 @@ export default {
             })
         }
     },
-    mounted() {
-        this.displayProfile()
-    },
-    watch: {
-        "project.profile": function(){
-            this.displayProfile()
-        }
-    }
+    //mounted() {
+    //    this.displayProfile()
+    //},
+    //watch: {
+    //    "project.profile": function(){
+    //        this.displayProfile()
+    //    }
+    //}
 }
 
 document.addEventListener('keydown', function (e) {
@@ -134,10 +135,3 @@ document.addEventListener('keydown', function (e) {
     }
 });
 </script>
-
-<style>
-#task-flow {
-    font-family: Consolas,Menlo,Monaco,Lucida Console,Liberation Mono,DejaVu Sans Mono,Bitstream Vera Sans Mono,Courier New,monospace,sans-serif;
-    font-size: 0.8em;
-}
-</style>

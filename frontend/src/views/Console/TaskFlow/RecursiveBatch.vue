@@ -23,7 +23,7 @@
                         <v-btn icon v-on="on" v-bind="attrs"><v-icon>mdi-dots-vertical</v-icon></v-btn>
                     </template>
                     <v-list>
-                        <v-list-item @click="templateName=node.tag; dialog=true">
+                        <v-list-item @click="dialog=true">
                             <v-list-item-title>Import Nanotasks...</v-list-item-title>
                         </v-list-item>
                     </v-list>
@@ -47,6 +47,7 @@
                 <v-col cols="12" md="11">
                 <recursive-batch
                     :template-color="templateColor"
+                    :project="project"
                     :templates="templates"
                     :node="child"
                     :is-last="idx==children.length-1"
@@ -59,13 +60,34 @@
 
     <v-dialog v-model="dialog" max-width="1200" persistent>
       <v-card>
-        <v-card-title class="headline">Import Nanotasks for '{{ templateName }}'</v-card-title>
+        <v-card-title class="headline">
+            Import Nanotasks for '{{ node.template }}'
+        </v-card-title>
         <v-card-text>
-            <v-file-input accept=".csv,.CSV" show-size label="Upload .csv file..." @change="getFileContent"></v-file-input>
+            <v-file-input accept=".csv,.CSV" show-size label=".csv file to upload" @change="getFileContent"></v-file-input>
         </v-card-text>
-        <v-card-text>
-            <v-data-table v-if="contents.length>0" dense :headers="headers" :items="contents" class="elevation-1"></v-data-table>
-        </v-card-text>
+        <v-card v-if="contents.length>0" class="mx-6">
+            <v-card-title>
+                CSV File Parsing Results
+                <v-spacer></v-spacer>
+                <v-text-field
+                  v-model="search"
+                  append-icon="mdi-magnify"
+                  label="Search"
+                  single-line
+                  hide-details
+                ></v-text-field>
+            </v-card-title>
+            <v-data-table dense :headers="headers" :items="contents" :search="search"></v-data-table>
+        </v-card>
+        <v-container v-if="contents.length>0">
+            <v-row>
+                <v-col><v-text-field v-model="tagName" label="Tag Name" :min="1" /></v-col>
+                <v-col><v-text-field v-model="numAssignments" type="number" label="# Assignments" :min="1" /></v-col>
+                <v-col><v-text-field v-model="priority" type="number" label="Priority" :min="1" /></v-col>
+                <v-spacer/>
+            </v-row>
+        </v-container>
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn text @click="closeDialog" > Cancel </v-btn>
@@ -82,20 +104,29 @@ import RecursiveBatch from './RecursiveBatch.vue'
 import Arrow from './Arrow.vue'
 import Papa from 'papaparse'
 
+import store from '@/store.js'
+import { mapGetters } from 'vuex'
+
 export default {
+    store,
     name: "RecursiveBatch",
-    props: ["node", "isLast", "depth", "templateColor", "templates"],
+    props: ["node", "isLast", "depth", "templateColor", "project", "templates"],
     components: { RecursiveBatch, Arrow },
     data: () => ({
         color: "grey",
-        templateName: "",
 
         dialog: false,
         headers: [],
         headerNames: [],
-        contents: []
+        contents: [],
+        search: "",
+
+        tagName: "",
+        numAssignments: 1,
+        priority: 1
     }),
     computed: {
+        ...mapGetters("ductsModule", [ "duct" ]),
         cardColor() {
             if(this.hasChildren) return `${this.color} lighten-${this.depth+2}`;
             else return this.templateColor;
@@ -116,6 +147,15 @@ export default {
             this.dialog = false;
         },
         importNanotasks() {
+            const data = {
+                projectName: this.project,
+                templateName: this.node.template,
+                tag: this.tagName,
+                numAssignable: this.numAssignments,
+                priority: this.priority,
+                props: this.contents
+            }
+            this.duct.sendMsg({ tag: "recursive", eid: this.duct.EVENT.UPLOAD_NANOTASKS, data: data });
             this.closeDialog();
         },
         async getFileContent (file) {
