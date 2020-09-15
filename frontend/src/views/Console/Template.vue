@@ -12,7 +12,7 @@
                             <v-col cols="2">
                                 <v-tooltip bottom>
                                     <template v-slot:activator="{ on, attrs }">
-                                        <v-btn fab small icon v-on="on" v-bind="attrs" :disabled="project.name==''" @click.stop="dialog.createTemplate = true"><v-icon dark>mdi-plus-box-multiple-outline</v-icon></v-btn>
+                                        <v-btn fab small icon v-on="on" v-bind="attrs" :disabled="project.name==''" @click.stop="$refs.dlgCreateTemplate.shown=true"><v-icon dark>mdi-plus-box-multiple-outline</v-icon></v-btn>
                                     </template>
                                     <span>Create New Template...</span>
                                 </v-tooltip>
@@ -43,32 +43,8 @@
             </v-col>
         </v-row>
 
-        <v-dialog v-model="dialog.submitAnswer" persistent max-width="700">
-            <v-card>
-                <v-card-title class="text-h6"><v-icon class="mr-2" color="green">mdi-check-circle</v-icon>Answers are submitted successfully</v-card-title>
-                <v-card-text><vue-json-pretty :data="sentAnswer"></vue-json-pretty></v-card-text>
-                <v-card-actions>
-                    <v-spacer></v-spacer>
-                    <v-btn color="blue darken-1" text @click="dialog.submitAnswer = false">Close</v-btn>
-                </v-card-actions>
-            </v-card>
-        </v-dialog>
-
-        <v-dialog v-model="dialog.createTemplate" max-width="400">
-          <v-card>
-            <v-card-title class="headline">Create New Template</v-card-title>
-            <v-form v-model="isFormValid.createTemplate" @submit.prevent="createTemplate(); dialog.createTemplate = false">
-                <v-card-text>
-                    <v-text-field autofocus v-model="newTemplateName" filled prepend-icon="mdi-pencil" label="Enter Template Name" :rules="[rules.required, rules.alphanumeric]"></v-text-field>
-                </v-card-text>
-                <v-card-actions>
-                  <v-spacer></v-spacer>
-                  <v-btn text @click="dialog.createTemplate = false" >Cancel</v-btn>
-                  <v-btn color="primary" text :disabled="!isFormValid.createTemplate" @click="createTemplate(); dialog.createTemplate = false" >Create</v-btn>
-                </v-card-actions>
-            </v-form>
-          </v-card>
-        </v-dialog>
+        <dialog-submit-answer ref="dlgSubmitAnswer" :answer="sentAnswer" />
+        <dialog-create-template ref="dlgCreateTemplate" :project="project.name" />
 
     </v-main>
 </template>
@@ -77,31 +53,20 @@
 import store from '@/store.js'
 import { mapGetters } from 'vuex'
 import VueJsonPretty from 'vue-json-pretty'
+import DialogSubmitAnswer from './DialogSubmitAnswer.vue'
+import DialogCreateTemplate from './DialogCreateTemplate.vue'
 
 export default {
     store,
     components: {
-        VueJsonPretty
+        VueJsonPretty,
+        DialogSubmitAnswer,
+        DialogCreateTemplate,
     },
     data: () => ({
         templateName: null,
         currentAnswer: {},
         sentAnswer: {},
-        newTemplateName: "",
-        dialog: {
-            submitAnswer: false,
-            createTemplate: false
-        },
-        isFormValid: {
-            createTemplate: false
-        },
-        rules: {
-            required: value => !!value || "This field is required",
-            alphanumeric: value => {
-                const pattern = /^[a-zA-Z0-9_-]*$/;
-                return pattern.test(value) || 'Alphabets, numbers, "_", or "-" is only allowed';
-            }
-        }
     }),
     props: ["sharedProps","name"],
     computed: {
@@ -126,12 +91,9 @@ export default {
             this.currentAnswer = $event;
         },
         submit($event) {
-            this.dialog.submitAnswer = true;
             this.sentAnswer = $event;
+            this.$refs.dlgSubmitAnswer.shown = true;
         },
-        createTemplate() {
-            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.CREATE_TEMPLATE, data: `${this.project.name} ${this.newTemplateName} Default` })
-        }
     },
     watch: {
         "project.name"() { this.templateName = null },

@@ -17,7 +17,9 @@
                             label="Template name"
                             filled hide-details outlined dense />
                 </v-col>
+
                 <v-spacer></v-spacer>
+
                 <v-menu bottom left offset-y v-if="!hasChildren">
                     <template v-slot:activator="{ on, attrs }">
                         <v-btn icon v-on="on" v-bind="attrs"><v-icon>mdi-dots-vertical</v-icon></v-btn>
@@ -29,6 +31,7 @@
                     </v-list>
                 </v-menu>
             </v-row>
+
             <v-row class="text-caption">
                 <v-col cols="12" class="pb-0" v-if="node.cond_if">
                     <v-icon>mdi-comment-question-outline</v-icon>
@@ -42,7 +45,14 @@
                     <v-icon>mdi-transit-skip</v-icon>
                     Skippable
                 </v-col>
+                <v-col cols="12" class="pb-0" v-if="node.is_skippable">
+                    <v-chip dark label outlined color="indigo" @click="$refs.dlgList.show=true">
+                        <v-icon left>mdi-file-document-multiple-outline</v-icon>
+                        Nanotasks set (320)
+                    </v-chip>
+                </v-col>
             </v-row>
+
             <v-row justify="end" :key="idx" v-for="(child, idx) in children">
                 <v-col cols="12" md="11">
                 <recursive-batch
@@ -54,11 +64,13 @@
                     :depth="depth+1" />
                 </v-col>
             </v-row>
+
         </v-container>
     </v-card>
     <arrow v-if="!isLast" :depth="depth" :color="templateColor" />
 
     <dialog-import :project="project" :template="node.template" ref="dlgImport" />
+    <dialog-list :project="project" :template="node.template" ref="dlgList" />
 
     </div>
 </template>
@@ -66,12 +78,13 @@
 <script>
 import RecursiveBatch from './RecursiveBatch.vue'
 import Arrow from './Arrow.vue'
-import DialogImport from './DialogImport.vue'
+import DialogImport from './DialogImportNanotasks.vue'
+import DialogList from './DialogListNanotasks.vue'
 
 export default {
     name: "RecursiveBatch",
     props: ["node", "isLast", "depth", "templateColor", "project", "templates"],
-    components: { RecursiveBatch, Arrow, DialogImport },
+    components: { RecursiveBatch, Arrow, DialogImport, DialogList },
     data: () => ({
         color: "grey",
     }),

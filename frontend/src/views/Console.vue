@@ -12,7 +12,7 @@
                     <v-btn fab dark small icon v-on="on" v-bind="attrs"><v-icon>mdi-dots-vertical</v-icon></v-btn>
                 </template>
                 <v-list>
-                    <v-list-item @click="dialog.createProject = true">
+                    <v-list-item @click="$refs.dlgCreateProject.shown=true">
                         <v-list-item-title>Create New Project...</v-list-item-title>
                     </v-list-item>
                     <v-list-item :disabled="project.name==''" @click="launchProductionMode()">
@@ -30,6 +30,8 @@
                 </v-list>
             </v-menu>
 
+            <dialog-create-project ref="dlgCreateProject" />
+
             <v-spacer></v-spacer>
             <v-menu offset-y>
                 <template v-slot:activator="{ on, attrs }">
@@ -46,24 +48,8 @@
             </v-menu>
         </v-app-bar>
 
-        <v-dialog v-model="dialog.createProject" max-width="400">
-          <v-card>
-            <v-card-title class="headline">Create New Project</v-card-title>
-            <v-form v-model="isFormValid.createProject" @submit.prevent="createProject(); dialog.createProject = false">
-                <v-card-text>
-                    <v-text-field autofocus v-model="newProjectName" filled prepend-icon="mdi-pencil" label="Enter Project Name" :rules="[rules.required, rules.alphanumeric]"></v-text-field>
-                </v-card-text>
-                <v-card-actions>
-                  <v-spacer></v-spacer>
-                  <v-btn text @click="dialog.createProject = false" >Cancel</v-btn>
-                  <v-btn color="primary" text :disabled="!isFormValid.createProject" @click="createProject(); dialog.createProject = false" >Create</v-btn>
-                </v-card-actions>
-            </v-form>
-          </v-card>
-        </v-dialog>
-
         <v-navigation-drawer v-model="drawer" app clipped>
-            <v-list nav shaped>
+            <v-list nav dense>
                 <v-list-item-group active-class="indigo--text text--accent-4">
                     <!--<v-list-item>
                         <v-list-item-content>
@@ -120,6 +106,7 @@
 import dateFormat from 'dateformat'
 import store from '@/store.js'
 import { mapActions, mapGetters } from 'vuex'
+import DialogCreateProject from './DialogCreateProject.vue'
 
 var project = {
     name: "",
@@ -128,10 +115,9 @@ var project = {
     path: ""
 }
 
-
-
 export default {
     store,
+    components: { DialogCreateProject },
     data: () => ({
         drawer: true,
         name: "/console/",
@@ -144,31 +130,15 @@ export default {
 
         projects: [],
         project,
-        newProjectName: "",
 
         sharedProps: {
             project,
             answers: {}
         },
-        dialog: {
-            createProject: false
-        },
 
-        isFormValid: {
-            createProject: false
-        },
-        rules: {
-            required: value => !!value || "This field is required",
-            alphanumeric: value => {
-                const pattern = /^[a-zA-Z0-9_-]*$/;
-                return pattern.test(value) || 'Alphabets, numbers, "_", or "-" is only allowed';
-            }
-        }
     }),
     computed: {
-        ...mapGetters("ductsModule", [
-            "duct"
-        ])
+        ...mapGetters("ductsModule", [ "duct" ])
     },
     watch: {
         searchString (val) {
@@ -196,9 +166,6 @@ export default {
                 this.items = _items.filter(e => { return (e || '').toLowerCase().indexOf((v || '').toLowerCase()) > -1 })
                 this.loading = false
             }, 500)
-        },
-        createProject() {
-            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.CREATE_PROJECT, data: this.newProjectName })
         },
         copyProjectPath() {
             this.copyText = this.project.path;
