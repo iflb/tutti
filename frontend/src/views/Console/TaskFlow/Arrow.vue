@@ -1,13 +1,18 @@
 <template>
+    <v-sheet class="text-center mx-auto pb-0 py-2" color="rgba(0,0,0,0)">
+        <v-icon x-large>mdi-arrow-down-bold</v-icon>
+    </v-sheet>
+    <!--
     <v-hover v-slot:default="{ hover }" open-delay="300" style="cursor:pointer;">
         <v-sheet class="text-center mx-auto py-2" color="rgba(0,0,0,0)">
             <v-icon x-large>mdi-arrow-down-bold</v-icon>
             <div v-if="hover">
-            <v-card class="ma-3 py-5" :color="color" outlined><v-icon>mdi-plus-box</v-icon></v-card>
+            <v-card shaped class="ma-3 py-5" :color="color" outlined><v-icon>mdi-plus-box</v-icon></v-card>
             <v-icon x-large>mdi-arrow-down-bold</v-icon>
             </div>
         </v-sheet>
     </v-hover>
+    -->
 </template>
 
 <script>
