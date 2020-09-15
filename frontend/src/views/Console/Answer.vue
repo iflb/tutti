@@ -5,7 +5,7 @@
             <v-card class="pa-3">
                 <v-row class="justify-space-around">
                 <v-col cols="12" md="7" align="center">
-                <v-select width="80%" hide-details :items="project.templates" v-model="templateName" label="Template name" :disabled="isTemplateSelectDisabled"></v-select>
+                <v-select width="80%" hide-details :items="templateNames" v-model="templateName" label="Template name" :disabled="isTemplateSelectDisabled"></v-select>
                 </v-col>
                 </v-row>
             </v-card>
@@ -56,7 +56,11 @@ export default {
         project() { return this.sharedProps.project },
 
         isTemplateSelectDisabled() {
-            return this.project.templates.length==0 || !this.project.name
+            return !this.project.templates || Object.keys(this.project.templates).length==0
+        },
+        templateNames() {
+            if(this.project.templates) return Object.keys(this.project.templates);
+            else return [];
         },
         answers() { return this.sharedProps.answers },
         ansTableRows() {

@@ -7,7 +7,7 @@
                     <v-col cols="12" lg="8">
                         <v-row class="justify-start ml-5 mr-0 pr-0" align="center">
                             <v-col cols="10">
-                                <v-select width="300" hide-details :items="project.templates" v-model="templateName" label="Template name" :disabled="isTemplateSelectDisabled"></v-select>
+                                <v-select width="300" hide-details :items="templateNames" v-model="templateName" label="Template name" :disabled="isTemplateSelectDisabled"></v-select>
                             </v-col>
                             <v-col cols="2">
                                 <v-tooltip bottom>
@@ -83,7 +83,11 @@ export default {
         },
 
         isTemplateSelectDisabled() {
-            return this.project.templates.length==0 || !this.project.name
+            return !this.project.templates || Object.keys(this.project.templates).length==0
+        },
+        templateNames() {
+            if(this.project.templates) return Object.keys(this.project.templates);
+            else return [];
         }
     },
     methods: {

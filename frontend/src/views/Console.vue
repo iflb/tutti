@@ -5,7 +5,7 @@
             
             <v-toolbar-title>DynamicCrowd Management Console</v-toolbar-title>
             <v-spacer></v-spacer>
-            <v-autocomplete v-model="project.name" :items="projects.map(v=>v.name)" :search-input.sync="searchString" label="Select existing project" hide-details cache-items solo-inverted hide-no-data dense rounded></v-autocomplete>
+            <v-autocomplete v-model="project.name" :items="projectNames" :search-input.sync="searchString" label="Select existing project" hide-details cache-items solo-inverted hide-no-data dense rounded></v-autocomplete>
 
             <v-menu bottom left offset-y>
                 <template v-slot:activator="{ on, attrs }">
@@ -108,12 +108,23 @@ import store from '@/store.js'
 import { mapActions, mapGetters } from 'vuex'
 import DialogCreateProject from './DialogCreateProject.vue'
 
-var project = {
-    name: "",
-    templates: [],
-    profile: null,
-    path: ""
-}
+var Project = class {
+    constructor(name, path) {
+        this.name = name;
+        this.templates = {};
+        this.profile = null;
+        this.path = path;
+    }
+};
+
+var Template = class {
+    constructor(name) {
+        this.name = name;
+        this.nanotask = {
+            cnt: 0
+        };
+    }
+};
 
 export default {
     store,
@@ -128,25 +139,27 @@ export default {
 
         searchString: "",
 
-        projects: [],
-        project,
+        projects: {},
+        project: new Project("", null),
 
         sharedProps: {
-            project,
+            project: {},
             answers: {}
         },
 
     }),
     computed: {
-        ...mapGetters("ductsModule", [ "duct" ])
+        ...mapGetters("ductsModule", [ "duct" ]),
+        projectNames() {
+            return Object.keys(this.projects);
+        }
     },
     watch: {
         searchString (val) {
             val && val !== this.select && this.querySelections(val)
         },
-        "project.name" (val) {
-            this.project = project;
-            this.project.path = this.projects.filter(el=>(el.name==val))[0].path;
+        "project.name" (val) {  // called when project name is selected on the app bar
+            this.project = this.projects[val];
             this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_TEMPLATES, data: val })
             this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER, data: `GET_FLOWS ${val}` })
         }
@@ -161,9 +174,7 @@ export default {
         querySelections (v) {
             this.loading = true
             setTimeout(() => {
-                var _items = [];
-                for(const i in this.projects) _items.push(this.projects[i].name);
-                this.items = _items.filter(e => { return (e || '').toLowerCase().indexOf((v || '').toLowerCase()) > -1 })
+                this.items = Object.keys(this.projects).filter(e => { return (e || '').toLowerCase().indexOf((v || '').toLowerCase()) > -1 })
                 this.loading = false
             }, 500)
         },
@@ -212,23 +223,50 @@ export default {
             }
         }
         this.initDuct(window.ducts = window.ducts || {}).then(() => {
-            this.duct._connection_listener.on("onopen", this.srvStatusProfile.connected.handler)
-            this.duct._connection_listener.on(["onclose", "onerror"], this.srvStatusProfile.disconnected.handler)
-            this.duct.setEventHandler(this.duct.EVENT.ALIVE_MONITORING, this.srvStatusProfile.connected.handler)
+            this.duct._connection_listener.on("onopen", this.srvStatusProfile.connected.handler);
+            this.duct._connection_listener.on(["onclose", "onerror"], this.srvStatusProfile.disconnected.handler);
+            this.duct.setEventHandler(this.duct.EVENT.ALIVE_MONITORING, this.srvStatusProfile.connected.handler);
             this.duct.setEventHandler(this.duct.EVENT.CREATE_PROJECT, () => {
-                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_PROJECTS, data: null })
-            })
+                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_PROJECTS, data: null });
+            });
             this.duct.setEventHandler(this.duct.EVENT.CREATE_TEMPLATE, () => {
-                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_TEMPLATES, data: this.project.name })
-            })
+                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_TEMPLATES, data: this.project.name });
+            });
             this.duct.setEventHandler(this.duct.EVENT.LIST_PROJECTS, (rid, eid, data) => {
-                this.projects = data
-            })
+                for(const i in data){
+                    const name = data[i].name;
+                    const path = data[i].path;
+                    var project = new Project(name, path);
+                    this.$set(this.projects, name, project);
+                }
+            });
             this.duct.setEventHandler(this.duct.EVENT.LIST_TEMPLATES, (rid, eid, data) => {
-                this.project.templates = data
-                this.sharedProps.project = this.project
-            })
+                for(const i in data){
+                    const templateName = data[i];
+                    var template = new Template(templateName);
+                    this.project.templates[templateName] = template;
+                }
+                this.sharedProps.project = this.project;
+            });
 
+            this.duct.setEventHandler(this.duct.EVENT.UPLOAD_NANOTASKS, (rid, eid, data) => {
+                if(data["Status"]!="success") return;
+
+                const project = data["Project"];
+                const template = data["Template"];
+                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.GET_NANOTASKS, data: `COUNT ${project} ${template}` });
+            });
+
+            this.duct.setEventHandler(this.duct.EVENT.GET_NANOTASKS, (rid, eid, data) => {
+                if(data["Status"]!="success") return;
+
+                const project = data["Project"];
+                const template = data["Template"];
+                if(data["Command"]=="COUNT") {
+                    const cnt = data["Count"];
+                    this.projects[project].templates[template].nanotask.cnt = cnt;
+                }
+            });
 
             this.duct.addEvtHandler({
                 tag: "/console/flow/", eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,

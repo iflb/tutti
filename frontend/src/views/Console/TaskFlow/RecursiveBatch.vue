@@ -13,7 +13,7 @@
                         <v-select
                             v-if="!hasChildren"
                             v-model="node.tag"
-                            :items="templates"
+                            :items="Object.keys(templates)"
                             label="Template name"
                             filled hide-details outlined dense />
                 </v-col>
