@@ -2,6 +2,7 @@
     <v-dialog v-model="show" max-width="1200" persistent>
       <v-card>
         <v-card-title class="headline">
+            <v-icon class="mr-2" color="indigo">mdi-file-upload</v-icon>
             Import Nanotasks for '{{ template }}'
         </v-card-title>
         <v-card-text>

@@ -121,7 +121,8 @@ var Template = class {
     constructor(name) {
         this.name = name;
         this.nanotask = {
-            cnt: 0
+            cnt: 0,
+            data: []
         };
     }
 };
@@ -283,11 +284,18 @@ export default {
             });
 
             this.duct.setEventHandler(this.duct.EVENT.GET_NANOTASKS, (rid, eid, data) => {
-                if(data["Status"]!="success") return;
+                if(data["Status"]!="success") {
+                    console.log(data["Reason"]);
+                    return;
+                }
 
                 const project = data["Project"];
                 const template = data["Template"];
-                if(data["Command"]=="COUNT") {
+                if(data["Command"]=="NANOTASKS"){
+                    const d = data["Nanotasks"];
+                    this.projects[project].templates[template].nanotask.data = d;
+                }
+                else if(data["Command"]=="COUNT") {
                     const cnt = data["Count"];
                     this.projects[project].templates[template].nanotask.cnt = cnt;
                 }

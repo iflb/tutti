@@ -24,25 +24,20 @@ class Handler(EventHandler):
         project_name = event.data[1]
         template_name = event.data[2]
         ans = {}
+        ans["Command"] = command
         ans["Project"] = project_name
         ans["Template"] = template_name
-        ans["Status"] = "success"
-        ans["Command"] = command
-        ans["Count"] = 10
-        return ans
-    
         try:
-            project_name = event.data["projectName"]
-            template_name = event.data["templateName"]
-            data = {
-                "tag": event.data["tag"],
-                "num_assignable": event.data["numAssignable"],
-                "priority": event.data["priority"]
-            }
-            res = self.db.get_collection("{}.{}".format(project_name, template_name)).insert_many([dict(data, **{"props": props}) for props in event.data["props"]])
-            inserted_ids = res.inserted_ids
+            if command=="NANOTASKS":
+                data = []
+                for d in self.db["{}.{}".format(project_name, template_name)].find():
+                    d["_id"] = str(d["_id"])
+                    data.append(d)
+                ans["Nanotasks"] = data
+            elif command=="COUNT":
+                count = self.db["{}.{}".format(project_name, template_name)].count()
+                ans["Count"] = count
             ans["Status"] = "success"
-            ans["NumInserted"] = len(inserted_ids)
         except Exception as e:
             ans["Status"] = "error"
             ans["Reason"] = str(e)

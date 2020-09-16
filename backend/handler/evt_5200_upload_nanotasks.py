@@ -22,8 +22,8 @@ class Handler(EventHandler):
     async def handle(self, event):
         ans = {}
         try:
-            project_name = event.data["projectName"]
-            template_name = event.data["templateName"]
+            project_name = ans["Project"] = event.data["projectName"]
+            template_name = ans["Template"] = event.data["templateName"]
             data = {
                 "tag": event.data["tag"],
                 "num_assignable": event.data["numAssignable"],

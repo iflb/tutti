@@ -51,9 +51,6 @@
                         Nanotasks ({{ project.templates[node.template].nanotask.cnt }})
                     </v-chip>
                 </v-col>
-                <v-col cols="12" class="pb-0">
-                    {{ project.templates[node.template] }}
-                </v-col>
             </v-row>
 
             <v-row justify="end" :key="idx" v-for="(child, idx) in children">
@@ -72,7 +69,7 @@
     <arrow v-if="!isLast" :depth="depth" :color="templateColor" />
 
     <dialog-import :project="project" :template="node.template" ref="dlgImport" />
-    <dialog-list :project="project" :template="node.template" ref="dlgList" />
+    <dialog-list :project="project" :template="node.template" :nanotasks="nanotasks" ref="dlgList" />
 
     </div>
 </template>
@@ -110,7 +107,11 @@ export default {
         },
         hasNanotask() {
             return !this.hasChildren && this.project.templates[this.node.template].nanotask.cnt>0;
+        },
+        nanotasks() {
+            try { return this.project.templates[this.node.template].nanotask.data; }
+            catch { return []; }
         }
-    }
+    },
 }
 </script>
