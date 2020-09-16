@@ -1,7 +1,6 @@
 <template>
     <v-main class="mt-10 grey lighten-4">
         <v-row class="justify-center"><v-col cols="11" md="8" lg="6">
-            {{ project }}
             <v-card class="pa-3">
             <v-container>
                 <v-row>
@@ -68,7 +67,10 @@ export default {
     computed: {
         ...mapGetters("ductsModule", [ "duct" ]),
         project() { return this.sharedProps.project },
-        flow() { return this.sharedProps.project.profile }
+        flow() {
+            if(this.project) { return this.sharedProps.project.profile; }
+            else { return null; }
+        }
     },
     methods: {
         showSnackbar(info){
@@ -83,12 +85,6 @@ export default {
             })
         }
     },
-    //watch: {
-    //    sharedProps: {
-    //        handler: (val, old) => { console.log(val, old);},
-    //        deep: true
-    //    }
-    //}
 }
 
 document.addEventListener('keydown', function (e) {

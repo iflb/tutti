@@ -142,10 +142,9 @@ export default {
         projects: {},
         project: new Project("", null),
 
-        sharedProps: {
-            project: {},
-            answers: {}
-        },
+        answers: {},
+
+        sharedProps: {}
 
     }),
     computed: {
@@ -160,10 +159,21 @@ export default {
         },
         "project.name" (name) {  // called when project name is selected on the app bar
             this.project = this.projects[name];
-            //this.sharedProps.project = this.project;
             this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_TEMPLATES, data: name })
             this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER, data: `GET_FLOWS ${name}` })
-        }
+        },
+        project: {
+            handler: function(val) {
+                this.sharedProps.project = val
+            },
+            deep: true
+        },
+        answers: {
+            handler: function(val) {
+                this.sharedProps.answers = val
+            },
+            deep: true
+        },
     },
     methods: {
         ...mapActions("ductsModule", [
@@ -190,7 +200,11 @@ export default {
             document.removeEventListener("copy", this.copyListener);
         }
     },
+
     created: function(){
+        this.$set(this.sharedProps, "project", this.project);
+        this.$set(this.sharedProps, "answers", this.answers);
+
         var self = this
         this.srvStatusProfile = {
             connected: {
@@ -242,12 +256,22 @@ export default {
                 }
             });
             this.duct.setEventHandler(this.duct.EVENT.LIST_TEMPLATES, (rid, eid, data) => {
-                for(const i in data){
-                    const templateName = data[i];
+                if(data["Status"]!="success") return;
+
+                const project = data["Project"];
+                var templates = {};
+                for(const i in data["Templates"]){
+                    const templateName = data["Templates"][i];
                     var template = new Template(templateName);
-                    this.$set(this.project.templates, templateName, template);
+                    templates[templateName] = template;
+
+                    this.duct.sendMsg({
+                        tag: this.name,
+                        eid: this.duct.EVENT.GET_NANOTASKS,
+                        data: `COUNT ${project} ${templateName}`
+                    });
                 }
-                this.sharedProps.project = this.project;
+                this.$set(this.project, "templates", templates);
             });
 
             this.duct.setEventHandler(this.duct.EVENT.UPLOAD_NANOTASKS, (rid, eid, data) => {
@@ -265,7 +289,6 @@ export default {
                 const template = data["Template"];
                 if(data["Command"]=="COUNT") {
                     const cnt = data["Count"];
-                    //this.sharedProps.project.templates[template].nanotask.cnt = cnt;
                     this.projects[project].templates[template].nanotask.cnt = cnt;
                 }
             });
@@ -281,13 +304,13 @@ export default {
                     }
                     else if(data["Command"]=="GET_FLOWS" || data["Command"]=="LOAD_FLOW"){
                         if(data["Status"]=="error"){
-                            this.sharedProps.project.profile = null
+                            this.project.profile = null
                             this.$refs.child.showSnackbar({
                                 color: "warning",
                                 text: data["Reason"]
                             })
                         } else {
-                            this.sharedProps.project.profile = data["Flow"]
+                            this.project.profile = data["Flow"]
                         }
                     }
                 }
@@ -296,7 +319,7 @@ export default {
             this.duct.addEvtHandler({
                 tag: "/console/answers/", eid: this.duct.EVENT.ANSWERS,
                 handler: (rid, eid, data) => {
-                    this.sharedProps.answers = data["Answers"];
+                    this.answers = data["Answers"];
                 }
             })
 

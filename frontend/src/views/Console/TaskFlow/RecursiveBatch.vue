@@ -111,17 +111,6 @@ export default {
         hasNanotask() {
             return !this.hasChildren && this.project.templates[this.node.template].nanotask.cnt>0;
         }
-    },
-    created() {
-        setTimeout(() => {
-        if(!this.hasChildren) {
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.GET_NANOTASKS,
-                data: `COUNT ${this.project.name} ${this.node.template}`
-            });
-        }
-        }, 1000);
     }
 }
 </script>

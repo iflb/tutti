@@ -15,4 +15,13 @@ class Handler(EventHandler):
 
     async def handle(self, event):
         project_name = event.data[0]
-        return common.get_templates(project_name)
+
+        ans = {}
+        try:
+            ans["Templates"] = common.get_templates(project_name)
+            ans["Project"] = project_name
+            ans["Status"] = "success"
+        except Exception as e:
+            ans["Status"] = "error"
+            ans["Reason"] = str(e)
+        return ans
