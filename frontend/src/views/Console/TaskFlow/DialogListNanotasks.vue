@@ -63,7 +63,7 @@ export default {
         },
         importNanotasks() {
             const data = {
-                projectName: this.project,
+                projectName: this.project.name,
                 templateName: this.template,
                 tag: this.tagName,
                 numAssignable: this.numAssignments,

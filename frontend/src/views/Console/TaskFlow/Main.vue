@@ -1,6 +1,7 @@
 <template>
     <v-main class="mt-10 grey lighten-4">
         <v-row class="justify-center"><v-col cols="11" md="8" lg="6">
+            {{ project }}
             <v-card class="pa-3">
             <v-container>
                 <v-row>
@@ -16,11 +17,11 @@
                     <recursive-batch
                         v-for="(child, idx) in flow.children"
                         :key="idx"
-                        :project="project.name"
-                        :templates="project.templates"
+                        :project="project"
                         :node="child"
                         :is-last="idx==flow.children.length-1"
                         :depth="1"
+                        :name="name"
                         :template-color="templateColor" />
                 </div>
 
@@ -46,8 +47,8 @@
 import store from '@/store.js'
 import { mapGetters } from 'vuex'
 
-import Arrow from './TaskFlow/Arrow.vue'
-import RecursiveBatch from './TaskFlow/RecursiveBatch.vue'
+import Arrow from './Arrow.vue'
+import RecursiveBatch from './RecursiveBatch.vue'
 
 export default {
     store,
@@ -82,6 +83,12 @@ export default {
             })
         }
     },
+    //watch: {
+    //    sharedProps: {
+    //        handler: (val, old) => { console.log(val, old);},
+    //        deep: true
+    //    }
+    //}
 }
 
 document.addEventListener('keydown', function (e) {

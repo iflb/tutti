@@ -158,10 +158,11 @@ export default {
         searchString (val) {
             val && val !== this.select && this.querySelections(val)
         },
-        "project.name" (val) {  // called when project name is selected on the app bar
-            this.project = this.projects[val];
-            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_TEMPLATES, data: val })
-            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER, data: `GET_FLOWS ${val}` })
+        "project.name" (name) {  // called when project name is selected on the app bar
+            this.project = this.projects[name];
+            //this.sharedProps.project = this.project;
+            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_TEMPLATES, data: name })
+            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER, data: `GET_FLOWS ${name}` })
         }
     },
     methods: {
@@ -244,7 +245,7 @@ export default {
                 for(const i in data){
                     const templateName = data[i];
                     var template = new Template(templateName);
-                    this.project.templates[templateName] = template;
+                    this.$set(this.project.templates, templateName, template);
                 }
                 this.sharedProps.project = this.project;
             });
@@ -264,6 +265,7 @@ export default {
                 const template = data["Template"];
                 if(data["Command"]=="COUNT") {
                     const cnt = data["Count"];
+                    //this.sharedProps.project.templates[template].nanotask.cnt = cnt;
                     this.projects[project].templates[template].nanotask.cnt = cnt;
                 }
             });

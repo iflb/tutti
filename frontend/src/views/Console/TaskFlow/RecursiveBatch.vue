@@ -13,7 +13,7 @@
                         <v-select
                             v-if="!hasChildren"
                             v-model="node.tag"
-                            :items="Object.keys(templates)"
+                            :items="Object.keys(project.templates)"
                             label="Template name"
                             filled hide-details outlined dense />
                 </v-col>
@@ -45,11 +45,14 @@
                     <v-icon>mdi-transit-skip</v-icon>
                     Skippable
                 </v-col>
-                <v-col cols="12" class="pb-0" v-if="node.is_skippable">
+                <v-col cols="12" class="pb-0" v-if="hasNanotask">
                     <v-chip dark label outlined color="indigo" @click="$refs.dlgList.show=true">
                         <v-icon left>mdi-file-document-multiple-outline</v-icon>
-                        Nanotasks set (320)
+                        Nanotasks ({{ project.templates[node.template].nanotask.cnt }})
                     </v-chip>
+                </v-col>
+                <v-col cols="12" class="pb-0">
+                    {{ project.templates[node.template] }}
                 </v-col>
             </v-row>
 
@@ -58,7 +61,6 @@
                 <recursive-batch
                     :template-color="templateColor"
                     :project="project"
-                    :templates="templates"
                     :node="child"
                     :is-last="idx==children.length-1"
                     :depth="depth+1" />
@@ -81,14 +83,19 @@ import Arrow from './Arrow.vue'
 import DialogImport from './DialogImportNanotasks.vue'
 import DialogList from './DialogListNanotasks.vue'
 
+import store from '@/store.js'
+import { mapGetters } from 'vuex'
+
 export default {
+    store,
     name: "RecursiveBatch",
-    props: ["node", "isLast", "depth", "templateColor", "project", "templates"],
+    props: ["name", "node", "isLast", "depth", "templateColor", "project"],
     components: { RecursiveBatch, Arrow, DialogImport, DialogList },
     data: () => ({
         color: "grey",
     }),
     computed: {
+        ...mapGetters("ductsModule", [ "duct" ]),
         cardColor() {
             if(this.hasChildren) return `${this.color} lighten-${this.depth+2}`;
             else return this.templateColor;
@@ -100,7 +107,21 @@ export default {
         hasChildren() {
             if(this.children) return this.children.length>0;
             else return false;
+        },
+        hasNanotask() {
+            return !this.hasChildren && this.project.templates[this.node.template].nanotask.cnt>0;
         }
+    },
+    created() {
+        setTimeout(() => {
+        if(!this.hasChildren) {
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.GET_NANOTASKS,
+                data: `COUNT ${this.project.name} ${this.node.template}`
+            });
+        }
+        }, 1000);
     }
 }
 </script>

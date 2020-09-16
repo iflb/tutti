@@ -13,7 +13,7 @@ export default new VueRouter({
         {
             path: "/console",
             redirect: "console/dashboard",
-            component: () => import("./views/Console"),
+            component: () => import("./views/Console/Main"),
             children: [
                 {
                     path: "dashboard",
@@ -32,7 +32,7 @@ export default new VueRouter({
                 },
                 {
                     path: "flow",
-                    component: () => import("./views/Console/TaskFlow"),
+                    component: () => import("./views/Console/TaskFlow/Main"),
                     props: getPropsForRoute
                 },
                 {
