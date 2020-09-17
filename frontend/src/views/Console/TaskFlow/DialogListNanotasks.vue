@@ -4,8 +4,23 @@
         <v-card-title class="headline">
             <v-icon class="mr-2" color="indigo">mdi-database-check</v-icon>
             Imported Nanotasks for '{{ template }}'
+            <v-spacer/>
+            <v-text-field v-model="search" append-icon="mdi-magnify" label="Search" single-line hide-details />
         </v-card-title>
-        <v-data-table :loading="loading" dense :headers="headers" :items="nanotasks" :search="search"></v-data-table>
+        <v-data-table
+            :loading="loading"
+            dense
+            :headers="headers"
+            :items="nanotasksFlat"
+            :search="search"
+            :footer-props="{
+              showFirstLastPage: true,
+              firstIcon: 'mdi-chevron-double-left',
+              lastIcon: 'mdi-chevron-double-right',
+              prevIcon: 'mdi-chevron-left',
+              nextIcon: 'mdi-chevron-right'
+            }"
+            />
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn text @click="closeDialog" >Close</v-btn>
@@ -30,14 +45,14 @@ export default {
     computed: {
         ...mapGetters("ductsModule", [ "duct" ]),
         headers() {
-            const keys = Object.keys(this.nanotasks.reduce(function(result, obj) {
-                  return Object.assign(result, obj);
-            }, {}))
-            var headers = [];
-            for(const i in keys){
-                headers.push({ text: keys[i], value: keys[i] });
-            }
-            return headers;
+            const keys = Object.keys(this.nanotasksFlat.reduce((result, obj) => Object.assign(result, obj), {}));
+            return keys.map((x) => ({ text: x, value: x }));
+        },
+        nanotasksFlat() {
+            return this.nanotasks.map((x) => {
+                const { props, ...rest } = x;
+                return Object.assign(rest, props);
+            });
         }
     },
     methods: {
