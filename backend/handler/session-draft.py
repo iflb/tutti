@@ -65,9 +65,6 @@ class Node:
                 child.scan()
                 n_prev = child
 
-    def is_last(self):
-        return (self.parent is not None) and (self.parent.children[-1]==self)
-
     def eval_cond(self, ws):
         if len(self.cond)==3:
             [attr, comparator, cmp_right] = self.cond
@@ -82,10 +79,9 @@ class Node:
                 #    ws.node_scores[self.name] = 0
                 #    cmp_left = 0
                 else:
-                    raise("invalid attribute in condition")
+                    raise Exception("invalid attribute in condition")
 
             cond = "{}{}{}".format(cmp_left, comparator, cmp_right)
-            #print(cond, ns.cnt, eval(cond))
             return eval(cond)
         else:
             return False
@@ -121,6 +117,7 @@ class TemplateNode(Node):
 class BatchNode(Node):
     def __init__(self, name, children, statement=Statement.NONE, cond=()):
         super().__init__(name, statement, cond)
+        if len(children)==0:  raise Exception("batch node requires at least one child node")
         self.children = children
         self.id = self._generate_id()
 
@@ -166,40 +163,6 @@ class Session:
         self.time_finished = time
         self.status = SessionStatus.FINISHED
 
-#class WorkSession(Session):
-#    def __init__(self, wid, pid, root_batch, expiration=None):
-#        super().__init__()
-#        self.wid = wid
-#        self.pid = pid
-#        self.nsessions = []
-#
-#        self.root = root_batch
-#
-#        self.time_created = datetime.datetime.now()
-#        self._set_expiration(expiration)
-#
-#        self.id = self._generate_id()
-#
-#    def _generate_id(self):
-#        return "WS."+''.join([random.choice(string.ascii_letters + string.digits) for i in range(10)])
-#
-#    def _set_expiration(self, exp):
-#        if type(exp) is int:
-#            self.expires_at = self.time_created + datetime.timedelta(seconds=exp)
-#        elif type(exp) is datetime.datetime:
-#            self.expires_at = exp
-#        elif exp is None:
-#            self.expires_at = None
-#        else:
-#            raise("unknown expiration type")
-#
-#    def get_last_active_node_session(self):
-#        if len(self.nsessions)>0 and self.status==SessionStatus.ACTIVE:
-#            nsession = self.nsessions[-1]
-#            if nsession.status==SessionStatus.ACTIVE:  return nsession
-#
-#        return None
-
 class NodeSessionFactory:
     def __init__(self, ws):
         self.ws = ws
@@ -209,7 +172,6 @@ class NodeSessionFactory:
             ns = NodeSession(self.ws, node, parent=parent, prev=prev)
             if prev:
                 prev.next = ns
-                print(ns.node.name, prev.node.name)
             #self.ws.nsessions[ns.id] = ns
             self.ws.nsessions.append(ns)
             return ns
@@ -238,109 +200,6 @@ class NodeSession(Session):
         self.ws.node_cnts[self.node.name] += 1
         #print("finished NodeSession({}) for node '{}'".format(self.id, self.node.name))
 
-class SessionManager:
-    def __init__(self):
-        self.latest_sessions = {}    # { worker_id: Session }
-
-    def _get_last_active_work_session(self, wid):
-        if (wid in self.latest_sessions) \
-            and (wsession := self.latest_sessions[wid]) \
-            and (wsession.status==SessionStatus.ACTIVE):
-            return wsession
-        else:
-            return None
-
-    def _conv_expiration_time(self, exp, now=None):
-        if now is None:  now = datetime.datetime.now()
-        if type(exp) is int:
-            return now + datetime.timedelta(seconds=exp)
-        elif (type(exp) is datetime.datetime) or (exp is None):
-            return exp
-        else:
-            raise("unknown expiration type")
-        
-    def get_alive_work_session(self, wid):
-        wsession = self._get_last_active_work_session(wid)
-        if (wsession is not None) and (wsession.expires_at <= datetime.datetime.now()):
-            del self.latest_wsessions[wid]
-            wsession = None
-        return wsession
-
-    def on_start_work_session(self, wid, project_name, expiration):
-        now = datetime.datetime.now()
-        expires_at = self._conv_expiration_time(expiration, now)
-        wsession_id = WorkSession(wid, project_name, None).id
-        wsession_start = {
-            "wid": wid,
-            "prj": project_name,
-            "time": now.timestamp(),
-            "expires_at": expires_at.timestamp(),
-            "is_available": 1
-        }
-        for key,val in wsession_start.items():  r.hset(f"{wsession_id}/START", key, val)
-
-        return wsession_id
-
-    def on_start_node_session(self, wsession_id, node, parent_nsid, nid=None):
-        now = datetime.datetime.now()
-
-        nsession_id = NodeSession(node).id
-        nsession_start = {
-            "ndid": node.id,
-            "nid": nid,
-            "parent_ns": parent_nsid,
-            "time": now.timestamp()
-        }
-
-        r.rpush(f"{wsession_id}/NSID/START", nsession_id)
-        for key,val in nsession_start.items():  r.hset(f"{wsession_id}/NODE/START/{nsession_id}", key, val)
-
-        return nsession_id
-        
-    def on_finish_node_session(self, wsession_id, nsession_id, ans):
-        ndid = r.hget(f"{wsession_id}/NODE/START/{nsession_id}", "ndid")
-
-        nsids = r.lrange(f"{wsession_id}/NSID/FINISH", 0,-1)
-        cnt = 0
-        for nsid in reversed(nsids):
-            nsid = nsid.decode()
-            _ndid = r.hget(f"{wsession_id}/NODE/FINISH/{nsid}", "ndid")
-            if ndid==_ndid:
-                cnt = int(r.hget(f"{wsession_id}/NODE/FINISH/{nsid}", "cnt").decode())
-
-                break
-
-        nsession_finish = {
-            "ndid": ndid,
-            "cnt": cnt+1,
-            "time": datetime.datetime.now().timestamp()
-        }
-        r.rpush(f"{wsession_id}/NSID/FINISH", nsession_id)
-        for key,val in ans.items():  r.hset(f"{wsession_id}/NODE/ANSWER/{nsession_id}", key, val)
-        for key,val in nsession_finish.items():  r.hset(f"{wsession_id}/NODE/FINISH/{nsession_id}", key, val)
-
-    def on_finish_work_session(self, wsession_id):
-        time = datetime.datetime.now()
-        wsession_finish = {
-            "time": datetime.datetime.now().timestamp()
-        }
-        for key,val in wsession_finish.items():  r.hset(f"{wsession_id}/FINISH", key, val)
-
-    #def get_next_template(parent_nsid, tnode):
-    #    if tnode._next:
-    #        nsid = on_start_node_session(wsid, tnode._next, parent_nsid)
-    #        return tnode._next, nsid
-    #    else:
-    #        while (node := tnode._parent):
-    #            on_finish_node_session(wsid, node, 
-    #    nsid = on_start_node_session(wsid, node, parent_nsid)
-    #    if node.is_batch():
-    #        for child in node.children:
-    #            self.get_next_template(nsid, child)
-    #    elif node.is_template():
-    #        return 
-
-
 class WorkSession(Session):
     def __init__(self, wid, pid, root_node, expiration=None):
         super().__init__()
@@ -363,16 +222,23 @@ class WorkSession(Session):
         elif exp is None:
             self.expires_at = None
         else:
-            raise("unknown expiration type")
+            raise Exception("unknown expiration type")
 
     def _get_next_node_session(self, ns):
-        def _fetch_next(ns, prev=None):
+        def _exit_node_and_find_next(ns, prev=None):
             if prev is None:  prev = ns
 
-            if ns.node.next:
-                next_ns = self.ns_factory.create_if_executable(ns.node.next, parent=ns.parent, prev=prev)
-            else:
-                if ns.node.parent:
+            ns.finish()  # exit current node
+
+            next_ns = None
+            if ns.node.statement==Statement.WHILE:
+                print(f"while: {ns.node}")
+                next_ns = self.ns_factory.create_if_executable(ns.node, parent=ns.parent, prev=prev)
+
+            if next_ns is None:
+                if ns.node.next:
+                    next_ns = self.ns_factory.create_if_executable(ns.node.next, parent=ns.parent, prev=prev)
+                elif ns.node.parent:
                     next_ns = _exit_node_and_find_next(ns.parent, prev=prev)
                 else:  # = currently end of root batch
                     next_ns = None
@@ -380,48 +246,28 @@ class WorkSession(Session):
             return next_ns
 
         def _enter_batch_and_find_next(ns):
-            #if len(ns.node.children)==0:
-            #    raise Exception("error: batch does not have children")
-
             for child in ns.node.children:
                 if (next_ns := self.ns_factory.create_if_executable(child, parent=ns, prev=ns)):
                     return next_ns
                 elif child.skippable==False:
                     return None
 
-            # current batch had no executable children, then finish it
-            ns.finish()
-            # and go find next batch
-            return _fetch_next(ns)
+            # only if batch has no executable child
+            return _exit_node_and_find_next(ns)
 
-        def _exit_node_and_find_next(ns, prev=None):
-            ns.finish()  # exit current node
-
-            if prev is None:  prev = ns
-
-            next_ns = None
-            if ns.node.statement==Statement.WHILE:
-                next_ns = self.ns_factory.create_if_executable(ns.node, parent=ns.parent, prev=prev)
-
-            if next_ns is None:
-                next_ns = _fetch_next(ns, prev=prev)
-            return next_ns
-            
-
+        ### main ##########
 
         if ns is None:
             if (next_ns := self.ns_factory.create_if_executable(self.root_node)):
                 self.root_ns = next_ns
-                #print("-> {}({})".format(next_ns.node.name, next_ns.id))
+            else:
+                raise Exception("root node is not executable")
         else:
             if ns.node.is_batch():
                 next_ns = _enter_batch_and_find_next(ns)
             else:
                 next_ns = _exit_node_and_find_next(ns)
 
-            if next_ns:
-                pass
-                #print("{}({}) -> {}({})".format(ns.node.name, ns.id, next_ns.node.name, next_ns.id))
         return next_ns
 
 
@@ -436,13 +282,13 @@ class WorkSession(Session):
 if __name__=="__main__":
     t11 = TemplateNode("template11", statement=Statement.IF, cond=("cnt","<",2))
     t12 = TemplateNode("template12")
-    b1 = BatchNode("batch1", [t11, t12], statement=Statement.WHILE, cond=("cnt","<",3))
+    b1 = BatchNode("batch1", [t11, t12])
     t21 = TemplateNode("template21", statement=Statement.IF, cond=("cnt","<",5))
     t22 = TemplateNode("template22")
     b2 = BatchNode("batch2", [t21, t22])
-    b3 = BatchNode("batch3", [b1, b2])
+    b3 = BatchNode("batch3", [b1, b2], statement=Statement.WHILE, cond=("cnt","<",2))
     b3.scan()
-    #print(vars(b3))
+    print(vars(b3))
 
     ws = WorkSession("worker", "project", b3)
     ws.root_node = b3
