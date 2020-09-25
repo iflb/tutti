@@ -65,32 +65,25 @@ class Node:
                 child.scan()
                 n_prev = child
 
-    def eval_cond(self, ws):
-        if len(self.cond)==3:
+    def eval_cond(self, statement, ws, parent_ns, prev_ns):
+        if len(self.cond)!=3:
+            raise Exception("invalid number of condition arguments")
+        else:
             [attr, comparator, cmp_right] = self.cond
-            try:
-                cmp_left = eval(f"ws.node_{attr}s[self.name]")
-            except:
-                if attr=="cnt":
-                    ws.node_cnts[self.name] = 0
-                    cmp_left = 0
-                # TODO
-                #elif attr=="score":
-                #    ws.node_scores[self.name] = 0
-                #    cmp_left = 0
-                else:
-                    raise Exception("invalid attribute in condition")
+            if attr=="cnt":
+                cmp_left = ws.node_cnts[self.name] if self.name in ws.node_cnts else 0
+            elif attr=="lcnt":
+                if parent_ns is None:  raise Exception("parent node session cannot be None when evaluating local cnt")
+                cmp_left = parent_ns.node_lcnts[self.name] if self.name in parent_ns.node_lcnts else 0
+            # TODO
+            #elif attr=="score":
+            else:
+                raise Exception("invalid attribute in condition")
 
             cond = "{}{}{}".format(cmp_left, comparator, cmp_right)
-            return eval(cond)
-        else:
-            return False
+            res_eval = eval(cond)
 
-    def do_if(self, ws):
-        return self.statement==Statement.IF and self.eval_cond(ws)
-
-    def do_while(self, ws):
-        return self.statement==Statement.WHILE and self.eval_cond(ws)
+            return self.statement==statement and res_eval
 
 
 class TemplateNode(Node):
@@ -168,13 +161,16 @@ class NodeSessionFactory:
         self.ws = ws
 
     def create_if_executable(self, node, parent=None, prev=None):
-        if node.statement==Statement.NONE or node.do_if(self.ws) or node.do_while(self.ws):
+        if node.statement==Statement.NONE \
+           or node.eval_cond(Statement.IF, self.ws, parent, prev) \
+           or node.eval_cond(Statement.WHILE, self.ws, parent, prev):
+
             ns = NodeSession(self.ws, node, parent=parent, prev=prev)
             if prev:
                 prev.next = ns
-            #self.ws.nsessions[ns.id] = ns
-            self.ws.nsessions.append(ns)
+            self.ws.nsessions[ns.id] = ns
             return ns
+
         else:
             return None
 
@@ -187,17 +183,24 @@ class NodeSession(Session):
         self.next = None
         self.parent = parent
         self.nid = None
+        self.node_lcnts = {}   # { node.name: int }
 
         self.cnt = ws.node_cnts[node.name] if node.name in ws.node_cnts else 0
+        self.lcnt = parent.node_lcnts[node.name] if parent and (node.name in parent.node_lcnts) else 0
         self.score = 0
         self.prev_ans = None
         #print("started NodeSession({}) for node '{}' (statement={}, cond={}, cnt={})".format(self.id, self.node.name, self.node.statement, self.node.cond, self.cnt))
 
+    def increase_node_lcnt(self, node):
+        if node.name not in self.node_lcnts:
+            self.node_lcnts[node.name] = 0
+        self.node_lcnts[node.name] += 1
+
     def finish(self):
         super().finish()
-        if self.node.name not in self.ws.node_cnts:
-            self.ws.node_cnts[self.node.name] = 0
-        self.ws.node_cnts[self.node.name] += 1
+        self.ws.increase_node_cnt(self.node)
+        if self.parent:
+            self.parent.increase_node_lcnt(self.node)
         #print("finished NodeSession({}) for node '{}'".format(self.id, self.node.name))
 
 class WorkSession(Session):
@@ -211,8 +214,12 @@ class WorkSession(Session):
         self._set_expiration(expiration)
         self.node_cnts = {}   # { node.name: int }
 
-        #self.nsessions = {}
-        self.nsessions = []
+        self.nsessions = {}
+
+    def increase_node_cnt(self, node):
+        if node.name not in self.node_cnts:
+            self.node_cnts[node.name] = 0
+        self.node_cnts[node.name] += 1
 
     def _set_expiration(self, exp):
         if type(exp) is int:
@@ -232,7 +239,6 @@ class WorkSession(Session):
 
             next_ns = None
             if ns.node.statement==Statement.WHILE:
-                print(f"while: {ns.node}")
                 next_ns = self.ns_factory.create_if_executable(ns.node, parent=ns.parent, prev=prev)
 
             if next_ns is None:
@@ -280,12 +286,12 @@ class WorkSession(Session):
 
 
 if __name__=="__main__":
-    t11 = TemplateNode("template11", statement=Statement.IF, cond=("cnt","<",2))
+    t11 = TemplateNode("template11")
     t12 = TemplateNode("template12")
-    b1 = BatchNode("batch1", [t11, t12])
-    t21 = TemplateNode("template21", statement=Statement.IF, cond=("cnt","<",5))
+    b1 = BatchNode("batch1", [t11, t12], statement=Statement.WHILE, cond=("lcnt","<",2))
+    t21 = TemplateNode("template21")
     t22 = TemplateNode("template22")
-    b2 = BatchNode("batch2", [t21, t22])
+    b2 = BatchNode("batch2", [t21, t22], statement=Statement.WHILE, cond=("lcnt","<",3))
     b3 = BatchNode("batch3", [b1, b2], statement=Statement.WHILE, cond=("cnt","<",2))
     b3.scan()
     print(vars(b3))
