@@ -32,6 +32,12 @@ class Statement(Enum):
     def __repr__(self):
         return self.name
 
+class SessionStatus(Enum):
+    ACTIVE = 1
+    FINISHED = 2
+    EXPIRED = 3
+
+
 class Node:
     def __init__(self, name, statement, cond, skippable=True):
         self.name = name
@@ -85,7 +91,6 @@ class Node:
 
             return self.statement==statement and res_eval
 
-
 class TemplateNode(Node):
     def __init__(self, name, statement=Statement.NONE, cond=()):
         super().__init__(name, statement, cond)
@@ -131,10 +136,7 @@ class BatchNode(Node):
             "children": [vars(c) for c in self.children]
         }, indent=2, cls=JSONEncoder)
 
-class SessionStatus(Enum):
-    ACTIVE = 1
-    FINISHED = 2
-    EXPIRED = 3
+
 
 class Session:
     def __init__(self, time_created=None):
@@ -155,24 +157,6 @@ class Session:
             time = datetime.datetime.now()
         self.time_finished = time
         self.status = SessionStatus.FINISHED
-
-class NodeSessionFactory:
-    def __init__(self, ws):
-        self.ws = ws
-
-    def create_if_executable(self, node, parent=None, prev=None):
-        if node.statement==Statement.NONE \
-           or node.eval_cond(Statement.IF, self.ws, parent, prev) \
-           or node.eval_cond(Statement.WHILE, self.ws, parent, prev):
-
-            ns = NodeSession(self.ws, node, parent=parent, prev=prev)
-            if prev:
-                prev.next = ns
-            self.ws.nsessions[ns.id] = ns
-            return ns
-
-        else:
-            return None
 
 class NodeSession(Session):
     def __init__(self, ws, node, parent, prev):
@@ -285,6 +269,25 @@ class WorkSession(Session):
         return None
 
 
+class NodeSessionFactory:
+    def __init__(self, ws):
+        self.ws = ws
+
+    def create_if_executable(self, node, parent=None, prev=None):
+        if node.statement==Statement.NONE \
+           or node.eval_cond(Statement.IF, self.ws, parent, prev) \
+           or node.eval_cond(Statement.WHILE, self.ws, parent, prev):
+
+            ns = NodeSession(self.ws, node, parent=parent, prev=prev)
+            if prev:
+                prev.next = ns
+            self.ws.nsessions[ns.id] = ns
+            return ns
+
+        else:
+            return None
+
+
 if __name__=="__main__":
     t11 = TemplateNode("template11")
     t12 = TemplateNode("template12")
@@ -294,10 +297,13 @@ if __name__=="__main__":
     b2 = BatchNode("batch2", [t21, t22], statement=Statement.WHILE, cond=("lcnt","<",3))
     b3 = BatchNode("batch3", [b1, b2], statement=Statement.WHILE, cond=("cnt","<",2))
     b3.scan()
-    print(vars(b3))
 
-    ws = WorkSession("worker", "project", b3)
-    ws.root_node = b3
+    t = TemplateNode("onlytemplate", statement=Statement.WHILE, cond=("cnt", "<", 10))
+
+    #print(vars(b3))
+
+    #ws = WorkSession("worker", "project", b3)
+    ws = WorkSession("worker", "project", t)
     ns = None
     while (ns := ws.get_next_template_node_session(ns)):
         print("######", ns.node.name)
