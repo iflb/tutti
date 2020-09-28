@@ -69,12 +69,10 @@ export default {
             "duct"
         ]),
         template() {
-            console.log(this.templateName)
             try { return require(`@/projects/${this.projectName}/templates/${this.templateName}/Main.vue`).default }
             catch { return null }
         },
         nanoPropData() {
-            console.log("nanoPropData", this.nanoData);
             return this.nanoData;
         }
     },
@@ -87,19 +85,19 @@ export default {
         ]),
         getNextTemplate() {
             if(this.wsid) {
-                console.log(`GET ${this.projectName} ${this.wsid} ${this.nsid}`);
+                console.log(`GET ${this.wsid} ${this.nsid}`);
                 this.duct.sendMsg({
                     tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
-                    data: `GET ${this.projectName} ${this.wsid} ${this.nsid}`
+                    data: `GET ${this.wsid} ${this.nsid}`
                 })
             }
         },
         submit($event) {
             Object.assign(this.answer, $event);
-            console.log(this.answer);
+            //console.log(this.answer);
             this.duct.sendMsg({
                 tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
-                data: `ANSWER ${this.wsid} ${this.projectName} ${this.templateName} ${this.nanotaskId} ${JSON.stringify(this.answer)}`
+                data: `ANSWER ${this.wsid} ${this.nsid} ${JSON.stringify(this.answer)}`
             })
         },
         logout() {

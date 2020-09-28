@@ -329,49 +329,48 @@ class Handler(EventHandler):
 
         try:
             if command=="GET_FLOWS":
-                project_name = event.data[1]
+                pn = event.data[1]
 
-                flow = self.flows[project_name]
+                flow = self.get_flow(pn)
                 info = self.get_batch_info(flow.root)
                 ans["Flow"] = info
 
 
             elif command=="LOAD_FLOW":
-                project_name = event.data[1]
+                pn = event.data[1]
 
-                flow = self.get_flow(project_name)
+                flow = self.get_flow(pn)
                 info = self.get_batch_info(flow.root)
                 ans["Flow"] = info
 
-                self.flows[project_name] = flow
+                self.flows[pn] = flow
 
 
             elif command=="CREATE_SESSION":    # フローをワーカーが開始するごとに作成
-                project_name = event.data[1]
-                wid = event.data[2]
+                [pn, wid] = event.data[1:]
 
                 if wid not in self.w_submitted:
                     self.w_submitted[wid] = set()
                     self.create_task_queue_for_worker(wid)
 
-                flow = self.flows[project_name]
+                flow = self.flows[pn]
                 flow.root.scan()
-                ws = self.wsessions[ws.id] = WorkSession(wid, project_name, flow.root)
+                ws = self.wsessions[ws.id] = WorkSession(wid, pn, flow.root)
                 ans["WorkSessionId"] = ws.id
                 
 
             elif command=="GET":
-                [pn, wsid, nsid] = event.data[1:]
+                [wsid, nsid] = event.data[1:]
+
 
                 try:
                     if wsid not in self.wsessions:  raise Exception("No session found")
 
                     ws = self.wsessions[wsid]
                     wid = ws.wid
+                    pn = ws.pid
 
-                    logger.debug("hoge!!!!!!!!!!!!!!!!")
                     if nsid=="":
-                        logger.debug("fuga!!!!!!!!!!!!!!!!")
                         ns = None
                     elif not ws.validate_last_nsid(nsid):
                         raise Exception(f"Invalid last node session ID: '{nsid}'")
@@ -401,16 +400,35 @@ class Handler(EventHandler):
 
 
             elif command=="ANSWER":
-                [wsid, pn, tn, nid] = event.data[1:5]
+                [wsid, nsid] = event.data[1:3]
 
                 ### FIXME
-                answers = json.loads(" ".join(event.data[5:]))
+                answers = json.loads(" ".join(event.data[3:]))
 
                 ws = self.wsessions[wsid]
+                logger.debug(ws)
                 wid = ws.wid
+                logger.debug(wid)
+                pn = ws.pid
+                logger.debug(pn)
+
+                if nsid=="":
+                    raise Exception(f"node session ID cannot be null")
+                elif not ws.validate_last_nsid(nsid):
+                    raise Exception(f"Invalid last node session ID: '{nsid}'")
+                else:
+                    ns = ws.get_last_node_session()
+                logger.debug(ns)
+                tn = ns.node.name
+                logger.debug(tn)
+                nid = ns.nid
+                logger.debug(nid)
+
+
                 self.w_submitted[wid].add(nid)
                 ans_json = {
                     "WorkSessionId": wsid,
+                    "NodeSessionId": nsid,
                     "WorkerId": wid,
                     "Answers": answers,
                     "Timestamp": datetime.now()

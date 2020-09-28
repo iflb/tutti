@@ -69,16 +69,17 @@ export default {
                 const ansAll = this.sharedProps.answers;
                 for(const i in ansAll){
                     const a = ansAll[i];
-                    const sid = a.sessionId;
-                    const wid = a.workerId;
-                    const nid = a.nanotaskId;
-                    const timestamp = a.timestamp ? formatDate(new Date(a.timestamp*1000), "yyyy-MM-dd HH:mm:ss") : "";
-                    const ans = a.answers;
-                    var row = { sid, wid, nid, timestamp };
+                    const wsid = a.WorkSessionId;
+                    const wid = a.WorkerId;
+                    const nid = a.NanotaskId;
+                    const timestamp = a.Timestamp ? formatDate(new Date(a.Timestamp*1000), "yyyy-MM-dd HH:mm:ss") : "";
+                    const ans = a.Answers;
+                    var row = { wsid, wid, nid, timestamp };
                     Object.assign(row, ans);
                     rows.push(row);
                 }
             }
+            console.log(rows)
             return rows;
         }
     },
@@ -93,15 +94,15 @@ export default {
         },
         answers(val) {
             const ansAll = val;
-            var headerValues = ["sid","wid","nid","timestamp"];
+            var headerValues = ["wsid","wid","nid","timestamp"];
             var headers = [
-                { text: "Session ID", value: "sid" },
+                { text: "Session ID", value: "wsid" },
                 { text: "Worker ID", value: "wid" },
                 { text: "Nanotask ID", value: "nid" },
                 { text: "Submitted time", value: "timestamp" },
             ];
             for(const i in ansAll){
-                const ans = ansAll[i].answers;
+                const ans = ansAll[i].Answers;
                 for(const key in ans){
                     if(headerValues.indexOf(key)==-1) {
                         headerValues.push(key);

@@ -37,12 +37,10 @@ class Handler(EventHandler):
                     answer = self.db.answers[name].find({})
                     for a in answer:
                         a["_id"] = str(a["_id"])
-                        if "timestamp" in a:
-                            a["timestamp"] = time.mktime(a["timestamp"].timetuple())
+                        if "Timestamp" in a:
+                            a["Timestamp"] = time.mktime(a["Timestamp"].timetuple())
                         answers.append(a)
-                    logger.debug(answers)
                 ans["Answers"] = answers
-                logger.debug(answers)
 
         except Exception as e:
             ans["Status"] = "error"
