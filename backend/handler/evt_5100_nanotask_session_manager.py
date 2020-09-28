@@ -13,7 +13,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from handler import common
-from libs.flowlib import Engine
+from libs.session import WorkSession
 
 
 from pymongo import MongoClient
@@ -194,8 +194,8 @@ class TaskQueue:
 class Handler(EventHandler):
     def __init__(self):
         super().__init__()
-        self.flows = self.load_flows()   # {project_name: Engine}
-        self.sessions = {}               # {session_id: iterator}
+        self.flows = self.load_flows()   # {project_name: TaskFlow}
+        self.wsessions = {}               # {session_id: iterator}
         self.db = MongoClient()
 
         self.dcmodel = DCModel()
@@ -269,7 +269,7 @@ class Handler(EventHandler):
                     if nt.num_remaining<=0:  g_assignable.remove(nid)
 
                 for a in _n_answers:
-                    wid = a["workerId"]
+                    wid = a["WorkerId"]
                     if wid not in w_submitted:  w_submitted[wid] = set()
                     if nid: w_submitted[wid].add(nid)
             else:
@@ -332,17 +332,19 @@ class Handler(EventHandler):
                 project_name = event.data[1]
 
                 flow = self.flows[project_name]
-                root = flow.root
-                info = self.get_batch_info(root)
+                info = self.get_batch_info(flow.root)
                 ans["Flow"] = info
+
 
             elif command=="LOAD_FLOW":
                 project_name = event.data[1]
 
                 flow = self.get_flow(project_name)
-                self.flows[project_name] = flow
                 info = self.get_batch_info(flow.root)
                 ans["Flow"] = info
+
+                self.flows[project_name] = flow
+
 
             elif command=="CREATE_SESSION":    # フローをワーカーが開始するごとに作成
                 project_name = event.data[1]
@@ -352,61 +354,78 @@ class Handler(EventHandler):
                     self.w_submitted[wid] = set()
                     self.create_task_queue_for_worker(wid)
 
-                engine = Engine(project_name, self.flows[project_name])
-                session = TaskSession(worker_id=wid, engine=engine)
-                self.sessions[session.id] = session
-                ans["SessionId"] = session.id
+                flow = self.flows[project_name]
+                flow.root.scan()
+                ws = self.wsessions[ws.id] = WorkSession(wid, project_name, flow.root)
+                ans["WorkSessionId"] = ws.id
                 
+
             elif command=="GET":
-                pn = event.data[1]
-                session_id = event.data[2]
+                [pn, wsid, nsid] = event.data[1:]
 
                 try:
-                    if session_id in self.sessions:
-                        session = self.sessions[session_id]
-                        engine = session.get_engine()
-                        wid = session.worker_id
+                    if wsid not in self.wsessions:  raise Exception("No session found")
 
-                        tn = engine.get_next_template()
-                        ans["NextTemplate"] = tn
-                        tmpl = self.dcmodel.get_project(pn).get_template(tn)
-                        if tmpl.has_nanotasks():
-                            q = self.tqueue.get_queue(wid, pn, tn)
-                            if len(q)>0:
-                                nid = self.tqueue.pop(q)
-                                nt = self.nt_memory[nid]
-                                ans["IsStatic"] = False
-                                ans["NanotaskId"] = nid
-                                ans["Props"] = nt.props
-                            else:
-                                ans["NanotaskId"] = None
-                        else:
-                            ans["IsStatic"] = True
-                            
+                    ws = self.wsessions[wsid]
+                    wid = ws.wid
+
+                    logger.debug("hoge!!!!!!!!!!!!!!!!")
+                    if nsid=="":
+                        logger.debug("fuga!!!!!!!!!!!!!!!!")
+                        ns = None
+                    elif not ws.validate_last_nsid(nsid):
+                        raise Exception(f"Invalid last node session ID: '{nsid}'")
                     else:
-                        raise Exception("No session found")
+                        ns = ws.get_last_node_session()
+
+                    if not (next_ns := ws.get_next_template_node_session(ns)):
+                        raise StopIteration()
+                    ans["NextNodeSessionId"] = next_ns.id
+                    ans["NextTemplate"] = tn = next_ns.node.name
+                    tmpl = self.dcmodel.get_project(pn).get_template(tn)
+                    if tmpl.has_nanotasks():
+                        q = self.tqueue.get_queue(wid, pn, tn)
+                        if len(q)>0:
+                            nid = self.tqueue.pop(q)
+                            nt = self.nt_memory[nid]
+                            ans["IsStatic"] = False
+                            ans["NanotaskId"] = nid
+                            ans["Props"] = nt.props
+                        else:
+                            ans["NanotaskId"] = None
+                    else:
+                        ans["IsStatic"] = True
 
                 except StopIteration as e:
                     ans["NextTemplate"] = None
 
+
             elif command=="ANSWER":
-                sid = session_id = event.data[1]
-                [pn, tn, nid] = [project_name, template_name, nanotask_id] = event.data[2:5]
+                [wsid, pn, tn, nid] = event.data[1:5]
 
                 ### FIXME
                 answers = json.loads(" ".join(event.data[5:]))
 
-                session = self.sessions[sid]
-                wid = session.worker_id
+                ws = self.wsessions[wsid]
+                wid = ws.wid
                 self.w_submitted[wid].add(nid)
+                ans_json = {
+                    "WorkSessionId": wsid,
+                    "WorkerId": wid,
+                    "Answers": answers,
+                    "Timestamp": datetime.now()
+                }
                 if nid=="null":
-                    self.db["answers"]["{}.{}".format(pn, tn)].insert_one({"sessionId": sid, "workerId": wid, "answers": answers, "timestamp": datetime.now()})
+                    self.db["answers"]["{}.{}".format(pn, tn)].insert_one(ans_json)
                 else:
-                    self.db["answers"]["{}.{}.{}".format(pn, tn, nid)].insert_one({"sessionId": sid, "workerId": wid, "nanotaskId": nid, "answers": answers, "timestamp": datetime.now()})
+                    ans_json["NanotaskId"] = nid
+                    self.db["answers"]["{}.{}.{}".format(pn, tn, nid)].insert_one(ans_json)
                 ans["SentAnswer"] = answers
+
 
             else:
                 raise Exception("unknown command '{}'".format(command))
+
 
         except Exception as e:
             ans["Status"] = "error"

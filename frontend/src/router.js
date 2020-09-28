@@ -44,7 +44,7 @@ export default new VueRouter({
         },
         {
             path: "/private-prod/:projectName",
-            component: () => import("./views/private-prod/Main.vue"),
+            component: () => import("./views/PrivateProd/Main.vue"),
             props: true
         },
         {

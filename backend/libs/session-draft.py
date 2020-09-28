@@ -1,15 +1,142 @@
 from enum import Enum
 import datetime
+import json
 import random
 import string
 import time
+from IPython import embed
 
-from libs.node import Statement
+import pprint
+import redis
+r = redis.Redis(host="localhost", port=6379, db=0)
+
+class JSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Statement):
+            return obj.value
+        elif isinstance(obj, BatchNode):
+            return str(obj)
+        elif isinstance(obj, TemplateNode):
+            return str(obj)
+        else:
+            return super(JSONEncoder, self).default(obj)
+
+class Statement(Enum):
+    NONE = 0
+    IF = 1
+    WHILE = 2
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
 
 class SessionStatus(Enum):
     ACTIVE = 1
     FINISHED = 2
     EXPIRED = 3
+
+
+class Node:
+    def __init__(self, name, statement, cond, skippable=True):
+        self.name = name
+        self.statement = statement
+        self.cond = cond
+        self.skippable = skippable
+        self.prev = None
+        self.next = None
+        self.parent = None
+
+    def is_batch(self):
+        return isinstance(self, BatchNode)
+    
+    def is_template(self):
+        return isinstance(self, TemplateNode)
+
+    def get_children(self):
+        if self.is_template(): return None
+        else: return self.children
+
+    def scan(self):
+        if (children := self.get_children()):
+            n_prev = None
+            for i, child in enumerate(children):
+                try:    n_next = children[i+1]
+                except: n_next = None
+                child.prev = n_prev
+                child.next = n_next
+                child.parent = self
+
+                child.scan()
+                n_prev = child
+
+    def eval_cond(self, statement, ws, parent_ns, prev_ns):
+        if len(self.cond)!=3:
+            raise Exception("invalid number of condition arguments")
+        else:
+            [attr, comparator, cmp_right] = self.cond
+            if attr=="cnt":
+                cmp_left = ws.node_cnts[self.name] if self.name in ws.node_cnts else 0
+            elif attr=="lcnt":
+                if parent_ns is None:  raise Exception("parent node session cannot be None when evaluating local cnt")
+                cmp_left = parent_ns.node_lcnts[self.name] if self.name in parent_ns.node_lcnts else 0
+            # TODO
+            #elif attr=="score":
+            else:
+                raise Exception("invalid attribute in condition")
+
+            cond = "{}{}{}".format(cmp_left, comparator, cmp_right)
+            res_eval = eval(cond)
+
+            return self.statement==statement and res_eval
+
+class TemplateNode(Node):
+    def __init__(self, name, statement=Statement.NONE, cond=()):
+        super().__init__(name, statement, cond)
+        self.id = self._generate_id()
+
+    def _generate_id(self):
+        return "TN."+''.join([random.choice(string.ascii_letters + string.digits) for i in range(10)])
+
+    def __str__(self):
+        return f"<TemplateNode name={self.name}>"
+
+    def __repr__(self):
+        return json.dumps({
+            "name": self.name,
+            "statement": self.statement.name,
+            "cond": " ".join(map(str,self.cond)),
+            "prev": self.prev,
+            "next": self.next,
+            "parent": self.parent,
+        }, indent=2, cls=JSONEncoder)
+
+class BatchNode(Node):
+    def __init__(self, name, children, statement=Statement.NONE, cond=()):
+        super().__init__(name, statement, cond)
+        if len(children)==0:  raise Exception("batch node requires at least one child node")
+        self.children = children
+        self.id = self._generate_id()
+
+    def _generate_id(self):
+        return "BN."+''.join([random.choice(string.ascii_letters + string.digits) for i in range(10)])
+
+    def __str__(self):
+        return f"<BatchNode name={self.name}>"
+
+    def __repr__(self):
+        return json.dumps({
+            "name": self.name,
+            "statement": self.statement.name,
+            "cond": " ".join(map(str,self.cond)),
+            "prev": self.prev,
+            "next": self.next,
+            "parent": self.parent,
+            "children": [vars(c) for c in self.children]
+        }, indent=2, cls=JSONEncoder)
+
+
 
 class Session:
     def __init__(self, time_created=None):
@@ -71,14 +198,7 @@ class WorkSession(Session):
         self._set_expiration(expiration)
         self.node_cnts = {}   # { node.name: int }
 
-        self.nsessions = []
-
-    def validate_last_nsid(self, nsid):
-        if type(nsid)!=str:  raise(f"invalid nsid type (must be str): {type(nsid)}")
-        return self.nsessions[-1].id==nsid
-
-    def get_last_node_session(self):
-        return self.nsessions[-1]
+        self.nsessions = {}
 
     def increase_node_cnt(self, node):
         if node.name not in self.node_cnts:
@@ -161,8 +281,37 @@ class NodeSessionFactory:
             ns = NodeSession(self.ws, node, parent=parent, prev=prev)
             if prev:
                 prev.next = ns
-            self.ws.nsessions.append(ns)
+            self.ws.nsessions[ns.id] = ns
             return ns
 
         else:
             return None
+
+
+if __name__=="__main__":
+    t11 = TemplateNode("template11")
+    t12 = TemplateNode("template12")
+    b1 = BatchNode("batch1", [t11, t12], statement=Statement.WHILE, cond=("lcnt","<",2))
+    t21 = TemplateNode("template21")
+    t22 = TemplateNode("template22")
+    b2 = BatchNode("batch2", [t21, t22], statement=Statement.WHILE, cond=("lcnt","<",3))
+    b3 = BatchNode("batch3", [b1, b2], statement=Statement.WHILE, cond=("cnt","<",2))
+    b3.scan()
+
+    t = TemplateNode("onlytemplate", statement=Statement.WHILE, cond=("cnt", "<", 10))
+
+    #print(vars(b3))
+
+    #ws = WorkSession("worker", "project", b3)
+    ws = WorkSession("worker", "project", t)
+    ns = None
+    while (ns := ws.get_next_template_node_session(ns)):
+        print("######", ns.node.name)
+        time.sleep(0.1)
+    else:
+        ws.finish()
+
+    ns = ws.root_ns
+    while ns:
+        print(ns.id, ns.node.name)
+        ns = ns.next

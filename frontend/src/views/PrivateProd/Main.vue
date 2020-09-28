@@ -55,8 +55,9 @@ export default {
     data: () => ({
         templateName: "",
         count: 0,
-        sessionId: null,
+        wsid: null,
         nanotaskId: null,
+        nsid: "",
         answer: {},
         name: "/private-prod/",
         nanoData: null,
@@ -85,10 +86,11 @@ export default {
             "closeDuct"
         ]),
         getNextTemplate() {
-            if(this.sessionId) {
+            if(this.wsid) {
+                console.log(`GET ${this.projectName} ${this.wsid} ${this.nsid}`);
                 this.duct.sendMsg({
                     tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
-                    data: `GET ${this.projectName} ${this.sessionId}`
+                    data: `GET ${this.projectName} ${this.wsid} ${this.nsid}`
                 })
             }
         },
@@ -97,7 +99,7 @@ export default {
             console.log(this.answer);
             this.duct.sendMsg({
                 tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
-                data: `ANSWER ${this.sessionId} ${this.projectName} ${this.templateName} ${this.nanotaskId} ${JSON.stringify(this.answer)}`
+                data: `ANSWER ${this.wsid} ${this.projectName} ${this.templateName} ${this.nanotaskId} ${JSON.stringify(this.answer)}`
             })
         },
         logout() {
@@ -111,8 +113,8 @@ export default {
                 if(data["Command"]=="CREATE_SESSION"){
                     if(data["Status"]=="error") { console.error(`failed to create session ID: ${data["Reason"]}`); return; }
 
-                    console.log(`created session: ${data["SessionId"]}`);
-                    this.sessionId = data["SessionId"];
+                    console.log(`created work-session: ${data["WorkSessionId"]}`);
+                    this.wsid = data["WorkSessionId"];
                     this.getNextTemplate();
                 }
                 else if(data["Command"]=="GET"){
@@ -121,6 +123,7 @@ export default {
                     if(data["NextTemplate"]){
                         this.count += 1;
                         this.templateName = data["NextTemplate"];
+                        this.nsid = data["NextNodeSessionId"];
                         if(data["IsStatic"]) {
                             console.log("loading static task");
                             this.nanoData = null;
