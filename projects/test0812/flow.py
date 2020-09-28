@@ -1,20 +1,20 @@
-from libs.flowlib import TemplateNode, BatchNode
+from libs.node import TemplateNode, BatchNode, Statement
 
 class TaskFlow:
     def __init__(self):
-        self.batch_all = None
+        t_pre1 = TemplateNode("pre1")
+        t_pre2 = TemplateNode("pre2")
+        b_pre = BatchNode("pre",
+                          [t_pre1, t_pre2],
+                          statement=Statement.IF,
+                          cond=("cnt", "==", 0),
+                          skippable=False)
 
-    def define(self):
-        batch_pre = BatchNode("pre", is_skippable=False, cond_if="lambda b: b.cnt==0")
-        batch_pre.append([
-            TemplateNode("pre1"),
-            TemplateNode("pre2")
-        ])
+        t_main1 = TemplateNode("main1")
+        t_main2 = TemplateNode("main2")
+        b_main = BatchNode("main",
+                           [t_main1, t_main2],
+                           statement=Statement.WHILE,
+                           cond=("cnt", "<", 3))
 
-        batch_main = BatchNode("main", cond_while="lambda b: b.cnt<3")
-        batch_main.append([
-            TemplateNode("main1"),
-            TemplateNode("main2")
-        ])
-
-        self.batch_all = BatchNode("all", children=[batch_pre, batch_main, TemplateNode("post")])
+        self.root = BatchNode("all", children=[b_pre, b_main, TemplateNode("post")])

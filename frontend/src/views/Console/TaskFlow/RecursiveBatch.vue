@@ -6,13 +6,13 @@
                 <v-col cols="10" md="6" class="pb-0">
                         <v-text-field
                             v-if="hasChildren"
-                            v-model="node.tag"
+                            v-model="node.name"
                             label="Batch name"
                             prepend-inner-icon="mdi-pencil"
                             outlined filled hide-details dense />
                         <v-select
                             v-if="!hasChildren"
-                            v-model="node.tag"
+                            v-model="node.name"
                             :items="Object.keys(project.templates)"
                             label="Template name"
                             filled hide-details outlined dense />
@@ -33,22 +33,22 @@
             </v-row>
 
             <v-row class="text-caption">
-                <v-col cols="12" class="pb-0" v-if="node.cond_if">
+                <v-col cols="12" class="pb-0" v-if="node.statement==duct.APP_WSD.enums.Statement.IF">
                     <v-icon>mdi-comment-question-outline</v-icon>
-                    IF condition = <b>{{ node.cond_if }}</b>
+                    IF condition = <b>{{ node.cond }}</b>
                 </v-col>
-                <v-col cols="12" class="pb-0" v-if="node.cond_while">
+                <v-col cols="12" class="pb-0" v-if="node.statement==duct.APP_WSD.enums.Statement.WHILE">
                     <v-icon>mdi-repeat</v-icon>
-                    LOOP condition = <b>{{ node.cond_while }}</b>
+                    LOOP condition = <b>{{ node.cond }}</b>
                 </v-col>
-                <v-col cols="12" class="pb-0" v-if="node.is_skippable">
+                <v-col cols="12" class="pb-0" v-if="node.skippable">
                     <v-icon>mdi-transit-skip</v-icon>
                     Skippable
                 </v-col>
                 <v-col cols="12" class="pb-0" v-if="hasNanotask">
                     <v-chip dark label outlined color="indigo" @click="$refs.dlgList.show=true">
                         <v-icon left>mdi-file-document-multiple-outline</v-icon>
-                        Nanotasks ({{ project.templates[node.template].nanotask.cnt }})
+                        Nanotasks ({{ project.templates[node.name].nanotask.cnt }})
                     </v-chip>
                 </v-col>
             </v-row>
@@ -68,8 +68,8 @@
     </v-card>
     <arrow v-if="!isLast" :depth="depth" :color="templateColor" />
 
-    <dialog-import :project="project" :template="node.template" ref="dlgImport" />
-    <dialog-list :project="project" :template="node.template" :nanotasks="nanotasks" ref="dlgList" />
+    <dialog-import :project="project" :template="node.name" ref="dlgImport" />
+    <dialog-list :project="project" :template="node.name" :nanotasks="nanotasks" ref="dlgList" />
 
     </div>
 </template>
@@ -106,10 +106,10 @@ export default {
             else return false;
         },
         hasNanotask() {
-            return !this.hasChildren && this.project.templates[this.node.template].nanotask.cnt>0;
+            return !this.hasChildren && this.project.templates[this.node.name].nanotask.cnt>0;
         },
         nanotasks() {
-            try { return this.project.templates[this.node.template].nanotask.data; }
+            try { return this.project.templates[this.node.name].nanotask.data; }
             catch { return []; }
         }
     },

@@ -474,7 +474,7 @@ window.ducts.dynamiccrowd.Duct = class extends window.ducts.Duct {
             received: []
         }
 
-       this.evtHandlers = {}
+        this.evtHandlers = {}
 
         this.addEvtHandler =
             ({ tag, eid, handler }) => {
@@ -491,23 +491,6 @@ window.ducts.dynamiccrowd.Duct = class extends window.ducts.Duct {
             }
         }
 
-        //this.childEventHandlers = {};
-        //this.setChildEventHandler =
-        //    (state, eid, handler) => {
-        //        if(!this.childEventHandlers[state]) this.childEventHandlers[state] = {}
-        //        this.childEventHandlers[state][eid] = handler
-        //    }
-        //this.catchall_event_handler = (rid, eid, data) => {
-        //    for(var state in this.childEventHandlers){
-        //        var handlers = this.childEventHandlers[state]
-        //        if(eid in handlers){
-        //            handlers[eid](rid, eid, data)
-        //            console.log(`emitting handler eid=${eid} for ${state}`)
-        //        }
-        //    }
-        //};
-        //this.setState = (state) => { this.mystate = state }
-	    
 	    //this._setup_handlers(this);
 
     }
@@ -632,9 +615,17 @@ window.ducts.dynamiccrowd.Duct = class extends window.ducts.Duct {
 
     _onopen(self, event) {
 	    super._onopen(self, event);
-	    self.send(self.next_rid(), self.EVENT.SYSTEM_BEHAVIOR_MODEL, null);
-	    self.send(self.next_rid(), self.EVENT.SYSTEM_AUDIO_MODEL, null);
-	    self.send(self.next_rid(), self.EVENT.ASRCTRL_MODEL, null);
+        self.addEvtHandler({
+            tag: "",
+	        eid: self.EVENT.APP_WSD,
+	        handler: (rid, eid, data) => {
+                self.APP_WSD = data
+	        }
+        });
+	    self.send(self.next_rid(), self.EVENT.APP_WSD, null);
+	    //self.send(self.next_rid(), self.EVENT.SYSTEM_BEHAVIOR_MODEL, null);
+	    //self.send(self.next_rid(), self.EVENT.SYSTEM_AUDIO_MODEL, null);
+	    //self.send(self.next_rid(), self.EVENT.ASRCTRL_MODEL, null);
     }
 
     /*

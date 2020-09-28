@@ -13,7 +13,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from handler import common
-from libs.flowlib import Engine, is_batch, is_template
+from libs.flowlib import Engine
 
 
 from pymongo import MongoClient
@@ -204,11 +204,6 @@ class Handler(EventHandler):
         self.tqueue = TaskQueue()
         self.w_submitted = {}                   # worker_id -> set(nanotask_id)
 
-        #self.nt_memory = DCStruct()            # DCStruct(project_name -> template_name -> nanotask_id) -> nanotask
-        #self.g_assignable = DCStruct()         # DCStruct(project_name -> template_name -> nanotask_id) -> nanotask
-        #self.w_assignable = {}                  # worker_id -> DCStruct(project_name -> template_name) -> PriorityNanotaskSet(nanotask)
-        #self.w_submitted = {}                   # worker_id -> DCStruct(project_name -> template_name) -> set(nanotask_id)
-
         self.create_nanotask_memory()    
 
     def create_nanotask_memory(self):
@@ -292,8 +287,7 @@ class Handler(EventHandler):
         mod_flow = importlib.import_module("projects.{}.flow".format(project_name))
         importlib.reload(mod_flow)
         flow = mod_flow.TaskFlow()
-        flow.define()
-        return flow.batch_all
+        return flow
 
     def load_flows(self):
         flows = {}
@@ -306,31 +300,24 @@ class Handler(EventHandler):
         return flows
 
     def get_batch_info(self, child):
-        def lambda_to_str(lmd):
-            return lmd
-            #try:
-            #    return str(inspect.getsourcelines(lmd)[0]).strip("['\\n']").split(" = ")[1]
-            #except:
-            #    return ""
-    
-        if is_template(child):
-            return {
-                "tag": child.tag,
-                "cond_if": lambda_to_str(child.cond_if),
-                "cond_while": lambda_to_str(child.cond_while),
-                "is_skippable": child.is_skippable,
-                "template": child.template
-            }
-        else:
+        if child.is_batch():
             _info = []
             for c in child.children:
+                logger.debug(type(c))
                 _info.append(self.get_batch_info(c))
             return {
-                "tag": child.tag,
-                "cond_if": lambda_to_str(child.cond_if),
-                "cond_while": lambda_to_str(child.cond_while),
-                "is_skippable": child.is_skippable,
+                "name": child.name,
+                "statement": child.statement.value,
+                "cond": child.cond,
+                "skippable": child.skippable,
                 "children": _info
+            }
+        elif child.is_template():
+            return {
+                "statement": child.statement.value,
+                "cond": child.cond,
+                "skippable": child.skippable,
+                "name": child.name
             }
 
     async def handle(self, event):
@@ -345,9 +332,7 @@ class Handler(EventHandler):
                 project_name = event.data[1]
 
                 flow = self.flows[project_name]
-                engine = Engine(project_name, flow)
-
-                root = engine.root
+                root = flow.root
                 info = self.get_batch_info(root)
                 ans["Flow"] = info
 
@@ -356,16 +341,8 @@ class Handler(EventHandler):
 
                 flow = self.get_flow(project_name)
                 self.flows[project_name] = flow
-                engine = Engine(project_name, flow)
-                info = self.get_batch_info(engine.root)
+                info = self.get_batch_info(flow.root)
                 ans["Flow"] = info
-
-                #logger.debug(json.dumps(info, indent=4))
-                #log = "\n"
-                #for elm in engine.test_generator():
-                #    if is_batch(elm):   log += "entering batch {}\n".format(elm.tag)
-                #    elif is_template(elm):  log += "--> executing node {}\n".format(elm.tag)
-                #logger.debug(log)
 
             elif command=="CREATE_SESSION":    # フローをワーカーが開始するごとに作成
                 project_name = event.data[1]

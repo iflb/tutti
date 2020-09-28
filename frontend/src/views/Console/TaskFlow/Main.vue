@@ -13,7 +13,7 @@
                 <arrow :color="templateColor" depth="1" />
 
                 <div v-if="flow">
-                    <recursive-batch
+                    <!--<recursive-batch
                         v-for="(child, idx) in flow.children"
                         :key="idx"
                         :project="project"
@@ -21,6 +21,13 @@
                         :is-last="idx==flow.children.length-1"
                         :depth="1"
                         :name="name"
+                        :template-color="templateColor" />-->
+                    <recursive-batch
+                        :project="project"
+                        :node="flow"
+                        :depth="1"
+                        :name="name"
+                        :is-last="true"
                         :template-color="templateColor" />
                 </div>
 

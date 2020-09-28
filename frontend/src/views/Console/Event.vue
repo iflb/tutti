@@ -80,7 +80,7 @@ export default {
                     const r = receivedAll[i];
                     const rid = r.rid;
                     var row = rows.find(e => e.rid==rid);
-                    row.received = r.data;
+                    if(row) row.received = r.data;
                 }
             }
             return rows;

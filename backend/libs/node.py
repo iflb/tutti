@@ -1,0 +1,113 @@
+from enum import Enum
+import json
+import random
+import string
+
+class Statement(Enum):
+    NONE = 0
+    IF = 1
+    WHILE = 2
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
+
+class Node:
+    def __init__(self, name, statement, cond, skippable=False):
+        self.name = name
+        self.statement = statement
+        self.cond = cond
+        self.skippable = skippable
+        self.prev = None
+        self.next = None
+        self.parent = None
+
+    def is_batch(self):
+        return isinstance(self, BatchNode)
+    
+    def is_template(self):
+        return isinstance(self, TemplateNode)
+
+    def get_children(self):
+        if self.is_template(): return None
+        else: return self.children
+
+    def scan(self):
+        if (children := self.get_children()):
+            n_prev = None
+            for i, child in enumerate(children):
+                try:    n_next = children[i+1]
+                except: n_next = None
+                child.prev = n_prev
+                child.next = n_next
+                child.parent = self
+
+                child.scan()
+                n_prev = child
+
+    def eval_cond(self, statement, ws, parent_ns, prev_ns):
+        if len(self.cond)!=3:
+            raise Exception("invalid number of condition arguments")
+        else:
+            [attr, comparator, cmp_right] = self.cond
+            if attr=="cnt":
+                cmp_left = ws.node_cnts[self.name] if self.name in ws.node_cnts else 0
+            elif attr=="lcnt":
+                if parent_ns is None:  raise Exception("parent node session cannot be None when evaluating local cnt")
+                cmp_left = parent_ns.node_lcnts[self.name] if self.name in parent_ns.node_lcnts else 0
+            # TODO
+            #elif attr=="score":
+            else:
+                raise Exception("invalid attribute in condition")
+
+            cond = "{}{}{}".format(cmp_left, comparator, cmp_right)
+            res_eval = eval(cond)
+
+            return self.statement==statement and res_eval
+
+class TemplateNode(Node):
+    def __init__(self, name, statement=Statement.NONE, cond=()):
+        super().__init__(name, statement, cond)
+        self.id = self._generate_id()
+
+    def _generate_id(self):
+        return "TN."+''.join([random.choice(string.ascii_letters + string.digits) for i in range(10)])
+
+    def __str__(self):
+        return f"<TemplateNode name={self.name}>"
+
+    def __repr__(self):
+        return json.dumps({
+            "name": self.name,
+            "statement": self.statement.name,
+            "cond": " ".join(map(str,self.cond)),
+            "prev": self.prev,
+            "next": self.next,
+            "parent": self.parent,
+        }, indent=2, cls=JSONEncoder)
+
+class BatchNode(Node):
+    def __init__(self, name, children, statement=Statement.NONE, cond=(), skippable=False):
+        super().__init__(name, statement, cond, skippable)
+        if len(children)==0:  raise Exception("batch node requires at least one child node")
+        self.children = children
+        self.id = self._generate_id()
+
+    def _generate_id(self):
+        return "BN."+''.join([random.choice(string.ascii_letters + string.digits) for i in range(10)])
+
+    def __str__(self):
+        return f"<BatchNode name={self.name}>"
+
+    def __repr__(self):
+        return json.dumps({
+            "name": self.name,
+            "statement": self.statement.name,
+            "cond": " ".join(map(str,self.cond)),
+            "prev": self.prev,
+            "next": self.next,
+            "parent": self.parent,
+            "children": [vars(c) for c in self.children]
+        }, indent=2, cls=JSONEncoder)
