@@ -1,5 +1,6 @@
 <template>
     <v-app>
+        <div><v-btn text @click="prevTask">prev</v-btn></div>
         <div class="text-right ma-3">
         <v-menu offset-y>
             <template v-slot:activator="{ on, attrs }">
@@ -30,7 +31,7 @@
         <v-row>
         {{ count }}
         <v-slide-x-reverse-transition hide-on-leave>
-            <component :is="template" :nano-data="nanoPropData" @submit="submit" />
+            <component :is="template" :nano-data="nanoPropData" :prev-answer="prevAnswer" @submit="submit" />
         </v-slide-x-reverse-transition>
         </v-row>
     </v-app>
@@ -62,7 +63,8 @@ export default {
         name: "/private-prod/",
         nanoData: null,
         workerId: "",
-        dialogLogout: false
+        dialogLogout: false,
+        prevAnswer: null
     }),
     computed: {
         ...mapGetters("ductsModule", [
@@ -83,12 +85,20 @@ export default {
             "openDuct",
             "closeDuct"
         ]),
+        prevTask() {
+            if(this.wsid) {
+                this.duct.sendMsg({
+                    tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
+                    data: `GET PREV ${this.wsid} ${this.nsid}`,
+                })
+            }
+        },
         getNextTemplate() {
             if(this.wsid) {
                 console.log(`GET ${this.wsid} ${this.nsid}`);
                 this.duct.sendMsg({
                     tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
-                    data: `GET ${this.wsid} ${this.nsid}`
+                    data: `GET NEXT ${this.wsid} ${this.nsid}`
                 })
             }
         },
@@ -118,10 +128,10 @@ export default {
                 else if(data["Command"]=="GET"){
                     if(data["Status"]=="error") { console.error(`failed to get from state machine: ${data["Reason"]}`); return; }
 
-                    if(data["NextTemplate"]){
+                    if(data["Template"]){
                         this.count += 1;
-                        this.templateName = data["NextTemplate"];
-                        this.nsid = data["NextNodeSessionId"];
+                        this.templateName = data["Template"];
+                        this.nsid = data["NodeSessionId"];
                         if(data["IsStatic"]) {
                             console.log("loading static task");
                             this.nanoData = null;
@@ -130,6 +140,11 @@ export default {
                         else {
                             this.nanoData = data["Props"];
                             this.nanotaskId = data["NanotaskId"];
+                        }
+                        
+                        if("Answers" in data) {
+                            this.$set(this, "prevAnswer", data["Answers"]);
+                            console.log(this.prevAnswer);
                         }
                     } else {
                         alert("finished!");

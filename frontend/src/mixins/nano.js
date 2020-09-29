@@ -6,7 +6,7 @@ export default {
         },
         requiredAnsKeys: []
     }),
-    props: ["nanoData"],
+    props: ["nanoData", "prevAnswer"],
     directives: {
         nano: {
             bind: (el, binding, vnode) => {
@@ -69,6 +69,11 @@ export default {
         }
     },
     mounted() {
+        if(this.prevAnswer) {
+            for(const [key,val] of Object.entries(this.prevAnswer)){ this[key] = val; }
+            this.nano.ans = this.prevAnswer;
+        }
+
         if(!this.nanoData) this.nano.data = this.defaultProps;
         else this.nano.data = this.nanoData;
     }

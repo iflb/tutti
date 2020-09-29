@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class Handler(EventHandler):
     def __init__(self):
         super().__init__()
-        self.db = MongoClient()["nanotasks"]
+        self.db = MongoClient()
 
     def setup(self, handler_spec, manager):
         self.path = manager.load_helper_module('paths')
@@ -22,14 +22,14 @@ class Handler(EventHandler):
     async def handle(self, event):
         ans = {}
         try:
-            project_name = ans["Project"] = event.data["projectName"]
-            template_name = ans["Template"] = event.data["templateName"]
+            pn = ans["Project"] = event.data["projectName"]
+            tn = ans["Template"] = event.data["templateName"]
             data = {
                 "tag": event.data["tag"],
                 "num_assignable": event.data["numAssignable"],
                 "priority": event.data["priority"]
             }
-            res = self.db.get_collection("{}.{}".format(project_name, template_name)).insert_many([dict(data, **{"props": props}) for props in event.data["props"]])
+            res = self.db["Nanotask"][f"{pn}/{tn}"].insert_many([dict(data, **{"props": props}) for props in event.data["props"]])
             inserted_ids = res.inserted_ids
             ans["Status"] = "success"
             ans["NumInserted"] = len(inserted_ids)

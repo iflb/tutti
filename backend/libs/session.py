@@ -3,8 +3,14 @@ import datetime
 import random
 import string
 import time
+import pickle
+
+import redis
+r = redis.Redis(host="localhost", port=6379, db=0)
 
 from libs.node import Statement
+
+import handler.helper_redis_namespace as namespace_redis
 
 class SessionStatus(Enum):
     ACTIVE = 1
@@ -41,6 +47,7 @@ class NodeSession(Session):
         self.parent = parent
         self.nid = None
         self.node_lcnts = {}   # { node.name: int }
+        self.answers = None
 
         self.cnt = ws.node_cnts[node.name] if node.name in ws.node_cnts else 0
         self.lcnt = parent.node_lcnts[node.name] if parent and (node.name in parent.node_lcnts) else 0
@@ -72,6 +79,9 @@ class WorkSession(Session):
         self.node_cnts = {}   # { node.name: int }
 
         self.nsessions = []
+
+        r.sadd(namespace_redis.key_for_work_session_ids_by_project_name(pid), self.id)
+        r.sadd(namespace_redis.key_for_work_session_ids_by_worker_id(wid), self.id)
 
     def validate_last_nsid(self, nsid):
         if type(nsid)!=str:  raise(f"invalid nsid type (must be str): {type(nsid)}")
@@ -138,6 +148,11 @@ class WorkSession(Session):
             else:
                 next_ns = _exit_node_and_find_next(ns)
 
+        if next_ns:
+            r.sadd(namespace_redis.key_for_node_session_ids_by_node_id(next_ns.node.id), next_ns.id)
+            r.sadd(namespace_redis.key_for_node_session_ids_by_work_session_id(self.id), next_ns.id)
+            r.set(namespace_redis.key_for_node_session_by_id(next_ns.id), pickle.dumps(next_ns))
+
         return next_ns
 
 
@@ -147,6 +162,9 @@ class WorkSession(Session):
                 return ns 
 
         return None
+
+    def get_prev_template_node_session(self, ns):
+        return ns.prev
 
 
 class NodeSessionFactory:

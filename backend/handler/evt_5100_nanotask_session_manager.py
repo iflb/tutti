@@ -5,6 +5,9 @@ import importlib.util
 from importlib import reload
 import heapq
 import inspect
+import pickle
+import sys
+import os
 
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
@@ -15,6 +18,8 @@ logger = logging.getLogger(__name__)
 from handler import common
 from libs.session import WorkSession
 
+import redis
+r = redis.Redis(host="localhost", port=6379, db=0)
 
 from pymongo import MongoClient
 from datetime import datetime
@@ -204,7 +209,14 @@ class Handler(EventHandler):
         self.tqueue = TaskQueue()
         self.w_submitted = {}                   # worker_id -> set(nanotask_id)
 
-        self.create_nanotask_memory()    
+    def setup(self, handler_spec, manager):
+        self.namespace_redis = manager.load_helper_module('helper_redis_namespace')
+        handler_spec.set_description('テンプレート一覧を取得します。')
+        handler_spec.set_as_responsive()
+
+        self.create_nanotask_memory()
+
+        return handler_spec
 
     def create_nanotask_memory(self):
         self.cache_nanotasks()
@@ -251,11 +263,17 @@ class Handler(EventHandler):
 
         _db = self.db["answers"]
         for cn in _db.list_collection_names(filter=None):
-            try:
-                [pn, tn, nid] = [project_name, template_name, nanotask_id] = cn.split(".")
-            except ValueError: 
-                [pn, tn] = [project_name, template_name] = cn.split(".")
-                nid = None
+            #try:
+            #    [pn, tn, nid] = [project_name, template_name, nanotask_id] = cn.split(".")
+            #except ValueError: 
+            #    [pn, tn] = [project_name, template_name] = cn.split(".")
+            #    nid = None
+            nsid = cn
+            ns_bin = r.get(self.namespace_redis.key_for_node_session_by_id(nsid))
+            ns = pickle.loads(ns_bin)
+            pn = ns.ws.pid
+            tn = ns.node.name
+            nid = ns.nid
 
             _n_answers = _db[cn].find()
             prj = self.dcmodel.get_project(pn)
@@ -277,11 +295,6 @@ class Handler(EventHandler):
 
         for wid in w_submitted.keys():
             self.create_task_queue_for_worker(wid)
-
-    def setup(self, handler_spec, dcmodel):
-        handler_spec.set_description('テンプレート一覧を取得します。')
-        handler_spec.set_as_responsive()
-        return handler_spec
 
     def get_flow(self, project_name):
         mod_flow = importlib.import_module("projects.{}.flow".format(project_name))
@@ -360,43 +373,55 @@ class Handler(EventHandler):
                 
 
             elif command=="GET":
-                [wsid, nsid] = event.data[1:]
+                [target, wsid, nsid] = event.data[1:]
 
+                if wsid not in self.wsessions:  raise Exception("No session found")
 
-                try:
-                    if wsid not in self.wsessions:  raise Exception("No session found")
+                ws = self.wsessions[wsid]
+                wid = ws.wid
+                pn = ws.pid
 
-                    ws = self.wsessions[wsid]
-                    wid = ws.wid
-                    pn = ws.pid
+                if len(ws.nsessions)>0 and not ws.validate_last_nsid(nsid):
+                    raise Exception(f"Invalid last node session ID: '{nsid}'")
 
-                    if nsid=="":
-                        ns = None
-                    elif not ws.validate_last_nsid(nsid):
-                        raise Exception(f"Invalid last node session ID: '{nsid}'")
-                    else:
-                        ns = ws.get_last_node_session()
+                if len(nsid)>0:  ns = ws.get_last_node_session()
+                else:            ns = None
 
-                    if not (next_ns := ws.get_next_template_node_session(ns)):
-                        raise StopIteration()
-                    ans["NextNodeSessionId"] = next_ns.id
-                    ans["NextTemplate"] = tn = next_ns.node.name
-                    tmpl = self.dcmodel.get_project(pn).get_template(tn)
-                    if tmpl.has_nanotasks():
-                        q = self.tqueue.get_queue(wid, pn, tn)
-                        if len(q)>0:
-                            nid = self.tqueue.pop(q)
-                            nt = self.nt_memory[nid]
-                            ans["IsStatic"] = False
-                            ans["NanotaskId"] = nid
-                            ans["Props"] = nt.props
+                if target=="NEXT":
+                    try:
+                        if not (next_ns := ws.get_next_template_node_session(ns)):
+                            raise StopIteration()
+                        ans["NodeSessionId"] = next_ns.id
+                        ans["Template"] = tn = next_ns.node.name
+                        tmpl = self.dcmodel.get_project(pn).get_template(tn)
+                        if tmpl.has_nanotasks():
+                            q = self.tqueue.get_queue(wid, pn, tn)
+                            if len(q)>0:
+                                nid = self.tqueue.pop(q)
+                                nt = self.nt_memory[nid]
+                                ans["IsStatic"] = False
+                                ans["NanotaskId"] = nid
+                                ans["Props"] = nt.props
+                            else:
+                                ans["NanotaskId"] = None
                         else:
-                            ans["NanotaskId"] = None
+                            ans["IsStatic"] = True
+
+                    except StopIteration as e:
+                        ans["NextTemplate"] = None
+                elif target=="PREV":
+                    if not (prev_ns := ws.get_prev_template_node_session(ns)):
+                        raise Exception("Error: could not get previous template")
+
+                    ans["NodeSessionId"] = prev_ns.id
+                    ans["Template"] = tn = prev_ns.node.name
+                    ans["Answers"] = prev_ns.answers
+                    if (nid := prev_ns.nid):
+                        ans["IsStatic"] = False
+                        ans["Props"] = self.nt_memory[nid].props
                     else:
                         ans["IsStatic"] = True
-
-                except StopIteration as e:
-                    ans["NextTemplate"] = None
+                    ans["NanotaskId"] = nid
 
 
             elif command=="ANSWER":
@@ -406,11 +431,8 @@ class Handler(EventHandler):
                 answers = json.loads(" ".join(event.data[3:]))
 
                 ws = self.wsessions[wsid]
-                logger.debug(ws)
                 wid = ws.wid
-                logger.debug(wid)
                 pn = ws.pid
-                logger.debug(pn)
 
                 if nsid=="":
                     raise Exception(f"node session ID cannot be null")
@@ -418,12 +440,10 @@ class Handler(EventHandler):
                     raise Exception(f"Invalid last node session ID: '{nsid}'")
                 else:
                     ns = ws.get_last_node_session()
-                logger.debug(ns)
                 tn = ns.node.name
-                logger.debug(tn)
                 nid = ns.nid
-                logger.debug(nid)
 
+                ns.answers = answers
 
                 self.w_submitted[wid].add(nid)
                 ans_json = {
@@ -433,11 +453,8 @@ class Handler(EventHandler):
                     "Answers": answers,
                     "Timestamp": datetime.now()
                 }
-                if nid=="null":
-                    self.db["answers"]["{}.{}".format(pn, tn)].insert_one(ans_json)
-                else:
-                    ans_json["NanotaskId"] = nid
-                    self.db["answers"]["{}.{}.{}".format(pn, tn, nid)].insert_one(ans_json)
+                if nid!="null":  ans_json["NanotaskId"] = nid
+                self.db["answers"][nsid].insert_one(ans_json)
                 ans["SentAnswer"] = answers
 
 
@@ -446,7 +463,9 @@ class Handler(EventHandler):
 
 
         except Exception as e:
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
             ans["Status"] = "error"
-            ans["Reason"] = str(e)
+            ans["Reason"] = f"{str(e)} [{fname} (line {exc_tb.tb_lineno})]"
             
         return ans
