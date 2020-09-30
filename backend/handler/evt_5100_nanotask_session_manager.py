@@ -280,7 +280,7 @@ class Handler(EventHandler):
             if prj is not None:
                 tmpl = prj.get_template(tn)
                 if tmpl is None:
-                    logger.debug("template '{}' in project '{}' is not found in memory".format(tn, pn))
+                    logger.error("template '{}' in project '{}' is not found in memory".format(tn, pn))
                 elif tmpl.has_nanotasks():
                     nt = nt_memory[nid]
                     nt.num_remaining -= _n_answers.count()
@@ -291,7 +291,7 @@ class Handler(EventHandler):
                     if wid not in w_submitted:  w_submitted[wid] = set()
                     if nid: w_submitted[wid].add(nid)
             else:
-                logger.debug("project '{}' is not found in memory".format(pn))
+                logger.error("project '{}' is not found in memory".format(pn))
 
         for wid in w_submitted.keys():
             self.create_task_queue_for_worker(wid)
@@ -308,7 +308,7 @@ class Handler(EventHandler):
             try:
                 flows[project_name] = self.get_flow(project_name)
             except Exception as e:
-                logger.debug("{}, {}".format("projects.{}.flow".format(project_name), str(e)))
+                logger.error("could not load flow for {}, {}".format("projects.{}.flow".format(project_name), str(e)))
                 continue   
         return flows
 
@@ -316,7 +316,6 @@ class Handler(EventHandler):
         if child.is_batch():
             _info = []
             for c in child.children:
-                logger.debug(type(c))
                 _info.append(self.get_batch_info(c))
             return {
                 "name": child.name,
@@ -397,7 +396,7 @@ class Handler(EventHandler):
                     [name, id] = [ns.node.name, ns.id]
                     [p_name, p_id] = [ns.prev.node.name, ns.prev.id]
                     [n_name, n_id] = [ns.next.node.name, ns.next.id] if ns.next else [None, None]
-                    logger.debug(f"IN:: {name}({id}), prev={p_name}({p_id}), next={n_name}({n_id})")
+                    logger.info(f"IN:: {name}({id}), prev={p_name}({p_id}), next={n_name}({n_id})")
 
                 if target=="NEXT":
                     if ns is not None and (out_ns := get_neighboring_template_node_session(ns, "next")):  # if next node session exists
@@ -406,6 +405,9 @@ class Handler(EventHandler):
                         ans["NodeSessionId"] = out_ns.id
                         ans["Template"] = tn = out_ns.node.name
                         ans["Answers"] = out_ns.answers
+                        ans["NanotaskId"] = out_ns.nid
+                        if out_ns.nid is not None:
+                            ans["Props"] = self.nt_memory[out_ns.nid].props
                     else:   # create new next node session
                         try:
                             if not (out_ns := ws.create_next_template_node_session(ns)):
@@ -417,6 +419,7 @@ class Handler(EventHandler):
                                 q = self.tqueue.get_queue(wid, pn, tn)
                                 if len(q)>0:
                                     nid = self.tqueue.pop(q)
+                                    out_ns.update_attr("nid", nid)
                                     nt = self.nt_memory[nid]
                                     ans["IsStatic"] = False
                                     ans["NanotaskId"] = nid
@@ -448,7 +451,10 @@ class Handler(EventHandler):
                     [name, id] = [out_ns.node.name, out_ns.id]
                     [p_name, p_id] = [out_ns.prev.node.name, out_ns.prev.id]
                     [n_name, n_id] = [out_ns.next.node.name, out_ns.next.id] if out_ns.next else [None, None]
-                    logger.debug(f"OUT:: {name}({id}), prev={p_name}({p_id}), next={n_name}({n_id})")
+                    logger.info(f"OUT:: {name}({id}), prev={p_name}({p_id}), next={n_name}({n_id})")
+
+                    ans["HasPrevTemplate"] = (get_neighboring_template_node_session(out_ns, "prev") is not None)
+                    ans["HasNextTemplate"] = (get_neighboring_template_node_session(out_ns, "next") is not None)
 
                         
             elif command=="ANSWER":

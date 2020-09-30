@@ -46,8 +46,8 @@ export default {
     mixins: [nanoMixIn],
     data: () => ({
         defaultProps: {
-            "img_url0": "https://www.biography.com/.image/ar_1:1%2Cc_fill%2Ccs_srgb%2Cg_face%2Cq_80%2Cw_300/MTQxNzI4NTg2OTU1NDk5MDE3/donald_trump_photo_michael_stewartwireimage_gettyimages_169093538_croppedjpg.jpg",
-            "img_url1": "https://assets.bwbx.io/images/users/iqjWHBFdfxIU/i6t9SMUwKRHk/v0/800x-1.jpg"
+            "img_url0": "https://images-na.ssl-images-amazon.com/images/I/61qEl7SAq9L._AC_SL1000_.jpg",
+            "img_url1": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcQJxhbQz2Oy8Dn8ksxkaXPbzMIvhTaGUBH98P5nQ9zIXlQVV5OnWT1ozp9joA&usqp=CAc"
         }
     })
 };

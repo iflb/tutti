@@ -1,6 +1,5 @@
 <template>
     <v-app>
-        <div><v-btn text @click="prevTask">prev</v-btn></div>
         <div class="text-right ma-3">
         <v-menu offset-y>
             <template v-slot:activator="{ on, attrs }">
@@ -29,10 +28,16 @@
           </v-card>
         </v-dialog>
         <v-row>
-        {{ count }}
-        <v-slide-x-reverse-transition hide-on-leave>
-            <component :is="template" :nano-data="nanoPropData" :prev-answer="prevAnswer" @submit="submit" />
-        </v-slide-x-reverse-transition>
+            {{ count }}
+            <v-col class="text-center">
+                <v-btn color="white" class="mx-4 pa-2" @click="getTemplate('PREV')" :disabled="!hasPrevTemplate"><v-icon>mdi-chevron-left</v-icon></v-btn>
+                <v-btn color="white" class="mx-4 pa-2" @click="getTemplate('NEXT')" :disabled="!hasNextTemplate"><v-icon>mdi-chevron-right</v-icon></v-btn>
+            </v-col>
+        </v-row>
+        <v-row>
+            <v-slide-x-reverse-transition hide-on-leave>
+                <component :is="template" :nano-data="nanoPropData" :prev-answer="prevAnswer" @submit="submit" />
+            </v-slide-x-reverse-transition>
         </v-row>
     </v-app>
 </template>
@@ -64,7 +69,10 @@ export default {
         nanoData: null,
         workerId: "",
         dialogLogout: false,
-        prevAnswer: null
+        prevAnswer: null,
+
+        hasPrevTemplate: false,
+        hasNextTemplate: false,
     }),
     computed: {
         ...mapGetters("ductsModule", [
@@ -85,20 +93,11 @@ export default {
             "openDuct",
             "closeDuct"
         ]),
-        prevTask() {
+        getTemplate(direction) {
             if(this.wsid) {
                 this.duct.sendMsg({
                     tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
-                    data: `GET PREV ${this.wsid} ${this.nsid}`,
-                })
-            }
-        },
-        getNextTemplate() {
-            if(this.wsid) {
-                console.log(`GET ${this.wsid} ${this.nsid}`);
-                this.duct.sendMsg({
-                    tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
-                    data: `GET NEXT ${this.wsid} ${this.nsid}`
+                    data: `GET ${direction} ${this.wsid} ${this.nsid}`
                 })
             }
         },
@@ -123,13 +122,13 @@ export default {
 
                     console.log(`created work-session: ${data["WorkSessionId"]}`);
                     this.wsid = data["WorkSessionId"];
-                    this.getNextTemplate();
+                    this.getTemplate("NEXT");
                 }
                 else if(data["Command"]=="GET"){
                     if(data["Status"]=="error") { console.error(`failed to get from state machine: ${data["Reason"]}`); return; }
 
-                    console.log(data);
-
+                    this.hasPrevTemplate = data["HasPrevTemplate"];
+                    this.hasNextTemplate = data["HasNextTemplate"];
                     if(data["Template"]){
                         this.count += 1;
                         this.templateName = data["Template"];
@@ -157,7 +156,7 @@ export default {
 
                     console.log(`successfully sent answer: ${data["SentAnswer"]}`);
                     this.answer = {}
-                    this.getNextTemplate();
+                    this.getTemplate("NEXT");
                 }
             })
 

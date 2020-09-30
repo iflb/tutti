@@ -60,6 +60,13 @@ class NodeSession(Session):
             self.node_lcnts[node.name] = 0
         self.node_lcnts[node.name] += 1
 
+    def update_attr(self, attr_name, val):
+        setattr(self, attr_name, val)
+        self.save_to_redis()
+
+    def save_to_redis(self):
+        r.set(namespace_redis.key_for_node_session_by_id(self.id), pickle.dumps(self))
+
     def finish(self):
         super().finish()
         self.ws.increase_node_cnt(self.node)
@@ -144,7 +151,7 @@ class WorkSession(Session):
         if next_ns:
             r.sadd(namespace_redis.key_for_node_session_ids_by_node_id(next_ns.node.id), next_ns.id)
             r.sadd(namespace_redis.key_for_node_session_ids_by_work_session_id(self.id), next_ns.id)
-            r.set(namespace_redis.key_for_node_session_by_id(next_ns.id), pickle.dumps(next_ns))
+            next_ns.save_to_redis()
 
         return next_ns
 
