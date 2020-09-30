@@ -128,6 +128,8 @@ export default {
                 else if(data["Command"]=="GET"){
                     if(data["Status"]=="error") { console.error(`failed to get from state machine: ${data["Reason"]}`); return; }
 
+                    console.log(data);
+
                     if(data["Template"]){
                         this.count += 1;
                         this.templateName = data["Template"];

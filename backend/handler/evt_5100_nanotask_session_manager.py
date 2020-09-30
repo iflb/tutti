@@ -373,6 +373,14 @@ class Handler(EventHandler):
                 
 
             elif command=="GET":
+                def get_neighboring_template_node_session(ns, direction):
+                    while out_ns := getattr(ns, direction):
+                        if out_ns.node.is_template():
+                            return out_ns
+                        else:
+                            ns = out_ns
+                    return None
+                
                 [target, wsid, nsid] = event.data[1:]
 
                 if wsid not in self.wsessions:  raise Exception("No session found")
@@ -381,49 +389,68 @@ class Handler(EventHandler):
                 wid = ws.wid
                 pn = ws.pid
 
-                if len(ws.nsessions)>0 and not ws.validate_last_nsid(nsid):
-                    raise Exception(f"Invalid last node session ID: '{nsid}'")
+                ns = None
+                if len(nsid)>0 and not (ns := ws.get_existing_node_session(nsid)):
+                    raise Exception(f"Invalid node session ID: {nsid}")
 
-                if len(nsid)>0:  ns = ws.get_last_node_session()
-                else:            ns = None
+                if ns:
+                    [name, id] = [ns.node.name, ns.id]
+                    [p_name, p_id] = [ns.prev.node.name, ns.prev.id]
+                    [n_name, n_id] = [ns.next.node.name, ns.next.id] if ns.next else [None, None]
+                    logger.debug(f"IN:: {name}({id}), prev={p_name}({p_id}), next={n_name}({n_id})")
 
                 if target=="NEXT":
-                    try:
-                        if not (next_ns := ws.get_next_template_node_session(ns)):
-                            raise StopIteration()
-                        ans["NodeSessionId"] = next_ns.id
-                        ans["Template"] = tn = next_ns.node.name
-                        tmpl = self.dcmodel.get_project(pn).get_template(tn)
-                        if tmpl.has_nanotasks():
-                            q = self.tqueue.get_queue(wid, pn, tn)
-                            if len(q)>0:
-                                nid = self.tqueue.pop(q)
-                                nt = self.nt_memory[nid]
-                                ans["IsStatic"] = False
-                                ans["NanotaskId"] = nid
-                                ans["Props"] = nt.props
+                    if ns is not None and (out_ns := get_neighboring_template_node_session(ns, "next")):  # if next node session exists
+                        if out_ns != ws.get_existing_node_session(out_ns.id):
+                            raise Exception("Broken consistency of node sessions in work session")
+                        ans["NodeSessionId"] = out_ns.id
+                        ans["Template"] = tn = out_ns.node.name
+                        ans["Answers"] = out_ns.answers
+                    else:   # create new next node session
+                        try:
+                            if not (out_ns := ws.create_next_template_node_session(ns)):
+                                raise StopIteration()
+                            ans["NodeSessionId"] = out_ns.id
+                            ans["Template"] = tn = out_ns.node.name
+                            tmpl = self.dcmodel.get_project(pn).get_template(tn)
+                            if tmpl.has_nanotasks():
+                                q = self.tqueue.get_queue(wid, pn, tn)
+                                if len(q)>0:
+                                    nid = self.tqueue.pop(q)
+                                    nt = self.nt_memory[nid]
+                                    ans["IsStatic"] = False
+                                    ans["NanotaskId"] = nid
+                                    ans["Props"] = nt.props
+                                else:
+                                    ans["NanotaskId"] = None
                             else:
-                                ans["NanotaskId"] = None
-                        else:
-                            ans["IsStatic"] = True
+                                ans["IsStatic"] = True
 
-                    except StopIteration as e:
-                        ans["NextTemplate"] = None
+                        except StopIteration as e:
+                            ans["NextTemplate"] = None
+
                 elif target=="PREV":
-                    if not (prev_ns := ws.get_prev_template_node_session(ns)):
-                        raise Exception("Error: could not get previous template")
-
-                    ans["NodeSessionId"] = prev_ns.id
-                    ans["Template"] = tn = prev_ns.node.name
-                    ans["Answers"] = prev_ns.answers
-                    if (nid := prev_ns.nid):
+                    out_ns = get_neighboring_template_node_session(ns, "prev")
+                    if out_ns != ws.get_existing_node_session(out_ns.id):
+                        raise Exception("Broken consistency of node sessions in work session")
+                    
+                    ans["NodeSessionId"] = out_ns.id
+                    ans["Template"] = tn = out_ns.node.name
+                    ans["Answers"] = out_ns.answers
+                    if (nid := out_ns.nid):
                         ans["IsStatic"] = False
                         ans["Props"] = self.nt_memory[nid].props
                     else:
                         ans["IsStatic"] = True
                     ans["NanotaskId"] = nid
 
+                if out_ns:
+                    [name, id] = [out_ns.node.name, out_ns.id]
+                    [p_name, p_id] = [out_ns.prev.node.name, out_ns.prev.id]
+                    [n_name, n_id] = [out_ns.next.node.name, out_ns.next.id] if out_ns.next else [None, None]
+                    logger.debug(f"OUT:: {name}({id}), prev={p_name}({p_id}), next={n_name}({n_id})")
 
+                        
             elif command=="ANSWER":
                 [wsid, nsid] = event.data[1:3]
 
@@ -436,10 +463,8 @@ class Handler(EventHandler):
 
                 if nsid=="":
                     raise Exception(f"node session ID cannot be null")
-                elif not ws.validate_last_nsid(nsid):
-                    raise Exception(f"Invalid last node session ID: '{nsid}'")
-                else:
-                    ns = ws.get_last_node_session()
+
+                ns = ws.get_existing_node_session(nsid)
                 tn = ns.node.name
                 nid = ns.nid
 

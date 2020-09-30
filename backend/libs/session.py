@@ -45,8 +45,8 @@ class NodeSession(Session):
         self.prev = prev
         self.next = None
         self.parent = parent
-        self.nid = None
         self.node_lcnts = {}   # { node.name: int }
+        self.nid = None
         self.answers = None
 
         self.cnt = ws.node_cnts[node.name] if node.name in ws.node_cnts else 0
@@ -78,17 +78,10 @@ class WorkSession(Session):
         self._set_expiration(expiration)
         self.node_cnts = {}   # { node.name: int }
 
-        self.nsessions = []
+        self.nsessions = {}
 
         r.sadd(namespace_redis.key_for_work_session_ids_by_project_name(pid), self.id)
         r.sadd(namespace_redis.key_for_work_session_ids_by_worker_id(wid), self.id)
-
-    def validate_last_nsid(self, nsid):
-        if type(nsid)!=str:  raise(f"invalid nsid type (must be str): {type(nsid)}")
-        return self.nsessions[-1].id==nsid
-
-    def get_last_node_session(self):
-        return self.nsessions[-1]
 
     def increase_node_cnt(self, node):
         if node.name not in self.node_cnts:
@@ -156,15 +149,16 @@ class WorkSession(Session):
         return next_ns
 
 
-    def get_next_template_node_session(self, ns=None):
+    def create_next_template_node_session(self, ns=None):
         while (ns := self._get_next_node_session(ns)):
             if ns.node.is_template():
                 return ns 
 
         return None
 
-    def get_prev_template_node_session(self, ns):
-        return ns.prev
+    def get_existing_node_session(self, nsid):
+        if nsid in self.nsessions:  return self.nsessions[nsid]
+        else: return None
 
 
 class NodeSessionFactory:
@@ -179,7 +173,7 @@ class NodeSessionFactory:
             ns = NodeSession(self.ws, node, parent=parent, prev=prev)
             if prev:
                 prev.next = ns
-            self.ws.nsessions.append(ns)
+            self.ws.nsessions[ns.id] = ns
             return ns
 
         else:
