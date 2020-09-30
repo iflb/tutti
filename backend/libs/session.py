@@ -167,6 +167,16 @@ class WorkSession(Session):
         if nsid in self.nsessions:  return self.nsessions[nsid]
         else: return None
 
+    # this does not need to be an instance method
+    def get_neighboring_template_node_session(self, ns, direction):
+        while out_ns := getattr(ns, direction):
+            if out_ns.node.is_template():
+                return out_ns
+            else:
+                ns = out_ns
+        return None
+                
+
 
 class NodeSessionFactory:
     def __init__(self, ws):

@@ -161,7 +161,7 @@ export default {
         "project.name" (name) {  // called when project name is selected on the app bar
             this.project = this.projects[name];
             this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_TEMPLATES, data: name })
-            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER, data: `GET_FLOWS ${name}` })
+            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER, data: `LOAD_FLOW ${name}` })
         },
         project: {
             handler: function(val) {
@@ -310,7 +310,7 @@ export default {
                             text: "Successfully registered a state machine"
                         })
                     }
-                    else if(data["Command"]=="GET_FLOWS" || data["Command"]=="LOAD_FLOW"){
+                    else if(data["Command"]=="LOAD_FLOW"){
                         if(data["Status"]=="error"){
                             this.project.profile = null
                             this.$refs.child.showSnackbar({
