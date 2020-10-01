@@ -54,6 +54,7 @@ class NodeSession(Session):
         self.score = 0
         self.prev_ans = None
         #print("started NodeSession({}) for node '{}' (statement={}, cond={}, cnt={})".format(self.id, self.node.name, self.node.statement, self.node.cond, self.cnt))
+        r.set(namespace_redis.key_active_node_session_id(self.ws.wid, self.ws.id), self.id)
 
     def increase_node_lcnt(self, node):
         if node.name not in self.node_lcnts:
@@ -65,13 +66,14 @@ class NodeSession(Session):
         self.save_to_redis()
 
     def save_to_redis(self):
-        r.set(namespace_redis.key_for_node_session_by_id(self.id), pickle.dumps(self))
+        r.set(namespace_redis.key_node_session(self.id), pickle.dumps(self))
 
     def finish(self):
         super().finish()
         self.ws.increase_node_cnt(self.node)
         if self.parent:
             self.parent.increase_node_lcnt(self.node)
+        r.delete(namespace_redis.key_active_node_session_id(self.ws.wid, self.ws.id))
         #print("finished NodeSession({}) for node '{}'".format(self.id, self.node.name))
 
 class WorkSession(Session):
@@ -82,13 +84,19 @@ class WorkSession(Session):
         self.ns_factory = NodeSessionFactory(self)
         self.root_node = root_node
         self.root_ns = None
+        self.current_ns = None
         self._set_expiration(expiration)
         self.node_cnts = {}   # { node.name: int }
 
         self.nsessions = {}
 
-        r.sadd(namespace_redis.key_for_work_session_ids_by_project_name(pid), self.id)
-        r.sadd(namespace_redis.key_for_work_session_ids_by_worker_id(wid), self.id)
+        #r.sadd(namespace_redis.key_work_session_ids_by_project_name(pid), self.id)
+        #r.sadd(namespace_redis.key_work_session_ids_by_worker_id(wid), self.id)
+        #r.set(namespace_redis.key_active_work_session_id(wid), self.id)
+
+    def finish(self):
+        super().finish()
+        r.delete(namespace_redis.key_active_work_session_id(wid))
 
     def increase_node_cnt(self, node):
         if node.name not in self.node_cnts:
@@ -149,8 +157,8 @@ class WorkSession(Session):
                 next_ns = _exit_node_and_find_next(ns)
 
         if next_ns:
-            r.sadd(namespace_redis.key_for_node_session_ids_by_node_id(next_ns.node.id), next_ns.id)
-            r.sadd(namespace_redis.key_for_node_session_ids_by_work_session_id(self.id), next_ns.id)
+            r.sadd(namespace_redis.key_node_session_ids_by_node_id(next_ns.node.id), next_ns.id)
+            r.sadd(namespace_redis.key_node_session_ids_by_work_session_id(self.id), next_ns.id)
             next_ns.save_to_redis()
 
         return next_ns

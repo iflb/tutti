@@ -115,6 +115,20 @@ export default {
         }
     },
     created: function(){
+        function someRandomStringGenerator(){
+            return Math.random().toString(32).substring(2)
+        }
+        var token = sessionStorage.getItem("someClientToken");
+        if(!token) {
+            token = someRandomStringGenerator();
+            sessionStorage.setItem("someClientToken", token);
+        }
+        this.clientToken = token;
+        console.log("token:", token);
+
+
+
+
         this.initDuct( window.ducts = window.ducts || {}).then(() => {
             this.duct.setEventHandler(this.duct.EVENT.NANOTASK_SESSION_MANAGER, (rid, eid, data) => {
                 if(data["Command"]=="CREATE_SESSION"){
@@ -163,7 +177,7 @@ export default {
             this.openDuct().then(() => {
                 this.duct.sendMsg({
                     tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
-                    data: `CREATE_SESSION ${this.projectName} ${this.workerId}`
+                    data: `CREATE_SESSION ${this.projectName} ${this.workerId} ${this.clientToken}`
                 })
             })
         })

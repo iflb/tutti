@@ -72,7 +72,7 @@ class Handler(EventHandler):
     def update_nanotask_assignability(self):
         _db = self.db["answers"]
         for nsid in _db.list_collection_names():
-            ns = pickle.loads(r.get(self.namespace_redis.key_for_node_session_by_id(nsid)))
+            ns = pickle.loads(r.get(self.namespace_redis.key_node_session(nsid)))
             [pn, tn, nid] = [ns.ws.pid, ns.node.name, ns.nid]
             answers = _db[nsid].find()
 
@@ -112,6 +112,7 @@ class Handler(EventHandler):
         mod_flow = importlib.import_module("projects.{}.flow".format(project_name))
         importlib.reload(mod_flow)
         flow = mod_flow.TaskFlow()
+        flow.root.scan()
         return flow
 
     def load_flows(self):
@@ -158,15 +159,22 @@ class Handler(EventHandler):
                 ans["Flow"] = self.get_batch_info_dict(flow.root)
 
             elif command=="CREATE_SESSION":    # フローをワーカーが開始するごとに作成
-                [pn, wid] = event.data[1:]
+                [pn, wid, ct] = event.data[1:]
 
                 if wid not in self.wkr_submitted_nids:
                     self.wkr_submitted_nids[wid] = set()
                     self.create_task_queue_for_worker(wid)
 
                 flow = self.flows[pn]
-                flow.root.scan()
-                ws = self.wsessions[ws.id] = WorkSession(wid, pn, flow.root)
+                wsid = r.get(self.namespace_redis.key_active_work_session_id(ct))
+                if wsid:
+                    logger.debug(self.wsessions)
+                    ws = self.wsessions[wsid.decode()]
+                else:
+                    ws = self.wsessions[ws.id] = WorkSession(wid, pn, flow.root)
+                    logger.debug(self.wsessions)
+                    r.sadd(self.namespace_redis.key_work_session_ids_by_project_name(pn), ws.id)
+                    r.set(self.namespace_redis.key_active_work_session_id(ct), ws.id)
                 ans["WorkSessionId"] = ws.id
                 
 
@@ -188,8 +196,18 @@ class Handler(EventHandler):
                         raise Exception(f"Invalid node session ID: {nsid}")
 
                 if target=="NEXT":
+                    if (not ns) and (ws.current_ns):
+                        out_ns = ws.current_ns
+                        ans["NodeSessionId"] = out_ns.id
+                        ans["Template"] = tn = out_ns.node.name
+                        ans["Answers"] = out_ns.answers
+                        ans["NanotaskId"] = out_ns.nid
+                        if out_ns.nid is not None:
+                            ans["IsStatic"] = False
+                            ans["Props"] = self.nanotasks[out_ns.nid].props
+
                     # get existing node session, when node session is not latest
-                    if ns and (out_ns := ws.get_neighboring_template_node_session(ns, "next")):
+                    elif ns and (out_ns := ws.get_neighboring_template_node_session(ns, "next")):
                         if out_ns != ws.get_existing_node_session(out_ns.id):
                             raise Exception("Broken consistency of node sessions in work session")
                         ans["NodeSessionId"] = out_ns.id
@@ -199,6 +217,7 @@ class Handler(EventHandler):
                         if out_ns.nid is not None:
                             ans["IsStatic"] = False
                             ans["Props"] = self.nanotasks[out_ns.nid].props
+
                     else:   # create new node session, when work session is initialized OR node session is latest
                         try:
                             # if there is no more available template
@@ -224,7 +243,7 @@ class Handler(EventHandler):
                                 ans["IsStatic"] = True
 
                         except StopIteration as e:
-                            ans["NextTemplate"] = None
+                            ans["Template"] = None
 
                 elif target=="PREV":
                     out_ns = ws.get_neighboring_template_node_session(ns, "prev")
@@ -243,6 +262,7 @@ class Handler(EventHandler):
 
 
                 if out_ns:
+                    ws.current_ns = out_ns
                     [name, id] = [out_ns.node.name, out_ns.id]
                     [p_name, p_id] = [out_ns.prev.node.name, out_ns.prev.id]
                     [n_name, n_id] = [out_ns.next.node.name, out_ns.next.id] if out_ns.next else [None, None]
