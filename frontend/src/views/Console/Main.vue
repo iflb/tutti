@@ -249,11 +249,14 @@ export default {
                 this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_TEMPLATES, data: this.project.name });
             });
             this.duct.setEventHandler(this.duct.EVENT.LIST_PROJECTS, (rid, eid, data) => {
-                for(const i in data){
-                    const name = data[i].name;
-                    const path = data[i].path;
-                    var project = new Project(name, path);
-                    this.$set(this.projects, name, project);
+                if(data["Status"]==="Success"){
+                    var projects = data["Data"]["Projects"];
+                    for(const i in projects){
+                        const name = projects[i].name;
+                        const path = projects[i].path;
+                        var project = new Project(name, path);
+                        this.$set(this.projects, name, project);
+                    }
                 }
             });
             this.duct.setEventHandler(this.duct.EVENT.LIST_TEMPLATES, (rid, eid, data) => {

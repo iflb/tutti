@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class Handler(EventHandler):
     def __init__(self):
         super().__init__()
-        self.db = MongoClient()["nanotasks"]
+        self.db = MongoClient()["Nanotasks"]
 
     def setup(self, handler_spec, manager):
         self.path = manager.load_helper_module('paths')

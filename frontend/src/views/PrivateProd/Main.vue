@@ -45,6 +45,7 @@
 <script>
 import store from '@/store.js'
 import { mapActions, mapGetters } from 'vuex'
+import { setPlatformConfig } from './platformConfig'
 
 export default {
     store,
@@ -73,6 +74,9 @@ export default {
 
         hasPrevTemplate: false,
         hasNextTemplate: false,
+
+        _getClientToken: null,
+        _onClientTokenFailure: null
     }),
     computed: {
         ...mapGetters("ductsModule", [
@@ -114,27 +118,10 @@ export default {
             window.location.href = `../private-prod-login?project=${this.projectName}`;
         },
         
-
-
-        getClientToken() {
-            function someRandomStringGenerator(){
-                return Math.random().toString(32).substring(2)
-            }
-            var token = sessionStorage.getItem("someClientToken");
-            if(!token) {
-                token = someRandomStringGenerator();
-                sessionStorage.setItem("someClientToken", token);
-            }
-            console.log("token:", token);
-
-            return token;
-        },
-        onClientTokenFailure() {
-            console.log("clienttokenFailure");
-        },
         loadClientToken() {
+            setPlatformConfig(this);
             return new Promise((resolve, reject) => {
-                this.clientToken = this.getClientToken();
+                this.clientToken = this._getClientToken();
                 if(this.clientToken) resolve();
                 else reject();
             });
@@ -142,47 +129,52 @@ export default {
     },
     created: function(){
         this.loadClientToken().then(() => {
+            console.log("clientToken:", this.clientToken);
 
             this.initDuct( window.ducts = window.ducts || {}).then(() => {
                 this.duct.setEventHandler(this.duct.EVENT.NANOTASK_SESSION_MANAGER, (rid, eid, data) => {
-                    if(data["Command"]=="CREATE_SESSION"){
-                        if(data["Status"]=="error") { console.error(`failed to create session ID: ${data["Reason"]}`); return; }
+                    console.log(data);
+                    const command = data["Data"]["Command"];
+                    if(command=="CREATE_SESSION"){
+                        if(data["Status"]=="Error") { console.error(`failed to create session ID: ${data["Reason"]}`); return; }
 
-                        console.log(`created work-session: ${data["WorkSessionId"]}`);
-                        this.wsid = data["WorkSessionId"];
+                        const wsid = data["Data"]["WorkSessionId"];
+                        console.log(`created work-session: ${wsid}`);
+                        this.wsid = wsid;
                         this.getTemplate("NEXT");
                     }
-                    else if(data["Command"]=="GET"){
-                        if(data["Status"]=="error") { console.error(`failed to get from state machine: ${data["Reason"]}`); return; }
+                    else if(command=="GET"){
+                        if(data["Status"]=="Error") { console.error(`failed to get from state machine: ${data["Reason"]}`); return; }
 
-                        this.hasPrevTemplate = data["HasPrevTemplate"];
-                        this.hasNextTemplate = data["HasNextTemplate"];
-                        if(data["Template"]){
+                        const d = data["Data"];
+                        this.hasPrevTemplate = d["HasPrevTemplate"];
+                        this.hasNextTemplate = d["HasNextTemplate"];
+                        if(d["Template"]){
                             this.count += 1;
-                            this.templateName = data["Template"];
-                            this.nsid = data["NodeSessionId"];
-                            if(data["IsStatic"]) {
+                            this.templateName = d["Template"];
+                            this.nsid = d["NodeSessionId"];
+                            if(d["IsStatic"]) {
                                 console.log("loading static task");
                                 this.nanoData = null;
                                 this.nanotaskId = null;
                             }
                             else {
-                                this.nanoData = data["Props"];
-                                this.nanotaskId = data["NanotaskId"];
+                                this.nanoData = d["Props"];
+                                this.nanotaskId = d["NanotaskId"];
                             }
                             
-                            if("Answers" in data) {
-                                this.$set(this, "prevAnswer", data["Answers"]);
+                            if("Answers" in d) {
+                                this.$set(this, "prevAnswer", d["Answers"]);
                                 console.log(this.prevAnswer);
                             }
                         } else {
-                            alert("finished!");
+                            this._onSubmitWorkSession();
                         }
                     }
-                    else if(data["Command"]=="ANSWER"){
-                        if(data["Status"]=="error") { console.error(`failed to send answer: ${data["Reason"]}`); return; }
+                    else if(command=="ANSWER"){
+                        if(data["Status"]=="Error") { console.error(`failed to send answer: ${data["Reason"]}`); return; }
 
-                        console.log(`successfully sent answer: ${data["SentAnswer"]}`);
+                        console.log(`successfully sent answer: ${data["Data"]["SentAnswer"]}`);
                         this.answer = {}
                         this.getTemplate("NEXT");
                     }
@@ -196,7 +188,7 @@ export default {
                 })
             })
 
-        }).catch(this.onClientTokenFailure);
+        }).catch(this._onClientTokenFailure);
     }
 }
 </script>

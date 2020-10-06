@@ -24,3 +24,7 @@ def key_node_session(nsid):
 
 def key_work_session(wsid):
     return f"WorkSession/{wsid}"
+
+
+def key_event_query(eid):
+    return f"EventQuery/{eid}"
