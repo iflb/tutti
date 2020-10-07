@@ -136,6 +136,7 @@ export default {
                     console.log(data);
                     const command = data["Data"]["Command"];
                     if(command=="CREATE_SESSION"){
+                        console.log("create_session");
                         if(data["Status"]=="Error") { console.error(`failed to create session ID: ${data["Reason"]}`); return; }
 
                         const wsid = data["Data"]["WorkSessionId"];
@@ -185,6 +186,8 @@ export default {
                         tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
                         data: `CREATE_SESSION ${this.projectName} ${this.workerId} ${this.clientToken}`
                     })
+                    console.log(this.duct);
+                    console.log(this.duct.EVENT.NANOTASK_SESSION_MANAGER);
                 })
             })
 

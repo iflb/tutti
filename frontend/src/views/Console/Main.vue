@@ -279,27 +279,25 @@ export default {
             });
 
             this.duct.setEventHandler(this.duct.EVENT.UPLOAD_NANOTASKS, (rid, eid, data) => {
-                if(data["Status"]!="success") return;
+                if(data["Status"]=="Error") return;
 
-                const project = data["Project"];
-                const template = data["Template"];
+                const project = data["Data"]["Project"];
+                const template = data["Data"]["Template"];
                 this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.GET_NANOTASKS, data: `COUNT ${project} ${template}` });
             });
 
             this.duct.setEventHandler(this.duct.EVENT.GET_NANOTASKS, (rid, eid, data) => {
-                if(data["Status"]!="success") {
-                    console.log(data["Reason"]);
-                    return;
-                }
+                if(data["Status"]=="Error") return;
 
-                const project = data["Project"];
-                const template = data["Template"];
-                if(data["Command"]=="NANOTASKS"){
-                    const d = data["Nanotasks"];
+                const command = data["Data"]["Command"];
+                const project = data["Data"]["Project"];
+                const template = data["Data"]["Template"];
+                if(command=="NANOTASKS"){
+                    const d = data["Data"]["Nanotasks"];
                     this.projects[project].templates[template].nanotask.data = d;
                 }
-                else if(data["Command"]=="COUNT") {
-                    const cnt = data["Count"];
+                else if(command=="COUNT") {
+                    const cnt = data["Data"]["Count"];
                     this.projects[project].templates[template].nanotask.cnt = cnt;
                 }
             });
@@ -331,7 +329,7 @@ export default {
             this.duct.addEvtHandler({
                 tag: "/console/answers/", eid: this.duct.EVENT.ANSWERS,
                 handler: (rid, eid, data) => {
-                    this.answers = data["Answers"];
+                    this.answers = data["Data"]["Answers"];
                 }
             })
 

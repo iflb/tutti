@@ -18,6 +18,7 @@ from ifconf import configure_module, config_callback
 
 from handler import common
 from handler.handler_output import handler_output
+
 from libs.session import WorkSession
 from libs.task_resource import DCModel, Project, Template, TaskQueue, Nanotask
 
@@ -39,6 +40,7 @@ class Handler(EventHandler):
 
     def setup(self, handler_spec, manager):
         self.namespace_redis = manager.load_helper_module('helper_redis_namespace')
+        self.namespace_mongo = manager.load_helper_module('helper_mongo_namespace')
         handler_spec.set_description('テンプレート一覧を取得します。')
         handler_spec.set_as_responsive()
 
@@ -54,12 +56,12 @@ class Handler(EventHandler):
             for tn in common.get_templates(pn):
                 prj.add_template(Template(tn))
 
-        _db = self.db["nanotasks"]
-        for cn in _db.list_collection_names(filter=None):
-            [pn, tn] = [project_name, template_name] = cn.split(".")
+        dn = self.namespace_mongo.db_name_for_nanotasks()
+        for cn in self.db[dn].list_collection_names(filter=None):
+            [pn, tn] = self.namespace_mongo.parsed_collection_name_for_answers(cn)
 
             nids = set()
-            for nt in _db[cn].find():
+            for nt in self.db[dn][cn].find():
                 nid = nt["_id"] = str(nt["_id"])
                 nids.add(nid)
                 nt["project_name"] = pn
@@ -71,11 +73,11 @@ class Handler(EventHandler):
 
 
     def update_nanotask_assignability(self):
-        _db = self.db["answers"]
-        for nsid in _db.list_collection_names():
+        dn = self.namespace_mongo.db_name_for_answers()
+        for nsid in self.db[dn].list_collection_names():
             ns = pickle.loads(r.get(self.namespace_redis.key_node_session(nsid)))
             [pn, tn, nid] = [ns.ws.pid, ns.node.name, ns.nid]
-            answers = _db[nsid].find()
+            answers = self.db[dn][nsid].find()
 
             if (prj := self.dcmodel.get_project(pn)):
                 if (tmpl := prj.get_template(tn)):
@@ -160,6 +162,9 @@ class Handler(EventHandler):
 
         elif command=="CREATE_SESSION":    # フローをワーカーが開始するごとに作成
             [pn, wid, ct] = event.data[1:]
+            logger.debug(pn)
+            logger.debug(wid)
+            logger.debug(ct)
 
             if wid not in self.wkr_submitted_nids:
                 self.wkr_submitted_nids[wid] = set()
@@ -301,7 +306,7 @@ class Handler(EventHandler):
                 "Timestamp": datetime.now()
             }
             if nid!="null":  ans_json["NanotaskId"] = nid
-            self.db["answers"][nsid].insert_one(ans_json)
+            self.db[self.namespace_mongo.db_name_for_answers()][nsid].insert_one(ans_json)
             output.set("SentAnswer", answers)
 
 
