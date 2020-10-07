@@ -8,6 +8,8 @@ from tortoise.backends.mysql.client import MySQLClient
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
 
+from handler.handler_output import handler_output
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -22,18 +24,19 @@ class Handler(EventHandler):
         handler_spec.set_as_responsive()
         return handler_spec
 
-    async def handle(self, event):
+    @handler_output
+    async def handle(self, event, output):
         project_name = event.data[0]
         template_names = event.data[1:]
         
         for tn in template_names:
             if not os.path.exists(self.path.template(project_name, tn)):
                 logger.debug(self.path.template(project_name, tn))
-                return "Error: template '{}' for project '{}' does not exist".format(tn, project_name)
+                raise Exception("template '{}' for project '{}' does not exist".format(tn, project_name))
 
         spacedPaths = " ".join([str(self.path.template(project_name, tn)) for tn in template_names])
 
         process = await asyncio.create_subprocess_shell("rm -rf {}".format(spacedPaths), shell=True)
         retcode = await process.wait()
 
-        return "Success: deleted templates '{}'".format(template_names)
+        output.set("Templates", template_names)

@@ -260,19 +260,19 @@ export default {
                 }
             });
             this.duct.setEventHandler(this.duct.EVENT.LIST_TEMPLATES, (rid, eid, data) => {
-                if(data["Status"]!="success") return;
+                if(data["Status"]=="Error") return;
 
-                const project = data["Project"];
+                const pn = data["Data"]["Project"];
+                const tns = data["Data"]["Templates"];
                 var templates = {};
-                for(const i in data["Templates"]){
-                    const templateName = data["Templates"][i];
-                    var template = new Template(templateName);
-                    templates[templateName] = template;
+                for(const i in tns){
+                    var template = new Template(tns[i]);
+                    templates[tns[i]] = template;
 
                     this.duct.sendMsg({
                         tag: this.name,
                         eid: this.duct.EVENT.GET_NANOTASKS,
-                        data: `COUNT ${project} ${templateName}`
+                        data: `COUNT ${pn} ${tns[i]}`
                     });
                 }
                 this.$set(this.project, "templates", templates);
@@ -307,21 +307,22 @@ export default {
             this.duct.addEvtHandler({
                 tag: "/console/flow/", eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
                 handler: (rid, eid, data) => {
-                    if(data["Command"]=="REGISTER_SM"){
+                    const command = data["Data"]["Command"];
+                    if(command=="REGISTER_SM"){
                         this.$refs.child.showSnackbar({
                             color: "success",
                             text: "Successfully registered a state machine"
                         })
                     }
-                    else if(data["Command"]=="LOAD_FLOW"){
-                        if(data["Status"]=="error"){
+                    else if(command=="LOAD_FLOW"){
+                        if(data["Status"]=="Error"){
                             this.project.profile = null
                             this.$refs.child.showSnackbar({
                                 color: "warning",
                                 text: data["Reason"]
                             })
                         } else {
-                            this.project.profile = data["Flow"]
+                            this.project.profile = data["Data"]["Flow"]
                         }
                     }
                 }

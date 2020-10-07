@@ -4,6 +4,8 @@ import asyncio
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
 
+from handler.handler_output import handler_output
+
 class Handler(EventHandler):
 
     def __init__(self):
@@ -15,15 +17,16 @@ class Handler(EventHandler):
         handler_spec.set_as_responsive()
         return handler_spec
 
-    async def handle(self, event):
+    @handler_output
+    async def handle(self, event, output):
         project_name = event.data[0]
         
         path_prj = self.path.project(project_name)
 
         if not os.path.exists(path_prj):
-            return "Error: project '{}' does not exist".format(project_name)
+            raise Exception("Error: project '{}' does not exist".format(project_name))
 
         process = await asyncio.create_subprocess_shell("rm -rf {}".format(path_prj), shell=True)
         retcode = await process.wait()
 
-        return "Success: deleted project '{}'".format(project_name)
+        output.set("Project", project_name)

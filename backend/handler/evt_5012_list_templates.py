@@ -2,6 +2,7 @@ from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
 
 from handler import common
+from handler.handler_output import handler_output
 
 class Handler(EventHandler):
 
@@ -13,15 +14,9 @@ class Handler(EventHandler):
         handler_spec.set_as_responsive()
         return handler_spec
 
-    async def handle(self, event):
+    @handler_output
+    async def handle(self, event, output):
         project_name = event.data[0]
 
-        ans = {}
-        try:
-            ans["Templates"] = common.get_templates(project_name)
-            ans["Project"] = project_name
-            ans["Status"] = "success"
-        except Exception as e:
-            ans["Status"] = "error"
-            ans["Reason"] = str(e)
-        return ans
+        output.set("Templates", common.get_templates(project_name))
+        output.set("Project", project_name)
