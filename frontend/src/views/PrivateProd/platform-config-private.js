@@ -3,24 +3,22 @@ function generateRandomString(){
 }
 
 export default {
-    beforeRouteEnter: (to,from,next) => {
-        var workerId = localStorage.getItem("workerId");
-        next(vm => {
-            if(!workerId) next({ path: `/private-prod-login?project=${vm.projectName}` })
-            else {
-                vm.workerId = workerId;
-                next();
-            }
-        });
+    workerId: function() {
+        return localStorage.getItem("workerId");
     },
 
-    getClientToken: function() {
+    clientToken: function() {
         var token = sessionStorage.getItem("someClientToken");
         if(!token) {
             token = generateRandomString();
             sessionStorage.setItem("someClientToken", token);
         }
         return token;
+    },
+
+    onWorkerIdNotFound: function(next, pn) {
+        next({ path: `/private-prod-login?project=${pn}` })
+        return false;
     },
 
     onClientTokenFailure: function() {

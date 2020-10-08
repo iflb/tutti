@@ -8,7 +8,9 @@ function turkGetSubmitToHost(self) {
 }
 
 function getAssignmentId(self) {
-    return self.$route.query.assignmentId;
+    const assignmentId = self.$route.query.assignmentId;
+    if(assignmentId=="ASSIGNMENT_ID_NOT_AVAILABLE") return null;
+    else return assignmentId;
 }
 
 function generateSubmitForm(self, data) {
@@ -24,23 +26,21 @@ function generateSubmitForm(self, data) {
 }
 
 export default {
-    beforeRouteEnter: (to, from, next) => {
-        next(vm => {
-            var workerId = vm.$route.query.workerId;
-            if(!workerId) alert("workerId was not found!");
-            else {
-                vm.workerId = workerId;
-                next();
-            }
-        });
+    workerId: function(vm) {
+        return vm.$route.query.workerId;
     },
 
-    getClientToken: function(self) {
+    clientToken: function(self) {
         return getAssignmentId(self);
     },
 
     onClientTokenFailure: function(a,b,c) {
         console.log("clienttokenFailure",a,b,c);
+    },
+
+    onWorkerIdNotFound: function(next, pn) {
+        next({ path: `/private-prod/${pn}/preview` });
+        return false;
     },
 
     onSubmitWorkSession: function(self) {

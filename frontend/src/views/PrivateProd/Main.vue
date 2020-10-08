@@ -49,7 +49,17 @@ import { platformConfig } from './platformConfig'
 
 export default {
     store,
-    beforeRouteEnter: platformConfig.beforeRouteEnter,
+    beforeRouteEnter: (to, from, next) => {
+        next(vm => {
+            var workerId = platformConfig.workerId(vm);
+            if(workerId) {
+                vm.workerId = workerId;
+                next();
+            } else {
+                platformConfig.onWorkerIdNotFound(next, vm.projectName);
+            }
+        });
+    },
     data: () => ({
         templateName: "",
         count: 0,
@@ -108,7 +118,7 @@ export default {
         
         loadClientToken() {
             return new Promise((resolve, reject) => {
-                this.clientToken = platformConfig.getClientToken(this);
+                this.clientToken = platformConfig.clientToken(this);
                 if(this.clientToken) resolve();
                 else reject();
             });
