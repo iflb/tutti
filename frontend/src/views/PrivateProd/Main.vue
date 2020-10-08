@@ -1,7 +1,7 @@
 <template>
     <v-app>
         <div class="text-right ma-3">
-        <v-menu offset-y>
+        <v-menu offset-y v-if="showWorkerMenu">
             <template v-slot:activator="{ on, attrs }">
             <v-btn text color="primary" class="text-none" v-bind="attrs" v-on="on">
                 Your worker ID: {{ workerId }}
@@ -86,6 +86,9 @@ export default {
         },
         nanoPropData() {
             return this.nanoData;
+        },
+        showWorkerMenu() {
+            return platformConfig && platformConfig.showWorkerMenu;
         }
     },
     props: ["projectName"],

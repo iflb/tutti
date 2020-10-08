@@ -34,6 +34,8 @@ export default {
         return getAssignmentId(self);
     },
 
+    showWorkerMenu: false,
+
     onClientTokenFailure: function(a,b,c) {
         console.log("clienttokenFailure",a,b,c);
     },
