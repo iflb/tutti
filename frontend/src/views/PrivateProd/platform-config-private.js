@@ -1,23 +1,31 @@
-export const getClientToken = function() {
-    function someRandomStringGenerator(){
-        return Math.random().toString(32).substring(2)
-    }
-    var token = sessionStorage.getItem("someClientToken");
-    if(!token) {
-        token = someRandomStringGenerator();
-        sessionStorage.setItem("someClientToken", token);
-    }
-    return token;
-};
-export const onClientTokenFailure = function() {
-    console.log("clienttokenFailure");
-};
-const onSubmitWorkSession = function() {
-
-};
+function generateRandomString(){
+    return Math.random().toString(32).substring(2)
+}
 
 export default {
-    getClientToken,
-    onClientTokenFailure,
-    onSubmitWorkSession
+    beforeRouteEnter: (to,from,next) => {
+        var workerId = localStorage.getItem("workerId");
+        next(vm => {
+            if(!workerId) next({ path: `/private-prod-login?project=${vm.projectName}` })
+            else {
+                vm.workerId = workerId;
+                next();
+            }
+        });
+    },
+
+    getClientToken: function() {
+        var token = sessionStorage.getItem("someClientToken");
+        if(!token) {
+            token = generateRandomString();
+            sessionStorage.setItem("someClientToken", token);
+        }
+        return token;
+    },
+
+    onClientTokenFailure: function() {
+        console.log("clienttokenFailure");
+    },
+
+    onSubmitWorkSession: function() {}
 }

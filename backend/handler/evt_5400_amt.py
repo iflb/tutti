@@ -9,6 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from handler import paths, common
+from handler.handler_output import handler_output
 
 class Handler(EventHandler):
     def __init__(self):
@@ -25,38 +26,30 @@ class Handler(EventHandler):
         handler_spec.set_as_responsive()
         return handler_spec
 
-    async def handle(self, event):
+    @handler_output
+    async def handle(self, event, output):
         command = event.data[0]
         project_name = event.data[1]
-        options = event.data[2:]
+        #options = event.data[2:]
 
-        ans = {}
-        ans["Command"] = command
-        ans["Status"] = "success"
-        try:
-            if command=="create_hits":
-                num = options[0]
-                #is_prod_mode = (options[1]=="production")
-                params = {
-                    "MaxAssignments": 1,
-                    "LifetimeInSeconds": 360000,
-                    "AutoApprovalDelayInSeconds": 259200,
-                    "AssignmentDurationInSeconds": 36000,
-                    "Reward": "0.01",
-                    "Title": "My HIT",
-                    "Keywords": "susumu",
-                    "Description": "this is my test hit"
-                }
-                params["Question"] = '<ExternalQuestion xmlns="http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2006-07-14/ExternalQuestion.xsd">'\
-                    + '<ExternalURL>{}</ExternalURL>'.format("https://saito2.r9n.net/vue/private-prod/test0812/")\
-                    + '<FrameHeight>{}</FrameHeight>'.format(800)\
-                    + '</ExternalQuestion>'
-                self.boto_client.create_hit(**params)
-            else:
-                raise Exception(f"unknown command '{command}'")
+        output.set("Command", command)
 
-        except Exception as e:
-            ans["Status"] = "error"
-            ans["Reason"] = e.args
-
-        return ans
+        if command=="create_hit":
+            #is_prod_mode = (options[1]=="production")
+            params = {
+                "MaxAssignments": 1,
+                "LifetimeInSeconds": 360000,
+                "AutoApprovalDelayInSeconds": 259200,
+                "AssignmentDurationInSeconds": 36000,
+                "Reward": "0.01",
+                "Title": "My HIT",
+                "Keywords": "susumu",
+                "Description": "this is my test hit"
+            }
+            params["Question"] = '<ExternalQuestion xmlns="http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2006-07-14/ExternalQuestion.xsd">'\
+                + '<ExternalURL>{}</ExternalURL>'.format(f"https://saito2.r9n.net/vue/private-prod/{project_name}/")\
+                + '<FrameHeight>{}</FrameHeight>'.format(800)\
+                + '</ExternalQuestion>'
+            self.boto_client.create_hit(**params)
+        else:
+            raise Exception(f"unknown command '{command}'")

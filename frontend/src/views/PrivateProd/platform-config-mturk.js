@@ -1,6 +1,6 @@
-function turkGetSubmitToHost() {
+function turkGetSubmitToHost(self) {
     var defaultHost = "https://www.mturk.com";
-    var submitToHost = this.$route.query.turkSubmitTo;// || defaultHost;
+    var submitToHost = self.$route.query.turkSubmitTo;// || defaultHost;
     if (submitToHost.startsWith("https://")) return submitToHost;
     if (submitToHost.startsWith("http://")) return submitToHost;
     if (submitToHost.startsWith("//")) return submitToHost;
@@ -10,24 +10,46 @@ function turkGetSubmitToHost() {
 function getAssignmentId(self) {
     return self.$route.query.assignmentId;
 }
-export const getClientToken = function() {
-    return getAssignmentId(this);
-};
-export const onClientTokenFailure = function(a,b,c) {
-    console.log("clienttokenFailure",a,b,c);
-};
-const onSubmitWorkSession = function() {
-    this.$http.post(turkGetSubmitToHost(),
-                    {
-                        assignmentId: getAssignmentId(this),
-                        dummy: "dummy"
-                    },
-                    //function(data, status, request){
-                    //}
-    );
-};
+
+function generateSubmitForm(self, data) {
+    const action = turkGetSubmitToHost(self) + "/mturk/externalSubmit";
+    
+    var form = '<form name="myform" action="' + action + '" method="post" hidden="true">';
+    for(const [key, val] of Object.entries(data)){
+        form += '<input type="text" name="' + key + '" value="'+ val + '" />';
+    }
+    form += '</form>';
+
+    return form;
+}
+
 export default {
-    getClientToken,
-    onClientTokenFailure,
-    onSubmitWorkSession
+    beforeRouteEnter: (to, from, next) => {
+        next(vm => {
+            var workerId = vm.$route.query.workerId;
+            if(!workerId) alert("workerId was not found!");
+            else {
+                vm.workerId = workerId;
+                next();
+            }
+        });
+    },
+
+    getClientToken: function(self) {
+        return getAssignmentId(self);
+    },
+
+    onClientTokenFailure: function(a,b,c) {
+        console.log("clienttokenFailure",a,b,c);
+    },
+
+    onSubmitWorkSession: function(self) {
+        var data = {
+            assignmentId: getAssignmentId(self),
+            dummy: "dummy"
+        };
+        const form = generateSubmitForm(self, data);
+        document.body.innerHTML += form;
+        document.forms.myform.submit();
+    }
 }

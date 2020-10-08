@@ -45,20 +45,11 @@
 <script>
 import store from '@/store.js'
 import { mapActions, mapGetters } from 'vuex'
-import { setPlatformConfig } from './platformConfig'
+import { platformConfig } from './platformConfig'
 
 export default {
     store,
-    beforeRouteEnter: (to,from,next) => {
-        var workerId = localStorage.getItem("workerId");
-        next(vm => {
-            if(!workerId) next({ path: `/private-prod-login?project=${vm.projectName}` })
-            else {
-                vm.workerId = workerId;
-                next();
-            }
-        });
-    },
+    beforeRouteEnter: platformConfig.beforeRouteEnter,
     data: () => ({
         templateName: "",
         count: 0,
@@ -74,9 +65,6 @@ export default {
 
         hasPrevTemplate: false,
         hasNextTemplate: false,
-
-        _getClientToken: null,
-        _onClientTokenFailure: null
     }),
     computed: {
         ...mapGetters("ductsModule", [
@@ -119,9 +107,8 @@ export default {
         },
         
         loadClientToken() {
-            setPlatformConfig(this);
             return new Promise((resolve, reject) => {
-                this.clientToken = this._getClientToken();
+                this.clientToken = platformConfig.getClientToken(this);
                 if(this.clientToken) resolve();
                 else reject();
             });
@@ -166,10 +153,9 @@ export default {
                             
                             if("Answers" in d) {
                                 this.$set(this, "prevAnswer", d["Answers"]);
-                                console.log(this.prevAnswer);
                             }
                         } else {
-                            this._onSubmitWorkSession();
+                            platformConfig.onSubmitWorkSession(this);
                         }
                     }
                     else if(command=="ANSWER"){
@@ -186,12 +172,11 @@ export default {
                         tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
                         data: `CREATE_SESSION ${this.projectName} ${this.workerId} ${this.clientToken}`
                     })
-                    console.log(this.duct);
                     console.log(this.duct.EVENT.NANOTASK_SESSION_MANAGER);
                 })
             })
 
-        }).catch(this._onClientTokenFailure);
+        }).catch(platformConfig.onClientTokenFailure);
     }
 }
 </script>
