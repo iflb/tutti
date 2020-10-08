@@ -64,7 +64,9 @@
                         </v-list-item-icon>
                         <v-list-item-title>Dashboard</v-list-item-title>
                     </v-list-item>
-                    
+                </v-list-item-group>
+                <v-list-item-group active-class="indigo--text text--accent-4">
+                    <v-subheader>DESIGN & TEST</v-subheader>
                     <v-list-item to="/console/template/">
                         <v-list-item-icon>
                             <v-icon>mdi-iframe-outline</v-icon>
@@ -78,14 +80,36 @@
                         </v-list-item-icon>
                         <v-list-item-title>Task Flow</v-list-item-title>
                     </v-list-item>
+                </v-list-item-group>
+                <v-list-item-group active-class="indigo--text text--accent-4">
+                    <v-subheader>PUBLISH & COLLECT</v-subheader>
  
+                    <v-list-group prepend-icon="mdi-account-group" :value="false">
+                        <template v-slot:activator><v-list-item-title>Worker Platforms</v-list-item-title></template>
+                        <v-list-item to="/console/platform/mturk/">
+                            <v-list-item-icon></v-list-item-icon>
+                            <v-list-item-content>
+                            <v-list-item-title>Amazon MTurk</v-list-item-title>
+                            </v-list-item-content>
+                            <v-list-item-icon><v-icon>mdi-amazon</v-icon></v-list-item-icon>
+                        </v-list-item>
+                        <v-list-item to="/console/platform/private/">
+                            <v-list-item-icon></v-list-item-icon>
+                            <v-list-item-content>
+                            <v-list-item-title>Partner-Sourcing</v-list-item-title>
+                            </v-list-item-content>
+                            <v-list-item-icon><v-icon>mdi-account-supervisor-circle</v-icon></v-list-item-icon>
+                        </v-list-item>
+                    </v-list-group>
                     <v-list-item to="/console/answer/">
                         <v-list-item-icon>
                             <v-icon>mdi-comment-text-multiple-outline</v-icon>
                         </v-list-item-icon>
                         <v-list-item-title>Answers</v-list-item-title>
                     </v-list-item>
-                
+                </v-list-item-group>
+                <v-list-item-group active-class="indigo--text text--accent-4">
+                    <v-subheader>OTHERS</v-subheader>
                     <v-list-item to="/console/event/">
                         <v-list-item-icon>
                             <v-icon>mdi-lightning-bolt</v-icon>
