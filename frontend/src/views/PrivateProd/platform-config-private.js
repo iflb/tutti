@@ -1,3 +1,5 @@
+const clientTokenKey = "someClientToken";
+
 function generateRandomString(){
     return Math.random().toString(32).substring(2)
 }
@@ -8,13 +10,15 @@ export default {
     },
 
     clientToken: function() {
-        var token = sessionStorage.getItem("someClientToken");
+        var token = sessionStorage.getItem(clientTokenKey);
         if(!token) {
             token = generateRandomString();
-            sessionStorage.setItem("someClientToken", token);
+            sessionStorage.setItem(clientTokenKey, token);
         }
         return token;
     },
+
+    showWorkerMenu: true,
 
     onWorkerIdNotFound: function(next, pn) {
         next({ path: `/private-prod-login?project=${pn}` })
@@ -25,5 +29,8 @@ export default {
         console.log("clienttokenFailure");
     },
 
-    onSubmitWorkSession: function() {}
+    onSubmitWorkSession: function() {
+        sessionStorage.removeItem(clientTokenKey);
+        window.location.reload();
+    }
 }

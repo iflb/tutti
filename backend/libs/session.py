@@ -4,6 +4,7 @@ import random
 import string
 import time
 import pickle
+import hashlib
 
 import redis
 r = redis.Redis(host="localhost", port=6379, db=0)
@@ -26,11 +27,6 @@ class Session:
             self.time_created = datetime.datetime.now()
         self.time_finished = None
 
-        self.id = self._generate_id()
-
-    def _generate_id(self):
-        return "{}.".format("".join([c for c in self.__class__.__name__ if c.isupper()]))+''.join([random.choice(string.ascii_letters + string.digits) for i in range(10)])
-
     def finish(self, time=None):
         if time is None:
             time = datetime.datetime.now()
@@ -40,6 +36,7 @@ class Session:
 class NodeSession(Session):
     def __init__(self, ws, node, parent, prev):
         super().__init__()
+        self.id = self.generate_id()
         self.ws = ws
         self.node = node
         self.prev = prev
@@ -54,7 +51,11 @@ class NodeSession(Session):
         self.score = 0
         self.prev_ans = None
         #print("started NodeSession({}) for node '{}' (statement={}, cond={}, cnt={})".format(self.id, self.node.name, self.node.statement, self.node.cond, self.cnt))
+
         r.set(namespace_redis.key_active_node_session_id(self.ws.wid, self.ws.id), self.id)
+
+    def generate_id(self):
+        return "{}.".format("".join([c for c in self.__class__.__name__ if c.isupper()]))+''.join([random.choice(string.ascii_letters + string.digits) for i in range(10)])
 
     def increase_node_lcnt(self, node):
         if node.name not in self.node_lcnts:
@@ -77,9 +78,10 @@ class NodeSession(Session):
         #print("finished NodeSession({}) for node '{}'".format(self.id, self.node.name))
 
 class WorkSession(Session):
-    def __init__(self, wid, pid, root_node, expiration=None):
+    def __init__(self, wid, ct, pid, root_node, expiration=None):
         super().__init__()
         self.wid = wid
+        self.ct = ct
         self.pid = pid
         self.ns_factory = NodeSessionFactory(self)
         self.root_node = root_node
@@ -90,9 +92,16 @@ class WorkSession(Session):
 
         self.nsessions = {}
 
+        self.id = self.generate_id(wid, ct)
+
         #r.sadd(namespace_redis.key_work_session_ids_by_project_name(pid), self.id)
         #r.sadd(namespace_redis.key_work_session_ids_by_worker_id(wid), self.id)
         #r.set(namespace_redis.key_active_work_session_id(wid), self.id)
+
+    @staticmethod
+    def generate_id(wid, ct):
+        src = wid+ct
+        return "WS."+hashlib.sha256(src.encode()).hexdigest()
 
     def finish(self):
         super().finish()

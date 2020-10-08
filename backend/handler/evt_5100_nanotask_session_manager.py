@@ -166,20 +166,24 @@ class Handler(EventHandler):
             logger.debug(wid)
             logger.debug(ct)
 
+            if not wid or wid=="":
+                raise Exception("worker ID cannot be empty")
+            if not ct or ct=="":
+                raise Exception("client token cannot be empty")
+
             if wid not in self.wkr_submitted_nids:
                 self.wkr_submitted_nids[wid] = set()
                 self.create_task_queue_for_worker(wid)
 
             flow = self.flows[pn]
-            wsid = r.get(self.namespace_redis.key_active_work_session_id(ct))
-            if wsid:
-                logger.debug(self.wsessions)
-                ws = self.wsessions[wsid.decode()]
+            #wsid = r.get(self.namespace_redis.key_active_work_session_id(ct))
+            wsid = WorkSession.generate_id(wid, ct)
+            if wsid in self.wsessions:
+                ws = self.wsessions[wsid]
             else:
-                ws = self.wsessions[ws.id] = WorkSession(wid, pn, flow.root)
-                logger.debug(self.wsessions)
+                ws = self.wsessions[wsid] = WorkSession(wid, ct, pn, flow.root)
                 r.sadd(self.namespace_redis.key_work_session_ids_by_project_name(pn), ws.id)
-                r.set(self.namespace_redis.key_active_work_session_id(ct), ws.id)
+                #r.set(self.namespace_redis.key_active_work_session_id(ct), ws.id)
             output.set("WorkSessionId", ws.id)
             
 

@@ -29,8 +29,8 @@ class Handler(EventHandler):
         output.set("Project", pn)
         output.set("Template", tn)
 
-        dn = self.namespace_mongo.dn_for_nanotasks()
-        cn = self.namespace_mongo.cn_for_nanotasks(pn, tn)
+        dn = self.namespace_mongo.db_name_for_nanotasks()
+        cn = self.namespace_mongo.collection_name_for_nanotasks(pn, tn)
 
         if command=="NANOTASKS":
             data = []

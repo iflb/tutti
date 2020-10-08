@@ -53,6 +53,7 @@ def handler_output(f):
             fname = os.path.split(tb[2].split('"')[1])[1]
             lineno = tb[2].split(",")[1].split(" ")[-1]
             error = tb[-1].split("\n")[0]
+            logger.debug(tb)
             output.set_error_status(f"{error} [{fname} (line {lineno})]")
         return output.dict()
     return wrapper
