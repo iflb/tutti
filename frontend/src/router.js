@@ -26,20 +26,25 @@ export default new VueRouter({
                     props: getPropsForRoute
                 },
                 {
-                    path: "event",
-                    component: () => import("./views/Console/Event"),
+                    path: "flow",
+                    component: () => import("./views/Console/TaskFlow/Main"),
                     props: getPropsForRoute
                 },
                 {
-                    path: "flow",
-                    component: () => import("./views/Console/TaskFlow/Main"),
+                    path: "platform/mturk",
+                    component: () => import("./views/Console/Platforms/MTurk/Main"),
                     props: getPropsForRoute
                 },
                 {
                     path: "answer",
                     component: () => import("./views/Console/Answer"),
                     props: getPropsForRoute
-                }
+                },
+                {
+                    path: "event",
+                    component: () => import("./views/Console/Event"),
+                    props: getPropsForRoute
+                },
             ]
         },
         {

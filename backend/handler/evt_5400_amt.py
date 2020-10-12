@@ -1,4 +1,6 @@
 import boto3
+import json
+import datetime
 
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
@@ -7,6 +9,10 @@ from pymongo import MongoClient
 
 import logging
 logger = logging.getLogger(__name__)
+
+logging.getLogger('boto3').setLevel(logging.CRITICAL)
+logging.getLogger('botocore').setLevel(logging.CRITICAL)
+logging.getLogger('nose').setLevel(logging.CRITICAL)
 
 from handler import paths, common
 from handler.handler_output import handler_output
@@ -20,6 +26,7 @@ class Handler(EventHandler):
                                         aws_secret_access_key = "g39tm2NGaEqqf4HfJ7mU0cBq1UVDok/tUcGfKK9D",
                                         region_name = "us-east-1",
                                         endpoint_url = "https://mturk-requester-sandbox.us-east-1.amazonaws.com")
+        self.hits = []
 
     def setup(self, handler_spec, manager):
         handler_spec.set_description('テンプレート一覧を取得します。')
@@ -34,7 +41,51 @@ class Handler(EventHandler):
 
         output.set("Command", command)
 
-        if command=="create_hit":
+        if command=="boto3_raw":
+            operation = event.data[1]
+            params = json.loads("".join(event.data[2:]))
+            output.set("Operation", operation)
+            output.set("Params", params)
+
+            try:
+                eval(f"func=self.boto_client.{operation}")
+            except:
+                raise Exception(f"boto3 operation '{operation}' not found")
+            res = func(**params)
+
+            def datetime_to_unixtime_rec(dct):
+                for key,val in dct.items():
+                    if isinstance(val, datetime):
+                        val = val.timestamp()
+                    elif isinstance(val, dict):
+                        val = datetime_to_unixtime_rec(val)
+                return dct
+
+            res = datetime_to_unixtime_rec(res)
+            output.set("Results", res)
+
+        elif command=="list_all_hits" or (command=="list_all_hits_cached" and len(self.hits)==0):
+            self.hits = []
+            next_token = None
+            while True:
+                if next_token:  res = self.boto_client.list_hits(MaxResults=100,NextToken=next_token)
+                else:           res = self.boto_client.list_hits(MaxResults=100)
+
+                for h in res["HITs"]:
+                    h["CreationTime"] = h["CreationTime"].timestamp()
+                    h["Expiration"] = h["Expiration"].timestamp()
+
+                self.hits.extend(res["HITs"])
+
+                if "NextToken" in res:  next_token = res["NextToken"]
+                else:                   break
+
+            output.set("HITs", self.hits)
+
+        elif command=="list_all_hits_cached":
+            output.set("HITs", self.hits)
+
+        elif command=="create_hit":
             #is_prod_mode = (options[1]=="production")
             params = {
                 "MaxAssignments": 1,

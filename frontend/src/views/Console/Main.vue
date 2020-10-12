@@ -121,7 +121,9 @@
             </v-list>
         </v-navigation-drawer>
 
-        <router-view :shared-props="sharedProps" ref="child"></router-view>
+        <v-slide-x-transition hide-on-leave>
+            <router-view :shared-props="sharedProps" ref="child"></router-view>
+        </v-slide-x-transition>
         
     </v-app>
 </template>

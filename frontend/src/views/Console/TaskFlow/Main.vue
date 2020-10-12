@@ -1,7 +1,7 @@
 <template>
-    <v-main class="mt-10 grey lighten-4">
+    <v-main class="grey lighten-4">
         <v-row class="justify-center"><v-col cols="11" md="8" lg="6">
-            <v-card class="pa-3">
+            <v-card class="pa-3 mt-10">
             <v-container>
                 <v-row>
                     <v-col align="right">
