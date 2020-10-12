@@ -340,6 +340,15 @@ export default {
                 }
             });
 
+            this.duct.setEventHandler(this.duct.EVENT.MTURK_ACCOUNT, (rid, eid, data) => {
+                if(data["Status"]=="Error") return;
+
+                this.$set(this.sharedProps, "mTurkAccount", {
+                    accessKeyId: data["Data"]["AccessKeyId"],
+                    secretAccessKey: data["Data"]["SecretAccessKey"]
+                });
+            });
+
             this.duct.addEvtHandler({
                 tag: "/console/flow/", eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
                 handler: (rid, eid, data) => {

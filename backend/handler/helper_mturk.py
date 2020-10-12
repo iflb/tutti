@@ -1,0 +1,18 @@
+import boto3
+import redis
+r = redis.Redis(host="localhost", port=6379, db=0)
+
+import helper_redis_namespace as redis_ns
+
+def get_client(region_name="us-east-1", sandbox=True):
+    try:
+        access_key_id = r.get(redis_ns.key_mturk_access_key_id()).decode()
+        secret_access_key = r.get(redis_ns.key_mturk_secret_access_key()).decode()
+        endpoint_url = "https://mturk-requester-sandbox.us-east-1.amazonaws.com" if sandbox else "https://mturk-requester.us-east-1.amazonaws.com"
+        return boto3.client("mturk",
+                            aws_access_key_id = access_key_id,
+                            aws_secret_access_key = secret_access_key,
+                            region_name = region_name,
+                            endpoint_url = endpoint_url)
+    except Exception as e:
+        raise Exception(e)

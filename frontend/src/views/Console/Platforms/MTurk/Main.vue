@@ -17,6 +17,19 @@
                 </v-row>
             </v-col>
         </v-row>
+        <v-card v-if="!isAccountSet">
+            <v-card-text>
+                MTurk account is not set. 
+                <v-btn text color="indigo" @click="$refs.dlgSetAccount.shown=true">Set account</v-btn>
+            </v-card-text>
+        </v-card>
+        <v-card v-if="isAccountSet">
+            <v-card-text>
+                Access Key ID: {{ accessKeyId }}<br>
+                Secret Access Key: {{ secretAccessKey }}<br>
+            </v-card-text>
+        </v-card>
+        <dialog-set-account ref="dlgSetAccount" />
         <v-row>
             <v-col cols="4">
                 <v-card>
@@ -47,7 +60,23 @@
     </v-main>
 </template>
 <script>
+import DialogSetAccount from './DialogSetAccount.vue'
 export default {
+    props: ["sharedProps","name"],
+    components: { DialogSetAccount },
+    computed: {
+        accessKeyId() {
+            try { return this.sharedProps.mTurkAccount.accessKeyId;
+            } catch { return null; }
+        },
+        secretAccessKey() {
+            try { return this.sharedProps.mTurkAccount.secretAccessKey;
+            } catch { return null; }
+        },
+        isAccountSet() {
+            return this.accessKeyId && this.secretAccessKey;
+        }
+    },
     methods: {
         windowOpen(url, target){
             window.open(url, target);
