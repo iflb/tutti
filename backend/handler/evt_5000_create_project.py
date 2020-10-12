@@ -1,7 +1,7 @@
 import os
 import asyncio
 
-from ducts.event import EventHandler
+from ducts.spi import EventHandler
 from ifconf import configure_module, config_callback
 
 from handler.handler_output import handler_output

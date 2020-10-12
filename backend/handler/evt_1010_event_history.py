@@ -34,10 +34,12 @@ class Handler(EventHandler):
             event_key = self.namespace_redis.key_event_query(eid)
             query = " ".join(args)
 
-            cnt = r.llen(event_key)
-            lremcnt = r.lrem(event_key, 1, query)
-            if cnt==history_size:  r.lpop(event_key)
-            r.rpush(event_key, query)
+            logger.debug(query)
+            if query!="" and query!="null":
+                cnt = r.llen(event_key)
+                lremcnt = r.lrem(event_key, 1, query)
+                if cnt==history_size:  r.lpop(event_key)
+                r.rpush(event_key, query)
 
             output.set("EventId", eid)
             output.set("History", [h.decode() for h in r.lrange(event_key, 0, -1)])

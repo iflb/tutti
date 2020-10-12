@@ -9,6 +9,9 @@ import json
 import logging
 logger = logging.getLogger(__name__)
 
+class CommandError(Exception):
+    pass
+
 class HandlerOutputStatus(Enum):
     Error = -1
     Success = 0 
@@ -48,6 +51,8 @@ def handler_output(f):
         try:
             await f(*args, **kwargs)
             output = _output
+        except CommandError as e:
+            output.set_error_status(f"unknown command '{e}'")
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
             tb = traceback.format_exception(exc_type, exc_obj, exc_tb)

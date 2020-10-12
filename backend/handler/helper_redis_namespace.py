@@ -28,3 +28,10 @@ def key_work_session(wsid):
 
 def key_event_query(eid):
     return f"EventQuery/{eid}"
+
+
+def key_mturk_access_key_id():
+    return f"MTurkAccessKeyId"
+
+def key_mturk_secret_access_key():
+    return f"MTurkSecretAccessKey"
