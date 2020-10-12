@@ -119,10 +119,15 @@ export default {
         }
     },
     mounted() {
-        this.duct.addOnOpenHandler(() => {
+        if(this.duct.state==window.ducts.State.OPEN_CONNECTED){
             this.loadEvents();
             this.getEventHistory();
-        });
+        } else {
+            this.duct.addOnOpenHandler(() => {
+                this.loadEvents();
+                this.getEventHistory();
+            });
+        }
     }
 }
 </script>
