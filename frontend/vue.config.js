@@ -3,7 +3,7 @@ module.exports = {
     outputDir: "/var/www/html/vue-dist",
     devServer: {
         port: 8081,
-        public: "saito2.r9n.net",
+        //public: "saito2.r9n.net",
         publicPath: "/vue/",
     },
     configureWebpack: {

@@ -5,7 +5,7 @@ from ifconf import configure_module, config_callback
 
 @config_callback
 def config(loader):
-    loader.add_attr_path('root', '/root/20201005/dynamiccrowd/backend', help='Absolute path to backend folder')
+    loader.add_attr_path('root', Path().absolute(), help='Absolute path to backend folder')
     loader.add_attr_path('projects', 'projects', help='relative path to projects folder')
     loader.add_attr_path('templates', 'templates', help='relative path to templates folder')
     loader.add_attr_path('default_project', '.defaultproject', help='default project filename')

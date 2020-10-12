@@ -191,13 +191,13 @@ export default {
         },
         project: {
             handler: function(val) {
-                this.sharedProps.project = val
+                this.$set(this.sharedProps, "project", val)
             },
             deep: true
         },
         answers: {
             handler: function(val) {
-                this.sharedProps.answers = val
+                this.$set(this.sharedProps, "answers", val)
             },
             deep: true
         },
@@ -268,6 +268,14 @@ export default {
             this.duct._connection_listener.on("onopen", this.srvStatusProfile.connected.handler);
             this.duct._connection_listener.on(["onclose", "onerror"], this.srvStatusProfile.disconnected.handler);
             this.duct.setEventHandler(this.duct.EVENT.ALIVE_MONITORING, this.srvStatusProfile.connected.handler);
+            this.duct.setEventHandler(this.duct.EVENT.EVENT_HISTORY, (rid, eid, data) => {
+                if(data["Status"]=="Success") {
+                    if("AllHistory" in data["Data"])
+                        this.$set(this.sharedProps, "evtHistory", data["Data"]["AllHistory"])
+                    else if("History" in data["Data"])
+                        this.$set(this.sharedProps.evtHistory, data["Data"]["EventId"], data["Data"]["History"])
+                }
+            });
             this.duct.setEventHandler(this.duct.EVENT.CREATE_PROJECT, () => {
                 this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_PROJECTS, data: null });
             });

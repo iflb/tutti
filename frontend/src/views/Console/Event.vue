@@ -1,5 +1,9 @@
 <template>
     <v-main class="mt-10 grey lighten-4">
+        {{ sharedProps.evtHistory }}
+        {{ selectedEventId }}
+        {{ selectedEventArgsHistory }}
+        {{ selectedEventArgs }}
         <v-row justify="center"><v-col cols="11">
             <v-card class="pa-3">
                 <v-row class="d-flex">
@@ -7,11 +11,11 @@
                     <v-select hide-details :items="events" item-text="label" item-value="eid" label="Event" v-model="selectedEventId"></v-select>
                     </v-col>
                     <v-col>
-                    <v-text-field hide-details id="input-args" type="text" v-model="selectedEventArgs" placeholder="Args separated by spaces"></v-text-field>
+                    <v-combobox v-model="selectedEventArgs" @input.native="selectedEventArgs=$event.srcElement.value" :items="selectedEventArgsHistory" placeholder="Args separated by spaces"></v-combobox>
                     </v-col>
                     <v-col>
                     <v-container>
-                    <v-btn color="primary" @click="duct.sendMsg({ tag: name, eid: selectedEventId, data: selectedEventArgs })">Send</v-btn>
+                    <v-btn color="primary" @keydown.enter="sendEvent" @click="sendEvent">Send</v-btn>
                     </v-container>
                     </v-col>
                 </v-row>
@@ -46,8 +50,9 @@ export default {
         VueJsonPretty
     },
     data: () => ({
-        selectedEventId: "",
+        selectedEventId: null,
         selectedEventArgs: "",
+        //selectedEventArgsHistory: [],
         events: [],
         logTableHeaders: [
             { text: "Request ID", value: "rid" },
@@ -68,6 +73,8 @@ export default {
                 const sentAll = this.duct.log.sent;
                 for(const i in sentAll){
                     const s = sentAll[i];
+                    //if(s.eid=="1010") continue;
+
                     const rid = s.rid;
                     const tag = s.tag;
                     const sent = `${s.eid}__${s.data}`;
@@ -84,25 +91,54 @@ export default {
                 }
             }
             return rows;
+        },
+        selectedEventArgsHistory() {
+            console.log("selectedEventArgsHistory");
+            if(this.sharedProps.evtHistory && this.selectedEventId) {
+                var _hist = this.sharedProps.evtHistory[this.selectedEventId.toString()];
+                return _hist.reverse();
+            } else {
+                return [];
+            }
         }
     },
     methods: {
         loadEvents() {
-            if(!this.duct){ return }
-
             var events = []
             for(var key in this.duct.EVENT) {
                 var eid = this.duct.EVENT[key]
                 if(eid>=1000){ events.push({eid, label: `${eid}:: ${key}`}) }
             }
             this.events = events
+        },
+        getEventHistory() {
+            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.EVENT_HISTORY, data: null });
+            console.log("hoge")
+        },
+        sendEvent() {
+            const histEid = this.duct.EVENT.EVENT_HISTORY;
+            this.duct.sendMsg({ tag: this.name, eid: this.selectedEventId, data: this.selectedEventArgs });
+            this.duct.sendMsg({ tag: this.name, eid: histEid, data: `${this.selectedEventId} ${this.selectedEventArgs}`});
+        },
+        init() {
+            if(!this.duct) return;
+            this.loadEvents();
+            this.getEventHistory();
         }
     },
     mounted() {
-        this.loadEvents()
+        this.init();
     },
     watch: {
-        "duct.EVENT": function() { this.loadEvents() },
+        "duct.EVENT": function() {
+            this.init();
+        },
+        duct: {
+            deep: true,
+            handler: function() {
+                console.log(this.duct);
+            }
+        }
     }
 }
 </script>

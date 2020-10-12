@@ -27,7 +27,7 @@ class Handler(EventHandler):
     @handler_output
     async def handle(self, event, output):
         history_size = 10
-        if len(event.data)>1:   # update 
+        if event.data and len(event.data)>1:   # update 
             eid = event.data[0]
             args = event.data[1:]
 
@@ -46,4 +46,4 @@ class Handler(EventHandler):
             output.set("History", [h.decode() for h in r.zrange(event_key, 0, -1)])
         else:  # get all
             event_keys = r.keys(self.namespace_redis.key_event_query("*"))
-            output.set("AllHistory", {ekey.split("/")[1]:[h.decode() for h in r.zrange(ekey, 0, -1)] for ekey in event_keys})
+            output.set("AllHistory", {ekey.decode().split("/")[1]:[h.decode() for h in r.zrange(ekey, 0, -1)] for ekey in event_keys})
