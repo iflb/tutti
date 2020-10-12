@@ -69,7 +69,7 @@ export default {
                 const sentAll = this.duct.log.sent;
                 for(const i in sentAll){
                     const s = sentAll[i];
-                    //if(s.eid=="1010") continue;
+                    if(s.eid=="1010") continue;
 
                     const rid = s.rid;
                     const tag = s.tag;

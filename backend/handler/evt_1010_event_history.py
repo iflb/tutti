@@ -32,18 +32,15 @@ class Handler(EventHandler):
             args = event.data[1:]
 
             event_key = self.namespace_redis.key_event_query(eid)
+            query = " ".join(args)
 
-            count = r.zcount(event_key, 1, history_size)
-            if count==history_size:
-                r.zpopmin(event_key)
-                keys = r.zrange(event_key, 0, -1)
-                for key in keys:  r.zincrby(event_key, -1, key)
-            d = {}
-            d[" ".join(args)] = min(count+1, history_size)
-            ret = r.zadd(event_key, d)
+            cnt = r.llen(event_key)
+            lremcnt = r.lrem(event_key, 1, query)
+            if cnt==history_size:  r.lpop(event_key)
+            r.rpush(event_key, query)
 
             output.set("EventId", eid)
-            output.set("History", [h.decode() for h in r.zrange(event_key, 0, -1)])
+            output.set("History", [h.decode() for h in r.lrange(event_key, 0, -1)])
         else:  # get all
             event_keys = r.keys(self.namespace_redis.key_event_query("*"))
-            output.set("AllHistory", {ekey.decode().split("/")[1]:[h.decode() for h in r.zrange(ekey, 0, -1)] for ekey in event_keys})
+            output.set("AllHistory", {ekey.decode().split("/")[1]:[h.decode() for h in r.lrange(ekey, 0, -1)] for ekey in event_keys})
