@@ -13,7 +13,8 @@ const ductsModule = {
         duct: (state) => { return state.duct }
     },
     actions: {
-        initDuct({ state }, ducts) {
+        initDuct({ state }) {
+            var ducts = window.ducts = window.ducts || {};
             return new Promise(function(resolve){
                 ducts.user = 'guest';
                 ducts.context_url = '/ducts';

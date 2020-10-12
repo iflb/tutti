@@ -33,7 +33,7 @@
             <dialog-create-project ref="dlgCreateProject" />
 
             <v-spacer></v-spacer>
-            <v-menu offset-y>
+            <v-menu offset-y v-if="srvStatusProfile">
                 <template v-slot:activator="{ on, attrs }">
                     <v-btn depressed :color="srvStatusProfile[srvStatus].btn.color" class="text-none" v-bind="attrs" v-on="on">
                         {{ srvStatusProfile[srvStatus].btn.label }}
@@ -122,7 +122,7 @@
         </v-navigation-drawer>
 
         <v-slide-x-transition hide-on-leave>
-            <router-view :shared-props="sharedProps" ref="child"></router-view>
+            <router-view v-if="duct" :shared-props="sharedProps" ref="child"></router-view>
         </v-slide-x-transition>
         
     </v-app>
@@ -178,7 +178,7 @@ export default {
         ...mapGetters("ductsModule", [ "duct" ]),
         projectNames() {
             return Object.keys(this.projects);
-        }
+        },
     },
     watch: {
         searchString (val) {
@@ -232,42 +232,46 @@ export default {
         this.$set(this.sharedProps, "project", this.project);
         this.$set(this.sharedProps, "answers", this.answers);
 
-        var self = this
-        this.srvStatusProfile = {
-            connected: {
-                handler() {
-                    self.srvStatus = "connected"
-                    self.lastPinged = dateFormat(new Date(), "HH:MM:ss")
+        this.initDuct().then(() => {
+            this.srvStatusProfile = {
+                connected: {
+                    handler: () => {
+                        this.srvStatus = "connected"
+                        this.lastPinged = dateFormat(new Date(), "HH:MM:ss")
+                    },
+                    btn: {
+                        color: "success",
+                        label: "Connected to server",
+                        menu: [ { title: "Disconnect", handler: this.closeDuct } ]
+                    }
                 },
-                btn: {
-                    color: "success",
-                    label: "Connected to server",
-                    menu: [ { title: "Disconnect", handler: self.closeDuct } ]
-                }
-            },
-            connecting: {
-                handler() {
+                connecting: {
+                    handler() {
+                    },
+                    btn: {
+                        color: "warning",
+                        label: "Connecting to server..."
+                    }
                 },
-                btn: {
-                    color: "warning",
-                    label: "Connecting to server..."
-                }
-            },
-            disconnected: {
-                handler() {
-                    self.srvStatus = "disconnected"
-                },
-                btn: {
-                    color: "error",
-                    label: "No connection to server",
-                    menu: [ { title: "Connect", handler: self.openDuct } ]
+                disconnected: {
+                    handler: () => {
+                        this.srvStatus = "disconnected"
+                    },
+                    btn: {
+                        color: "error",
+                        label: "No connection to server",
+                        menu: [ { title: "Connect", handler: this.duct.open } ]
+                    }
                 }
             }
-        }
-        this.initDuct(window.ducts = window.ducts || {}).then(() => {
-            this.duct._connection_listener.on("onopen", this.srvStatusProfile.connected.handler);
+
+
+            this.duct.addOnOpenHandler(() => {
+                this.srvStatusProfile.connected.handler();
+                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_PROJECTS, data: null });
+            });
             this.duct._connection_listener.on(["onclose", "onerror"], this.srvStatusProfile.disconnected.handler);
-            this.duct.setEventHandler(this.duct.EVENT.ALIVE_MONITORING, this.srvStatusProfile.connected.handler);
+            //this.duct.setEventHandler(this.duct.EVENT.ALIVE_MONITORING, this.srvStatusProfile.connected.handler);
             this.duct.setEventHandler(this.duct.EVENT.EVENT_HISTORY, (rid, eid, data) => {
                 if(data["Status"]=="Success") {
                     if("AllHistory" in data["Data"])
@@ -367,9 +371,7 @@ export default {
                 }
             })
 
-            this.openDuct().then(() => {
-                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_PROJECTS, data: null })
-            })
+            this.duct.open();
         })
     }
 }

@@ -1,9 +1,5 @@
 <template>
     <v-main class="mt-10 grey lighten-4">
-        {{ sharedProps.evtHistory }}
-        {{ selectedEventId }}
-        {{ selectedEventArgsHistory }}
-        {{ selectedEventArgs }}
         <v-row justify="center"><v-col cols="11">
             <v-card class="pa-3">
                 <v-row class="d-flex">
@@ -93,8 +89,9 @@ export default {
             return rows;
         },
         selectedEventArgsHistory() {
-            console.log("selectedEventArgsHistory");
-            if(this.sharedProps.evtHistory && this.selectedEventId) {
+            if(this.sharedProps.evtHistory
+                && this.selectedEventId
+                && this.selectedEventId.toString() in this.sharedProps.evtHistory) {
                 var _hist = this.sharedProps.evtHistory[this.selectedEventId.toString()];
                 return _hist.reverse();
             } else {
@@ -113,32 +110,19 @@ export default {
         },
         getEventHistory() {
             this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.EVENT_HISTORY, data: null });
-            console.log("hoge")
         },
         sendEvent() {
             const histEid = this.duct.EVENT.EVENT_HISTORY;
             this.duct.sendMsg({ tag: this.name, eid: this.selectedEventId, data: this.selectedEventArgs });
             this.duct.sendMsg({ tag: this.name, eid: histEid, data: `${this.selectedEventId} ${this.selectedEventArgs}`});
-        },
-        init() {
-            if(!this.duct) return;
-            this.loadEvents();
-            this.getEventHistory();
+            this.selectedEventArgs = "";
         }
     },
     mounted() {
-        this.init();
-    },
-    watch: {
-        "duct.EVENT": function() {
-            this.init();
-        },
-        duct: {
-            deep: true,
-            handler: function() {
-                console.log(this.duct);
-            }
-        }
+        this.duct.addOnOpenHandler(() => {
+            this.loadEvents();
+            this.getEventHistory();
+        });
     }
 }
 </script>

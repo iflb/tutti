@@ -491,6 +491,17 @@ window.ducts.dynamiccrowd.Duct = class extends window.ducts.Duct {
             }
         }
 
+        this.onOpenHandlers = [];
+        this.addOnOpenHandler = (handler) => {
+            this.onOpenHandlers.push(handler);
+        };
+
+        this._connection_listener.on("onopen", () => {
+            for(var i in this.onOpenHandlers){
+                this.onOpenHandlers[i]();
+            }
+        });
+
 	    //this._setup_handlers(this);
 
     }
