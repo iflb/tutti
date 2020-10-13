@@ -355,6 +355,12 @@ export default {
                     this.$set(this.sharedProps.mTurkAccount, "onHoldBalance", data["Data"]["AccountBalance"]["OnHoldBalance"]);
             });
 
+            this.duct.setEventHandler(this.duct.EVENT.MTURK_QUALIFICATION, (rid, eid, data) => {
+                if(data["Status"]=="Error") return;
+
+                this.$set(this.sharedProps, "mTurkQuals", data["Data"]["QualificationTypes"]);
+            });
+
             this.duct.addEvtHandler({
                 tag: "/console/flow/", eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
                 handler: (rid, eid, data) => {

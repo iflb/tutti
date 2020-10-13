@@ -36,6 +36,11 @@ export default new VueRouter({
                     props: getPropsForRoute
                 },
                 {
+                    path: "platform/mturk/qual/",
+                    component: () => import("./views/Console/Platforms/MTurk/Qualification/Main"),
+                    props: getPropsForRoute
+                },
+                {
                     path: "answer",
                     component: () => import("./views/Console/Answer"),
                     props: getPropsForRoute
