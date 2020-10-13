@@ -37,6 +37,10 @@ const ductsModule = {
         },
         closeDuct({ state }){
             state.duct.close()
+        },
+        onDuctOpen({ state }, f) {
+            if(state.duct.state==window.ducts.State.OPEN_CONNECTED) f();
+            else state.duct.addOnOpenHandler(f);
         }
     }
 }

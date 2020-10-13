@@ -37,7 +37,7 @@
 
 <script>
 import store from '@/store.js'
-import { mapGetters } from 'vuex'
+import { mapGetters, mapActions } from 'vuex'
 import VueJsonPretty from 'vue-json-pretty'
 
 export default {
@@ -100,6 +100,7 @@ export default {
         }
     },
     methods: {
+        ...mapActions("ductsModule", [ "onDuctOpen" ]),
         loadEvents() {
             var events = []
             for(var key in this.duct.EVENT) {
@@ -119,15 +120,10 @@ export default {
         }
     },
     mounted() {
-        if(this.duct.state==window.ducts.State.OPEN_CONNECTED){
+        this.onDuctOpen(() => {
             this.loadEvents();
             this.getEventHistory();
-        } else {
-            this.duct.addOnOpenHandler(() => {
-                this.loadEvents();
-                this.getEventHistory();
-            });
-        }
+        });
     }
 }
 </script>

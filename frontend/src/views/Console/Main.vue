@@ -87,18 +87,16 @@
                     <v-list-group prepend-icon="mdi-account-group" :value="false">
                         <template v-slot:activator><v-list-item-title>Worker Platforms</v-list-item-title></template>
                         <v-list-item to="/console/platform/mturk/">
-                            <v-list-item-icon></v-list-item-icon>
+                            <v-list-item-icon><v-icon>mdi-amazon</v-icon></v-list-item-icon>
                             <v-list-item-content>
                             <v-list-item-title>Amazon MTurk</v-list-item-title>
                             </v-list-item-content>
-                            <v-list-item-icon><v-icon>mdi-amazon</v-icon></v-list-item-icon>
                         </v-list-item>
                         <v-list-item to="/console/platform/private/">
-                            <v-list-item-icon></v-list-item-icon>
+                            <v-list-item-icon><v-icon>mdi-account-supervisor-circle</v-icon></v-list-item-icon>
                             <v-list-item-content>
                             <v-list-item-title>Partner-Sourcing</v-list-item-title>
                             </v-list-item-content>
-                            <v-list-item-icon><v-icon>mdi-account-supervisor-circle</v-icon></v-list-item-icon>
                         </v-list-item>
                     </v-list-group>
                     <v-list-item to="/console/answer/">
@@ -340,13 +338,21 @@ export default {
                 }
             });
 
+            this.$set(this.sharedProps, "mTurkAccount", {});
+
             this.duct.setEventHandler(this.duct.EVENT.MTURK_ACCOUNT, (rid, eid, data) => {
                 if(data["Status"]=="Error") return;
 
-                this.$set(this.sharedProps, "mTurkAccount", {
-                    accessKeyId: data["Data"]["AccessKeyId"],
-                    secretAccessKey: data["Data"]["SecretAccessKey"]
-                });
+                this.$set(this.sharedProps.mTurkAccount, "accessKeyId", data["Data"]["AccessKeyId"]);
+                this.$set(this.sharedProps.mTurkAccount, "secretAccessKey", data["Data"]["SecretAccessKey"]);
+            });
+
+            this.duct.setEventHandler(this.duct.EVENT.MTURK_REQUESTER_INFO, (rid, eid, data) => {
+                if(data["Status"]=="Error") return;
+
+                this.$set(this.sharedProps.mTurkAccount, "availableBalance", data["Data"]["AccountBalance"]["AvailableBalance"]);
+                if("OnHoldBalance" in data["Data"])
+                    this.$set(this.sharedProps.mTurkAccount, "onHoldBalance", data["Data"]["AccountBalance"]["OnHoldBalance"]);
             });
 
             this.duct.addEvtHandler({

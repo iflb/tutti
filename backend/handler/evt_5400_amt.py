@@ -1,6 +1,5 @@
 import boto3
 import json
-import datetime
 
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
@@ -29,6 +28,7 @@ class Handler(EventHandler):
         self.hits = []
 
     def setup(self, handler_spec, manager):
+        self.mturk = manager.load_helper_module('helper_mturk')
         handler_spec.set_description('テンプレート一覧を取得します。')
         handler_spec.set_as_responsive()
         return handler_spec
@@ -53,15 +53,7 @@ class Handler(EventHandler):
                 raise Exception(f"boto3 operation '{operation}' not found")
             res = func(**params)
 
-            def datetime_to_unixtime_rec(dct):
-                for key,val in dct.items():
-                    if isinstance(val, datetime):
-                        val = val.timestamp()
-                    elif isinstance(val, dict):
-                        val = datetime_to_unixtime_rec(val)
-                return dct
-
-            res = datetime_to_unixtime_rec(res)
+            res = self.mturk.datetime_to_unixtime(res)
             output.set("Results", res)
 
         elif command=="list_all_hits" or (command=="list_all_hits_cached" and len(self.hits)==0):

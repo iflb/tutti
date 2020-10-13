@@ -27,6 +27,7 @@
             <v-card-text>
                 Access Key ID: {{ accessKeyId }}<br>
                 Secret Access Key: {{ secretAccessKey }}<br>
+                Balance: ${{ sharedProps.mTurkAccount.availableBalance }} <span v-if="'onHoldBalance' in sharedProps.mTurkAccount">(on hold: {{ sharedProps.mTurkAccount.onHoldBalance }})</span>
             </v-card-text>
         </v-card>
         <dialog-set-account ref="dlgSetAccount" />
@@ -61,10 +62,13 @@
 </template>
 <script>
 import DialogSetAccount from './DialogSetAccount.vue'
+import { mapGetters, mapActions } from 'vuex'
+
 export default {
     props: ["sharedProps","name"],
     components: { DialogSetAccount },
     computed: {
+        ...mapGetters("ductsModule", [ "duct" ]),
         accessKeyId() {
             try { return this.sharedProps.mTurkAccount.accessKeyId;
             } catch { return null; }
@@ -78,9 +82,21 @@ export default {
         }
     },
     methods: {
+        ...mapActions("ductsModule", [ "onDuctOpen" ]),
         windowOpen(url, target){
             window.open(url, target);
+        },
+        init() {
+
         }
+    },
+    mounted() {
+        this.onDuctOpen(() => {
+            if(Object.keys(this.sharedProps.mTurkAccount).length==0) {
+                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.MTURK_ACCOUNT, data: "get" });
+                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.MTURK_REQUESTER_INFO, data: null });
+            }
+        });
     }
 }
 </script>
