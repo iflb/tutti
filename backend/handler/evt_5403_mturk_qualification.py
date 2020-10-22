@@ -34,6 +34,7 @@ class Handler(EventHandler):
         client = self.mturk.get_client(sandbox=False)
 
         command = event.data[0]
+        output.set("Command", command)
 
         if command=="list":
             next_token = None
@@ -45,8 +46,7 @@ class Handler(EventHandler):
                 }
                 if next_token:  kwargs["NextToken"] = next_token
                 res = client.list_qualification_types(**kwargs)
-
-                quals.extend([self.mturk.datetime_to_unixtime(q) for q in res["QualificationTypes"]])
+                quals[:0] = [self.mturk.datetime_to_unixtime(q) for q in res["QualificationTypes"]]
                 if "NextToken" in res:
                     next_token = res["NextToken"]
                     continue
@@ -68,6 +68,23 @@ class Handler(EventHandler):
             qid = event.data[1]
             res = client.get_qualification_type(QualificationTypeId=qid)
             output.set("QualificationType", self.mturk.datetime_to_unixtime(res["QualificationType"]))
+
+        elif command=="get_workers":
+            qids = event.data[1:]
+            quals = {}
+            for qid in qids:
+                next_token = None
+                quals[qid] = []
+                while True:
+                    if next_token:  res = client.list_workers_with_qualification_type(QualificationTypeId=qid, NextToken=next_token, MaxResults=100)
+                    else:           res = client.list_workers_with_qualification_type(QualificationTypeId=qid, MaxResults=100)
+                    quals[qid].extend([self.mturk.datetime_to_unixtime(q) for q in res["Qualifications"]])
+                    if "NextToken" in res:
+                        logger.debug(res["NextToken"])
+                        next_token = res["NextToken"]
+                    else:
+                        break
+            output.set("Qualifications", quals)
 
         elif command=="delete":
             qid = event.data[1]

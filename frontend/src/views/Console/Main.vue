@@ -356,9 +356,27 @@ export default {
             });
 
             this.duct.setEventHandler(this.duct.EVENT.MTURK_QUALIFICATION, (rid, eid, data) => {
-                if(data["Status"]=="Error") return;
+                const command = data["Data"]["Command"];
+                if(data["Status"]=="error") return;
 
-                this.$set(this.sharedProps, "mTurkQuals", data["Data"]["QualificationTypes"]);
+                if(command=="list") {
+                    var quals = {};
+                    const q = data["Data"]["QualificationTypes"];
+                    for(var i in q){
+                        const qid = q[i]["QualificationTypeId"];
+                        quals[qid] = q[i];
+                    }
+                    this.$set(this.sharedProps, "mTurkQuals", quals);
+                    //for(var i in quals){
+                    //    const qid = quals[i]["QualificationTypeId"];
+                    //}
+                }
+                else if(command=="get_workers") {
+                    const quals = data["Data"]["Qualifications"];
+                    for(var qid in quals){
+                        this.$set(this.sharedProps.mTurkQuals[qid], "workers", quals[qid]);
+                    }
+                }
             });
 
             this.duct.addEvtHandler({
