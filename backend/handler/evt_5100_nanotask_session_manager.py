@@ -182,7 +182,7 @@ class Handler(EventHandler):
                 ws = self.wsessions[wsid]
             else:
                 ws = self.wsessions[wsid] = WorkSession(wid, ct, pn, flow.root)
-                r.sadd(self.namespace_redis.key_work_session_ids_by_project_name(pn), ws.id)
+                #r.sadd(self.namespace_redis.key_work_session_ids_by_project_name(pn), ws.id)
                 #r.set(self.namespace_redis.key_active_work_session_id(ct), ws.id)
             output.set("WorkSessionId", ws.id)
             

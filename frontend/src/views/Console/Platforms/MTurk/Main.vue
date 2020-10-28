@@ -50,7 +50,7 @@
             </v-col>
             <v-col cols="4">
                 <v-card>
-                    <v-img src="https://www.dw.com/image/48024462_303.jpg" max-height="150"></v-img>
+                    <v-img src="https://assets.st-note.com/production/uploads/images/30971758/rectangle_large_type_2_d321a7db4258595199bc6a264e7b320b.jpg?fit=bounds&format=jpeg&quality=45&width=960" max-height="150"></v-img>
                     <v-card-title>Qualifications</v-card-title>
                     <v-card-text>Create or remove qualifications.</v-card-text>
                     <v-card-actions><v-btn color="indigo lighten-1" text to="qual/">Manage qualifications</v-btn></v-card-actions>
