@@ -36,6 +36,11 @@ export default new VueRouter({
                     props: getPropsForRoute
                 },
                 {
+                    path: "platform/mturk/hit/",
+                    component: () => import("./views/Console/Platforms/MTurk/HIT/Main"),
+                    props: getPropsForRoute
+                },
+                {
                     path: "platform/mturk/qual/",
                     component: () => import("./views/Console/Platforms/MTurk/Qualification/Main"),
                     props: getPropsForRoute

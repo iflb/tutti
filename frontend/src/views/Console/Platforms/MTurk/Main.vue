@@ -37,7 +37,7 @@
                     <v-img src="https://media.istockphoto.com/videos/stack-of-files-documents-being-piled-onto-office-desk-video-id825340524?s=640x640" max-height="150"></v-img>
                     <v-card-title>HITs</v-card-title>
                     <v-card-text>Create, custormize, or remove task batches.</v-card-text>
-                    <v-card-actions><v-btn color="indigo lighten-1" text>Manage HITs</v-btn></v-card-actions>
+                    <v-card-actions><v-btn color="indigo lighten-1" text to="hit">Manage HITs</v-btn></v-card-actions>
                 </v-card>
             </v-col>
             <v-col cols="4">

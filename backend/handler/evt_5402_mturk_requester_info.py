@@ -31,6 +31,5 @@ class Handler(EventHandler):
 
     @handler_output
     async def handle(self, event, output):
-        client = self.mturk.get_client(sandbox=False)
-        
-        output.set("AccountBalance", client.get_account_balance())
+        async with self.mturk.get_client_async() as client:
+            output.set("AccountBalance", await client.get_account_balance())

@@ -31,7 +31,7 @@ class Handler(EventHandler):
 
     @handler_output
     async def handle(self, event, output):
-        client = self.mturk.get_client(sandbox=False)
+        async with self.mturk.get_client_async() as client:
 
         command = event.data[0]
         output.set("Command", command)
@@ -45,7 +45,7 @@ class Handler(EventHandler):
                     "MustBeOwnedByCaller": True
                 }
                 if next_token:  kwargs["NextToken"] = next_token
-                res = client.list_qualification_types(**kwargs)
+                res = await client.list_qualification_types(**kwargs)
                 quals[:0] = [self.mturk.datetime_to_unixtime(q) for q in res["QualificationTypes"]]
                 if "NextToken" in res:
                     next_token = res["NextToken"]
@@ -56,17 +56,17 @@ class Handler(EventHandler):
 
         elif command=="create":
             params = json.loads(event.data[1])
-            res = client.create_qualification_type(**params)
+            res = await client.create_qualification_type(**params)
             output.set("QualificationType", self.mturk.datetime_to_unixtime(res["QualificationType"]))
 
         elif command=="update":
             params = json.loads(event.data[1])
-            res = client.update_qualification_type(**params)
+            res = await client.update_qualification_type(**params)
             output.set("QualificationType", self.mturk.datetime_to_unixtime(res["QualificationType"]))
 
         elif command=="get":
             qid = event.data[1]
-            res = client.get_qualification_type(QualificationTypeId=qid)
+            res = await client.get_qualification_type(QualificationTypeId=qid)
             output.set("QualificationType", self.mturk.datetime_to_unixtime(res["QualificationType"]))
 
         elif command=="get_workers":
@@ -76,8 +76,8 @@ class Handler(EventHandler):
                 next_token = None
                 quals[qid] = []
                 while True:
-                    if next_token:  res = client.list_workers_with_qualification_type(QualificationTypeId=qid, NextToken=next_token, MaxResults=100)
-                    else:           res = client.list_workers_with_qualification_type(QualificationTypeId=qid, MaxResults=100)
+                    if next_token:  res = await client.list_workers_with_qualification_type(QualificationTypeId=qid, NextToken=next_token, MaxResults=100)
+                    else:           res = await client.list_workers_with_qualification_type(QualificationTypeId=qid, MaxResults=100)
                     quals[qid].extend([self.mturk.datetime_to_unixtime(q) for q in res["Qualifications"]])
                     if "NextToken" in res:
                         logger.debug(res["NextToken"])
@@ -88,4 +88,4 @@ class Handler(EventHandler):
 
         elif command=="delete":
             qid = event.data[1]
-            client.delete_qualification_type(QualificationTypeId=qid)
+            await client.delete_qualification_type(QualificationTypeId=qid)

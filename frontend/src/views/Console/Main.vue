@@ -367,15 +367,46 @@ export default {
                         quals[qid] = q[i];
                     }
                     this.$set(this.sharedProps, "mTurkQuals", quals);
-                    //for(var i in quals){
-                    //    const qid = quals[i]["QualificationTypeId"];
-                    //}
                 }
                 else if(command=="get_workers") {
                     const quals = data["Data"]["Qualifications"];
                     for(var qid in quals){
                         this.$set(this.sharedProps.mTurkQuals[qid], "workers", quals[qid]);
                     }
+                }
+            });
+
+            this.duct.setEventHandler(this.duct.EVENT.MTURK_HIT, (rid, eid, data) => {
+                const command = data["Data"]["Command"];
+                const hitTypeAttrs = [
+                    "HITTypeId",
+                    "Title",
+                    "Description",
+                    "Keywords",
+                    "Reward",
+                    "AutoApprovalDelayInSeconds",
+                    "Expiration",
+                    "AssignmentDurationInSeconds",
+                    "QualificationRequirements"
+                ];
+                if(data["Status"]=="error") return;
+
+                if(command=="list") {
+                    var hitTypes = {};
+                    const hits = data["Data"]["HITs"];
+                    for(var i in hits){
+                        const htid = hits[i]["HITTypeId"];
+                        if( !(htid in hitTypes) ) {
+                            hitTypes[htid] = { info: {}, cnt: 1 };
+                            for(const j in hitTypeAttrs){
+                                const attr = hitTypeAttrs[j];
+                                hitTypes[htid].info[attr] = hits[i][attr];
+                            }
+                        } else {
+                            hitTypes[htid].cnt++;
+                        }
+                    }
+                    this.$set(this.sharedProps, "HITTypes", hitTypes);
                 }
             });
 
