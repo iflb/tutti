@@ -27,9 +27,9 @@
                                     <v-btn icon color="grey lighten-1"><v-icon>mdi-account-edit</v-icon></v-btn>
                                 </div>
                                 Description: <b>{{ item.detail.Description }}</b><br>
-                                Created at: <b>{{ unixTimeToLocaleString(item.detail.CreationTime) }}</b><br>
-                                Automatically grant on submission: <b>{{ item.detail.AutoGranted }}</b><br>
-                                # of assigned workers: <b>{{ item.detail.workers ? item.detail.workers.length : 'retrieving...' }}</b><br>
+                                Expires at: <b>{{ unixTimeToLocaleString(item.detail.Expiration) }}</b><br>
+                                Auto-approval delay: <b>{{ secondsToTimeString(item.detail.AutoApprovalDelayInSeconds) }}</b><br>
+                                Assignment duration: <b>{{ secondsToTimeString(item.detail.AssignmentDurationInSeconds) }}</b><br>
                                 Raw data:
                                 <vue-json-pretty :data="item.detail" :deep="1" style="font-size:0.6em;"></vue-json-pretty>
                             </div>
@@ -87,6 +87,13 @@ export default {
         unixTimeToLocaleString(unixTime) {
             var dt = new Date(unixTime*1000);
             return dt.toLocaleDateString() + " " + dt.toLocaleTimeString();
+        },
+        secondsToTimeString(seconds) {
+            var hours = Math.floor(seconds / 3600);
+            seconds -= hours*3600;
+            var minutes = Math.floor(seconds / 60);
+            seconds -= minutes*60;
+            return `${hours} hrs ${minutes} mins ${seconds} secs`;
         }
     },
     mounted() {
