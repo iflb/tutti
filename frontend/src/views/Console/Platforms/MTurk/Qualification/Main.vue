@@ -1,7 +1,6 @@
 <template>
     <v-main class="mt-10 grey lighten-4">
         <div style="max-width:1000px" class="mx-auto">
-            <v-card>
                 <v-data-table
                   :headers="qualHeaders"
                   :items="quals"
@@ -15,6 +14,7 @@
                     <template v-slot:top>
                         <v-card-title>
                             Qualifications
+                            <v-btn icon @click="$refs.dlgCreate.shown=true"><v-icon>mdi-plus</v-icon></v-btn>
                             <v-spacer></v-spacer>
                             <v-text-field v-model="search" append-icon="mdi-magnify" label="Search" single-line hide-details></v-text-field>
                         </v-card-title>
@@ -36,18 +36,19 @@
                         </td>
                     </template>
                 </v-data-table>
-            </v-card>
+            <dialog-create ref="dlgCreate"></dialog-create>
         </div>
     </v-main>
 </template>
 <script>
-//import DialogCreate from './DialogCreate.vue'
+import DialogCreate from './DialogCreate.vue'
 import { mapGetters, mapActions } from 'vuex'
 import VueJsonPretty from 'vue-json-pretty'
 
 export default {
     components: {
-        VueJsonPretty
+        VueJsonPretty,
+        DialogCreate
     },
     data: () => ({
       search: "",
@@ -56,12 +57,12 @@ export default {
           { text: 'Name', value: 'name' },
           { text: 'Status', value: 'status' },
           { text: 'QualificationTypeId', value: 'qualificationId' },
+          { text: 'CreationTime', value: 'creationTime' },
           { text: '', value: 'data-table-expand' },
         ],
     }),
     props: ["sharedProps","name"],
 
-    //components: { DialogCreate },
     computed: {
         ...mapGetters("ductsModule", [ "duct" ]),
         quals() {
@@ -73,6 +74,7 @@ export default {
                         "name": _q["Name"],
                         "status": _q["QualificationTypeStatus"],
                         "qualificationId": _q["QualificationTypeId"],
+                        "creationTime": this.unixTimeToLocaleString(_q["CreationTime"]),
                         "detail": _q
                     });
                 }

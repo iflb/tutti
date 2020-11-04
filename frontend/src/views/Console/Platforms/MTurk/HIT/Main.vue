@@ -27,6 +27,7 @@
                                     <v-btn icon color="grey lighten-1"><v-icon>mdi-account-edit</v-icon></v-btn>
                                 </div>
                                 Description: <b>{{ item.detail.Description }}</b><br>
+                                First created at: <b>{{ unixTimeToLocaleString(item.detail.FirstCreationTime) }}</b><br>
                                 Expires at: <b>{{ unixTimeToLocaleString(item.detail.Expiration) }}</b><br>
                                 Auto-approval delay: <b>{{ secondsToTimeString(item.detail.AutoApprovalDelayInSeconds) }}</b><br>
                                 Assignment duration: <b>{{ secondsToTimeString(item.detail.AssignmentDurationInSeconds) }}</b><br>
@@ -69,7 +70,6 @@ export default {
             if("HITTypes" in this.sharedProps) {
                 for(var htid in this.sharedProps.HITTypes){
                     const _h = this.sharedProps.HITTypes[htid];
-                    console.log(_h);
                     h.push({
                         "id": htid,
                         "title": _h.info["Title"],
@@ -93,28 +93,12 @@ export default {
             seconds -= hours*3600;
             var minutes = Math.floor(seconds / 60);
             seconds -= minutes*60;
-            return `${hours} hrs ${minutes} mins ${seconds} secs`;
+            return `${hours}:${("00"+minutes).slice(-2)}:${("00"+seconds).slice(-2)}`;
         }
     },
     mounted() {
         this.onDuctOpen(() => {
             this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.MTURK_HIT, data: "list" });
-            //if(Object.keys(this.sharedProps.mTurkAccount).length==0) {
-            //    this.duct.addEvtHandler({ tag: this.name, eid: this.duct.EVENT.MTURK_HIT, handler: (rid, eid, data) => {
-            //            const command = data["Data"]["Command"];
-            //            if(data["Status"]=="error") return;
-
-            //            if(command=="list"){
-            //                var htids = [];
-            //                for(var i in data["Data"]["HITs"]){
-            //                    htids.push(data["Data"]["QualificationTypes"][i]["HITTypeId"]);
-            //                }
-            //            }
-            //        }
-            //    });
-            //    this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.MTURK_HIT, data: "list" });
-            //    //this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.MTURK_REQUESTER_INFO, data: null });
-            //}
         });
     }
 }

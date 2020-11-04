@@ -402,6 +402,7 @@ export default {
                                 const attr = hitTypeAttrs[j];
                                 hitTypes[htid].info[attr] = hits[i][attr];
                             }
+                            hitTypes[htid].info["FirstCreationTime"] = hits[i]["CreationTime"];
                         } else {
                             hitTypes[htid].cnt++;
                         }
