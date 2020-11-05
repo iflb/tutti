@@ -1,0 +1,10 @@
+version: '3'
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - 8000:80
+    volumes:
+      - ./frontend:/app
+    stdin_open: true
+    tty: true
