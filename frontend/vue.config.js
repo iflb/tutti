@@ -2,7 +2,8 @@ module.exports = {
     publicPath: "/vue/",
     outputDir: "/var/www/html/vue-dist",
     devServer: {
-        port: 8081,
+        //port: 8081,
+        port: 8000,
         //public: "saito2.r9n.net",
         publicPath: "/vue/",
     },

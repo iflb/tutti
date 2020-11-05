@@ -1,6 +1,7 @@
-version: '3'
+version: "3"
 services:
   frontend:
+    container_name: frontend
     build: ./frontend
     ports:
       - 8000:80
@@ -8,3 +9,27 @@ services:
       - ./frontend:/app
     stdin_open: true
     tty: true
+    env_file:
+      - app.env
+
+  rev-proxy:
+    container_name: rev-proxy
+    build: ./rev-proxy
+    volumes:
+      - ./rev-proxy/nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - 80:80
+      - 443:443
+    depends_on:
+      - frontend
+    extra_hosts:
+      - "host.docker.internal:172.100.0.1"
+    env_file:
+      - app.env
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.100.0.0/16
