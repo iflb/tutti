@@ -7,4 +7,4 @@ RUN apk update && \
     npm install -g @vue/cli && \
     npm install
 
-CMD ["/bin/ash"]
+CMD ["npm","run","serve"]
