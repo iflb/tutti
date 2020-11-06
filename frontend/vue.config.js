@@ -4,7 +4,7 @@ module.exports = {
     devServer: {
         //port: 8081,
         port: 80,
-        public: "ec2-mturk10-bak.r9n.net",
+        public: process.env.DOMAIN_NAME,
         publicPath: "/vue/",
     },
     configureWebpack: {

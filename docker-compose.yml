@@ -30,6 +30,8 @@ services:
       - ./frontend:/app
     stdin_open: true
     tty: true
+    env_file:
+      - .env
     networks:
       default:
         ipv4_address: 172.100.0.3
