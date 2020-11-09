@@ -1,6 +1,7 @@
 FROM node:lts-alpine3.12
 
-WORKDIR /app
+ARG FRONTEND_HOME
+WORKDIR $FRONTEND_HOME
 
 RUN apk update && \
     npm install -g npm && \

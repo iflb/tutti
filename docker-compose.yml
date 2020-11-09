@@ -23,12 +23,15 @@ services:
 
   frontend:
     container_name: frontend
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        - FRONTEND_HOME=${FRONTEND_HOME}
     expose:
       - 80
     volumes:
-      - ./frontend:/app
-      - ./projects:/app/src/projects
+      - ./frontend:${FRONTEND_HOME}
+      - ./projects:${FRONTEND_HOME}/src/projects
     stdin_open: true
     tty: true
     env_file:
@@ -39,18 +42,32 @@ services:
 
   backend:
     container_name: backend
-    build: ./backend
+    build:
+      context: ./backend
+      args:
+        - BACKEND_HOME=${BACKEND_HOME}
     expose:
       - 80
     volumes:
-      - ./backend:/app
+      - ./backend:${BACKEND_HOME}
+      - ./projects:${BACKEND_HOME}/projects
     stdin_open: true
     tty: true
     env_file:
-      - app.env
+      - .env
     networks:
       default:
         ipv4_address: 172.100.0.4
+
+  mongodb:
+    image: mongo:4.4-bionic
+    container_name: mongodb
+    expose:
+      - 27017
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
 
 networks:
   default:

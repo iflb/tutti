@@ -3,8 +3,6 @@ import os
 import asyncio
 import shutil
 
-from tortoise.backends.mysql.client import MySQLClient
-
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
 
