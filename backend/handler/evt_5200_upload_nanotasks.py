@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class Handler(EventHandler):
     def __init__(self):
         super().__init__()
-        self.db = MongoClient(os.envion.get("MONGODB_ADDRESS"))
+        self.db = MongoClient(os.environ.get("MONGODB_ADDRESS"))
 
     def setup(self, handler_spec, manager):
         self.namespace_mongo = manager.load_helper_module('helper_mongo_namespace')

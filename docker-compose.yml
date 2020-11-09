@@ -65,9 +65,12 @@ services:
     expose:
       - 27017
     restart: always
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: example
+    #environment:
+    #  MONGO_INITDB_ROOT_USERNAME: root
+    #  MONGO_INITDB_ROOT_PASSWORD: example
+    networks:
+      default:
+        ipv4_address: ${MONGODB_ADDRESS}
 
 networks:
   default:
