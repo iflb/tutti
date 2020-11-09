@@ -1,4 +1,5 @@
 import time
+import os
 
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
@@ -14,7 +15,7 @@ from handler.handler_output import handler_output
 class Handler(EventHandler):
     def __init__(self):
         super().__init__()
-        self.db = MongoClient()
+        self.db = MongoClient(os.environ.get("MONGODB_ADDRESS"))
 
     def setup(self, handler_spec, manager):
         self.namespace_mongo = manager.load_helper_module('helper_mongo_namespace')

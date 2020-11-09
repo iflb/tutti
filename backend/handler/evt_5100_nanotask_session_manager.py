@@ -30,7 +30,7 @@ class Handler(EventHandler):
         super().__init__()
         self.flows = self.load_flows()   # {project_name: TaskFlow}
         self.wsessions = {}               # {session_id: iterator}
-        self.db = MongoClient()
+        self.db = MongoClient(os.environ.get("MONGODB_ADDRESS"))
 
         self.dcmodel = DCModel()
         self.nanotasks = {}                     # { nid: Nanotask }

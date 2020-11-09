@@ -1,5 +1,7 @@
-import boto3
 import json
+import os
+
+import boto3
 
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
@@ -19,7 +21,7 @@ from handler.handler_output import handler_output
 class Handler(EventHandler):
     def __init__(self):
         super().__init__()
-        self.db = MongoClient()
+        self.db = MongoClient(os.environ.get("MONGODB_ADDRESS"))
         self.hits = []
 
     def setup(self, handler_spec, manager):

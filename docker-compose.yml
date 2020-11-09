@@ -19,7 +19,7 @@ services:
     tty: true
     networks:
       default:
-        ipv4_address: 172.100.0.2
+        ipv4_address: ${REV_PROXY_ADDRESS}
 
   frontend:
     container_name: frontend
@@ -38,7 +38,7 @@ services:
       - .env
     networks:
       default:
-        ipv4_address: 172.100.0.3
+        ipv4_address: ${FRONTEND_ADDRESS}
 
   backend:
     container_name: backend
@@ -57,7 +57,7 @@ services:
       - .env
     networks:
       default:
-        ipv4_address: 172.100.0.4
+        ipv4_address: ${BACKEND_ADDRESS}
 
   mongodb:
     image: mongo:4.4-bionic
@@ -74,4 +74,4 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.100.0.0/16
+        - subnet: ${NETWORK_SUBNET}
