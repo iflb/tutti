@@ -41,7 +41,6 @@ http {
             proxy_pass http://172.100.0.4/static/;
             proxy_redirect off;
         }
-    
 
         listen 443 ssl;
         ssl_certificate /etc/letsencrypt/live/${DOMAIN_NAME}/fullchain.pem;

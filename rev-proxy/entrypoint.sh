@@ -1,5 +1,5 @@
-#!/bin/bash
-certbot-auto certonly --nginx -d ${DOMAIN_NAME} -m ${EMAIL} --agree-tos -n
-certbot-auto renew
+#!/bin/ash
+certbot certonly --nginx -d ${DOMAIN_NAME} -m ${EMAIL} --agree-tos -n
+certbot renew
 nginx
-/bin/bash
+/bin/ash

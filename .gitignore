@@ -4,3 +4,5 @@ handler_dump/
 **/*.txt
 **/.python-version
 backend/.pid
+projects/*
+!projects/test0812
