@@ -38,14 +38,16 @@ class Handler(EventHandler):
         self.tqueue = TaskQueue()
         self.wkr_submitted_nids = {}                   # worker_id -> set(nanotask_id)
 
-    def setup(self, handler_spec, manager):
+    async def setup(self, handler_spec, manager):
         self.namespace_redis = manager.load_helper_module('helper_redis_namespace')
         self.namespace_mongo = manager.load_helper_module('helper_mongo_namespace')
         handler_spec.set_description('テンプレート一覧を取得します。')
         handler_spec.set_as_responsive()
 
+        redis = manager.redis
+
         self.cache_nanotasks()
-        self.update_nanotask_assignability()
+        await self.update_nanotask_assignability(redis)
 
         return handler_spec
 
@@ -72,10 +74,10 @@ class Handler(EventHandler):
             self.dcmodel.get_project(pn).get_template(tn).add_nanotask_ids(nids)
 
 
-    def update_nanotask_assignability(self):
+    async def update_nanotask_assignability(self, redis):
         dn = self.namespace_mongo.db_name_for_answers()
         for nsid in self.db[dn].list_collection_names():
-            ns = pickle.loads(r.get(self.namespace_redis.key_node_session(nsid)))
+            ns = pickle.loads(await redis.execute("GET", self.namespace_redis.key_node_session(nsid)))
             [pn, tn, nid] = [ns.ws.pid, ns.node.name, ns.nid]
             answers = self.db[dn][nsid].find()
 
