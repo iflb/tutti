@@ -8,7 +8,7 @@ services:
       args:
         - DOMAIN_NAME=${DOMAIN_NAME}
     volumes:
-      - /srv/letsencrypt:/etc/letsencrypt
+      - ./letsencrypt:/etc/letsencrypt
     ports:
       - "80:80"
       - "443:443"
@@ -27,8 +27,8 @@ services:
       context: ./frontend
       args:
         - FRONTEND_HOME=${FRONTEND_HOME}
-    expose:
-      - 80
+    #expose:
+    #  - 80
     volumes:
       - ./frontend:${FRONTEND_HOME}
       - ${FRONTEND_HOME}/node_modules
@@ -48,8 +48,8 @@ services:
       context: ./backend
       args:
         - BACKEND_HOME=${BACKEND_HOME}
-    expose:
-      - 80
+    #expose:
+    #  - 80
     volumes:
       - ./backend:${BACKEND_HOME}
       - ./projects:${BACKEND_HOME}/projects
@@ -61,31 +61,25 @@ services:
       default:
         ipv4_address: ${BACKEND_ADDRESS}
 
+  redis:
+    image: redis:6-alpine
+    container_name: redis
+    #expose:
+    #  - 6379
+    restart: always
+    networks:
+      default:
+        ipv4_address: ${REDIS_ADDRESS}
+
   mongodb:
     image: mongo:latest
     container_name: mongodb
-    expose:
-      - 27017
+    #expose:
+    #  - 27017
     restart: always
-    #environment:
-    #  MONGO_INITDB_ROOT_USERNAME: root
-    #  MONGO_INITDB_ROOT_PASSWORD: example
     networks:
       default:
         ipv4_address: ${MONGODB_ADDRESS}
-
-        #jupyter:
-        #  image: jupyter/scipy-notebook
-        #  container_name: jupyter
-        #  ports:
-        #    - "80:8888"
-        #  volumes:
-        #    - ./:/home/jovyan/work
-        #  environment:
-        #    - PASSWORD=${JUPYTER_NB_PASSWORD}
-        #  networks:
-        #    default:
-        #      ipv4_address: ${BACKEND_ADDRESS}
 
 networks:
   default:

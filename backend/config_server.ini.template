@@ -93,5 +93,5 @@ httpd_port = 80
 [ducts.redis_config]
 
 # redis uri to connect (<class 'str'>)
-redis_uri_main = redis://172.100.10.1:6379/0?encoding=utf-8
+redis_uri_main = redis://${REDIS_ADDRESS}:6379/0?encoding=utf-8
 
