@@ -5,9 +5,6 @@ from pprint import pprint
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
 
-import redis
-r = redis.Redis(host="localhost", port=6379, db=0)
-
 import logging
 logger = logging.getLogger(__name__)
 
@@ -31,7 +28,7 @@ class Handler(EventHandler):
 
     @handler_output
     async def handle(self, event, output):
-        async with self.mturk.get_client_async() as client:
+        async with self.mturk.get_client_async(event.session.redis) as client:
             command = event.data[0]
             output.set("Command", command)
 

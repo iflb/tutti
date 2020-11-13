@@ -9,8 +9,6 @@ import sys
 import os
 from datetime import datetime
 
-import redis
-r = redis.Redis(host="localhost", port=6379, db=0)
 from pymongo import MongoClient
 
 from ducts.event import EventHandler
@@ -44,10 +42,10 @@ class Handler(EventHandler):
         handler_spec.set_description('テンプレート一覧を取得します。')
         handler_spec.set_as_responsive()
 
-        redis = manager.redis
+        self.redis = manager.redis
 
         self.cache_nanotasks()
-        await self.update_nanotask_assignability(redis)
+        await self.update_nanotask_assignability()
 
         return handler_spec
 
@@ -74,10 +72,10 @@ class Handler(EventHandler):
             self.dcmodel.get_project(pn).get_template(tn).add_nanotask_ids(nids)
 
 
-    async def update_nanotask_assignability(self, redis):
+    async def update_nanotask_assignability(self):
         dn = self.namespace_mongo.db_name_for_answers()
         for nsid in self.db[dn].list_collection_names():
-            ns = pickle.loads(await redis.execute("GET", self.namespace_redis.key_node_session(nsid)))
+            ns = pickle.loads(await self.redis.execute("GET", self.namespace_redis.key_node_session(nsid)))
             [pn, tn, nid] = [ns.ws.pid, ns.node.name, ns.nid]
             answers = self.db[dn][nsid].find()
 

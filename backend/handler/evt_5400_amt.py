@@ -32,7 +32,9 @@ class Handler(EventHandler):
 
     @handler_output
     async def handle(self, event, output):
-        async with self.mturk.get_client_async() as client:
+        self.redis = event.session.redis
+
+        async with self.mturk.get_client_async(self.redis) as client:
             command = event.data[0]
             project_name = event.data[1]
             #options = event.data[2:]

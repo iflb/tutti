@@ -6,9 +6,6 @@ from ifconf import configure_module, config_callback
 
 from handler.handler_output import handler_output
 
-import redis
-r = redis.Redis(host="localhost", port=6379, db=0)
-
 import logging
 logger = logging.getLogger(__name__)
 
@@ -26,6 +23,8 @@ class Handler(EventHandler):
 
     @handler_output
     async def handle(self, event, output):
+        self.redis = event.session.redis
+
         history_size = 10
         if event.data and len(event.data)>1:   # update 
             eid = event.data[0]
@@ -36,13 +35,13 @@ class Handler(EventHandler):
 
             logger.debug(query)
             if query!="" and query!="null":
-                cnt = r.llen(event_key)
-                lremcnt = r.lrem(event_key, 1, query)
-                if cnt==history_size:  r.lpop(event_key)
-                r.rpush(event_key, query)
+                cnt = await self.redis.execute("LLEN", event_key)
+                lremcnt = await self.redis.execute("LREM", event_key, 1, query)
+                if cnt==history_size:  await self.redis.execute("LPOP", event_key)
+                await self.redis.execute("RPUSH", event_key, query)
 
             output.set("EventId", eid)
-            output.set("History", [h.decode() for h in r.lrange(event_key, 0, -1)])
+            output.set("History", [h.decode() for h in await self.redis.execute("LRANGE", event_key, 0, -1)])
         else:  # get all
-            event_keys = r.keys(self.namespace_redis.key_event_query("*"))
-            output.set("AllHistory", {ekey.decode().split("/")[1]:[h.decode() for h in r.lrange(ekey, 0, -1)] for ekey in event_keys})
+            event_keys = await self.redis.execute("KEYS", self.namespace_redis.key_event_query("*"))
+            output.set("AllHistory", {ekey.decode().split("/")[1]:[h.decode() for h in await self.redis.execute("LRANGE", ekey, 0, -1)] for ekey in event_keys})

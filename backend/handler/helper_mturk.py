@@ -4,28 +4,30 @@ import json
 
 import aiobotocore
 
-import redis
-r = redis.Redis(host="localhost", port=6379, db=0)
-
 import helper_redis_namespace as redis_ns
 
 import logging
 logger = logging.getLogger(__name__)
 
-def get_client(region_name="us-east-1", sandbox=True):
-    try:
-        access_key_id = r.get(redis_ns.key_mturk_access_key_id()).decode()
-        secret_access_key = r.get(redis_ns.key_mturk_secret_access_key()).decode()
-        endpoint_url = "https://mturk-requester-sandbox.us-east-1.amazonaws.com" if sandbox else "https://mturk-requester.us-east-1.amazonaws.com"
-        return boto3.client("mturk",
-                            aws_access_key_id = access_key_id,
-                            aws_secret_access_key = secret_access_key,
-                            region_name = region_name,
-                            endpoint_url = endpoint_url)
-    except Exception as e:
-        raise Exception(e)
+#def get_client(redis, region_name="us-east-1", sandbox=True):
+#    try:
+#        access_key_id = await redis.execute_str("GET", redis_ns.key_mturk_access_key_id())
+#        secret_access_key = await redis.execute_str("GET", redis_ns.key_mturk_secret_access_key()).decode()
+#        endpoint_url = "https://mturk-requester-sandbox.us-east-1.amazonaws.com" if sandbox else "https://mturk-requester.us-east-1.amazonaws.com"
+#        return boto3.client("mturk",
+#                            aws_access_key_id = access_key_id,
+#                            aws_secret_access_key = secret_access_key,
+#                            region_name = region_name,
+#                            endpoint_url = endpoint_url)
+#    except Exception as e:
+#        raise Exception(e)
 
-def get_client_async(region_name="us-east-1", sandbox=True):
+def get_client_async(redis, region_name="us-east-1", sandbox=True):
+    # FIXME:: better method for synchronous connection?
+    import redis as r_sync
+    address = redis.conf.redis_uri_main.split("//")[1].split(":")[0]
+    r = r_sync.Redis(address)
+
     try:
         session = aiobotocore.get_session()
         access_key_id = r.get(redis_ns.key_mturk_access_key_id())

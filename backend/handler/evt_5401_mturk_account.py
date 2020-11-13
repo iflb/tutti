@@ -5,9 +5,6 @@ import datetime
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
 
-import redis
-r = redis.Redis(host="localhost", port=6379, db=0)
-
 import logging
 logger = logging.getLogger(__name__)
 
@@ -38,17 +35,17 @@ class Handler(EventHandler):
         elif command=="set":
             access_key_id = event.data[1]
             secret_access_key = event.data[2]
-            r.set(key_mturk_access_key_id, access_key_id)
-            r.set(key_mturk_secret_access_key, secret_access_key)
+            await event.session.redis.execute("SET", key_mturk_access_key_id, access_key_id)
+            await event.session.redis.execute("SET", key_mturk_secret_access_key, secret_access_key)
         elif command=="remove":
-            r.delete(key_mturk_access_key_id)
-            r.delete(key_mturk_secret_access_key)
+            await event.session.redis.execute("DEL", key_mturk_access_key_id)
+            await event.session.redis.execute("DEL", key_mturk_secret_access_key)
         else:
             raise CommandError(command)
 
-        try:    access_key_id = r.get(key_mturk_access_key_id).decode()
+        try:    access_key_id = await event.session.redis.execute_str("GET", key_mturk_access_key_id)
         except: access_key_id = None
-        try:    secret_access_key = r.get(key_mturk_secret_access_key).decode()
+        try:    secret_access_key = await event.session.redis.execute_str("GET", key_mturk_secret_access_key)
         except: secret_access_key = None
 
         output.set("AccessKeyId", access_key_id)
