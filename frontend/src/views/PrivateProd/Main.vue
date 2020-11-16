@@ -38,7 +38,7 @@
             </v-col>
             <v-col cols="12">
                 <v-slide-x-reverse-transition hide-on-leave>
-                    <component :is="template" :nano-data="nanoPropData" :prev-answer="prevAnswer" @submit="submit" />
+                    <component v-if="showTemplate" :is="template" :nano-data="nanoPropData" :prev-answer="prevAnswer" @submit="submit" />
                 </v-slide-x-reverse-transition>
             </v-col>
         </v-row>
@@ -65,6 +65,7 @@ export default {
         });
     },
     data: () => ({
+        showTemplate: true,
         templateName: "",
         count: 0,
         wsid: null,
@@ -156,21 +157,25 @@ export default {
                         this.hasNextTemplate = d["HasNextTemplate"];
                         if(d["Template"]){
                             this.count += 1;
-                            this.templateName = d["Template"];
-                            this.nsid = d["NodeSessionId"];
-                            if(d["IsStatic"]) {
-                                console.log("loading static task");
-                                this.nanoData = null;
-                                this.nanotaskId = null;
-                            }
-                            else {
-                                this.nanoData = d["Props"];
-                                this.nanotaskId = d["NanotaskId"];
-                            }
-                            
-                            if("Answers" in d) {
-                                this.$set(this, "prevAnswer", d["Answers"]);
-                            }
+                            this.showTemplate = false;
+                            this.$nextTick(() => {
+                                this.showTemplate = true;
+                                this.templateName = d["Template"];
+                                this.nsid = d["NodeSessionId"];
+                                if(d["IsStatic"]) {
+                                    console.log("loading static task");
+                                    this.nanoData = null;
+                                    this.nanotaskId = null;
+                                }
+                                else {
+                                    this.nanoData = d["Props"];
+                                    this.nanotaskId = d["NanotaskId"];
+                                }
+                                
+                                if("Answers" in d) {
+                                    this.$set(this, "prevAnswer", d["Answers"]);
+                                }
+                            });
                         } else {
                             platformConfig.onSubmitWorkSession(this);
                         }
