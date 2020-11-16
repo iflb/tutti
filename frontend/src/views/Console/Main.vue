@@ -269,7 +269,6 @@ export default {
                 this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_PROJECTS, data: null });
             });
             this.duct._connection_listener.on(["onclose", "onerror"], this.srvStatusProfile.disconnected.handler);
-            //this.duct.setEventHandler(this.duct.EVENT.ALIVE_MONITORING, this.srvStatusProfile.connected.handler);
             this.duct.setEventHandler(this.duct.EVENT.EVENT_HISTORY, (rid, eid, data) => {
                 if(data["Status"]=="Success") {
                     if("AllHistory" in data["Data"])

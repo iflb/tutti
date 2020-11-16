@@ -71,9 +71,9 @@ export default new VueRouter({
             component: () => import("./views/PrivateProdLogin.vue"),
             props: true
         },
-        {
-            path: "/vuep",
-            component: () => import("./views/Vuep")
-        }
+        //{
+        //    path: "/vuep",
+        //    component: () => import("./views/Vuep")
+        //}
     ]
 })
