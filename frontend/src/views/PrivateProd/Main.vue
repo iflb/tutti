@@ -27,18 +27,22 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
+        <div class="d-flex flex-column">
         <v-row>
-            {{ count }}
-            <v-col class="text-center">
-                <v-btn color="white" class="mx-4 pa-2" @click="getTemplate('PREV')" :disabled="!hasPrevTemplate"><v-icon>mdi-chevron-left</v-icon></v-btn>
-                <v-btn color="white" class="mx-4 pa-2" @click="getTemplate('NEXT')" :disabled="!hasNextTemplate"><v-icon>mdi-chevron-right</v-icon></v-btn>
+            <v-col cols="12" height="100">
+                {{ count }}
+                <v-col class="text-center">
+                    <v-btn color="white" class="mx-4 pa-2" @click="getTemplate('PREV')" :disabled="!hasPrevTemplate"><v-icon>mdi-chevron-left</v-icon></v-btn>
+                    <v-btn color="white" class="mx-4 pa-2" @click="getTemplate('NEXT')" :disabled="!hasNextTemplate"><v-icon>mdi-chevron-right</v-icon></v-btn>
+                </v-col>
+            </v-col>
+            <v-col cols="12">
+                <v-slide-x-reverse-transition hide-on-leave>
+                    <component :is="template" :nano-data="nanoPropData" :prev-answer="prevAnswer" @submit="submit" />
+                </v-slide-x-reverse-transition>
             </v-col>
         </v-row>
-        <v-row>
-            <v-slide-x-reverse-transition hide-on-leave>
-                <component :is="template" :nano-data="nanoPropData" :prev-answer="prevAnswer" @submit="submit" />
-            </v-slide-x-reverse-transition>
-        </v-row>
+        </div>
     </v-app>
 </template>
 
