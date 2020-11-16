@@ -5,9 +5,10 @@ import string
 import time
 import pickle
 import hashlib
+import os
 
 import redis
-r = redis.Redis(host="localhost", port=6379, db=0)
+r = redis.Redis(host=os.environ["REDIS_ADDRESS"], port=6379, db=0)
 
 from libs.node import Statement
 

@@ -1,4 +1,7 @@
 version: "3"
+#volumes:
+#  node_modules:
+
 services:
 
   rev-proxy:
@@ -31,9 +34,9 @@ services:
     #  - 80
     volumes:
       - ./frontend:${FRONTEND_HOME}
-      - ${FRONTEND_HOME}/node_modules
-      - ./projects:${FRONTEND_HOME}/src/projects
-        #working_dir: ${FRONTEND_HOME}
+      #- node_modules:${FRONTEND_HOME}/node_modules
+      #- ${FRONTEND_HOME}/node_modules/
+      - ./projects/:${FRONTEND_HOME}/src/projects/
     stdin_open: true
     tty: true
     env_file:
@@ -80,6 +83,18 @@ services:
     networks:
       default:
         ipv4_address: ${MONGODB_ADDRESS}
+
+  jupyter:
+    build:
+      context: ./jupyter
+    container_name: jupyter
+    volumes:
+      - ./jupyter:/home/jovyan/work
+    ports:
+      - "8888:8888"
+    networks:
+      default:
+        ipv4_address: ${JUPYTER_ADDRESS}
 
 networks:
   default:

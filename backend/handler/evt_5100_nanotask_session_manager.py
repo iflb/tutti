@@ -45,7 +45,7 @@ class Handler(EventHandler):
         self.redis = manager.redis
 
         self.cache_nanotasks()
-        await self.update_nanotask_assignability()
+        #await self.update_nanotask_assignability()
 
         return handler_spec
 
@@ -73,9 +73,13 @@ class Handler(EventHandler):
 
 
     async def update_nanotask_assignability(self):
+        import redis
+        r = redis.Redis(host=os.environ["REDIS_ADDRESS"], port=6379, db=0)
+
         dn = self.namespace_mongo.db_name_for_answers()
         for nsid in self.db[dn].list_collection_names():
-            ns = pickle.loads(await self.redis.execute("GET", self.namespace_redis.key_node_session(nsid)))
+            #ns = pickle.loads(await self.redis.execute("GET", self.namespace_redis.key_node_session(nsid)))
+            ns = pickle.loads(r.get(self.namespace_redis.key_node_session(nsid)))
             [pn, tn, nid] = [ns.ws.pid, ns.node.name, ns.nid]
             answers = self.db[dn][nsid].find()
 
