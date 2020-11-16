@@ -19,9 +19,9 @@ export default {
             },
             update: (el, binding, vnode) => {
                 const self = vnode.context;
-                var key, val;
-                [key, val] = self.getKeyAndValue(binding, vnode);
-                self.$set(self.nano.ans, key, val);
+                var key;
+                key = self.getKeyAndValue(binding, vnode)[0];
+                self.$set(self.nano.ans, key, self[key]);
             }
         }
     },
