@@ -35,11 +35,7 @@ class Handler(EventHandler):
         nids = await self.namespace_redis.get_nanotask_ids_for_project_name_template_name(event.session.redis, pn, tn)
 
         if command=="NANOTASKS":
-            data = []
-            nts = self.mongo[self.namespace_mongo.CLCT_NAME_NANOTASK].find(filter={"_id":{"$in":[ObjectId(nid) for nid in nids]}})
-            for nt in nts:
-                nt["_id"] = str(nt["_id"])
-                data.append(nt)
-            output.set("Nanotasks", data)
+            data = self.mongo[self.namespace_mongo.CLCT_NAME_NANOTASK].find(filter={"_id":{"$in":self.namespace_mongo.wrap_obj_id(nids)}})
+            output.set("Nanotasks", self.namespace_mongo.unwrap_obj_id(list(data)))
         elif command=="COUNT":
             output.set("Count", len(nids))

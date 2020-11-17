@@ -47,7 +47,9 @@ async def get_nanotask_ids_for_project_name_template_name(r, pn, tn):
     return await r.execute_str("SMEMBERS", key_nanotask_ids_by_project_name_template_name(pn,tn))
 
 async def get_answer_ids_for_nanotask_id(r, nid):
-    return await r.execute("SMEMBERS", key_answer_ids_by_nanotask_id(nid))
+    return await r.execute_str("SMEMBERS", key_answer_ids_by_nanotask_id(nid))
+async def get_answer_ids_for_template_name(r, tn):
+    return await r.execute_str("SMEMBERS", key_answer_ids_by_template_name(tn))
 async def add_answer_id_for_nanotask_id(r, aid, nid):
     await r.execute("SADD", key_answer_ids_by_nanotask_id(nid), aid)
 
@@ -66,19 +68,18 @@ async def get_all_node_session_ids(r, pn=None, tn=None, wsid=None, wid=None):
     try:
         if pn and tn:
             assert not (wsid or wid)
-            print(key_node_session_ids_by_project_name_template_name(pn,tn))
-            return await r.execute("SMEMBERS", key_node_session_ids_by_project_name_template_name(pn,tn))
+            return await r.execute_str("SMEMBERS", key_node_session_ids_by_project_name_template_name(pn,tn))
         elif wsid:
             assert not ((pn and tn) or wid)
-            return await r.execute("SMEMBERS", key_node_session_ids_by_work_session_id(wsid))
+            return await r.execute_str("SMEMBERS", key_node_session_ids_by_work_session_id(wsid))
         elif wid:
             assert not ((pn and tn) or wsid)
-            return await r.execute("SMEMBERS", key_node_session_ids_by_worker_id(wid))
+            return await r.execute_str("SMEMBERS", key_node_session_ids_by_worker_id(wid))
     except:
         raise Exception("confused keys for node session ids")
 
 async def get_all_nanotask_ids(r, pn, tn):
-    return await r.execute("SMEMBERS", key_nanotask_ids_by_project_name_template_name(pn,tn))
+    return await r.execute_str("SMEMBERS", key_nanotask_ids_by_project_name_template_name(pn,tn))
 async def add_nanotask_ids(r, pn, tn, nids):
     return await r.execute("SADD", key_nanotask_ids_by_project_name_template_name(pn,tn), *nids)
 

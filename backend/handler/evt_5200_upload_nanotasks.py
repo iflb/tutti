@@ -41,5 +41,5 @@ class Handler(EventHandler):
         }
         res = self.mongo[self.namespace_mongo.CLCT_NAME_NANOTASK].insert_many([dict(data, **{"props": props}) for props in event.data["props"]])
         inserted_ids = res.inserted_ids
-        await self.namespace_redis.add_nanotask_ids(event.session.redis, pn, tn, [str(id) for id in inserted_ids])
+        await self.namespace_redis.add_nanotask_ids(event.session.redis, pn, tn, self.namespace_mongo.unwrap_obj_id(inserted_ids))
         output.set("NumInserted", len(inserted_ids))

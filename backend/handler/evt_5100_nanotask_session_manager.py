@@ -56,18 +56,20 @@ class Handler(EventHandler):
                 # redisに登録されたpn,tnにおける全てのnanotask IDをとってくる
                 nids = await self.namespace_redis.get_all_nanotask_ids(redis, pn, tn)
                 # 全てのnanotask IDにおけるnanotask実体をmongoからとってくる
-                nts = self.mongo[self.namespace_mongo.CLCT_NAME_NANOTASK].find(filter={"_id":{"$in":nids}})
+                nts = self.mongo[self.namespace_mongo.CLCT_NAME_NANOTASK].find(filter={"_id":{"$in":self.namespace_mongo.wrap_obj_id(nids)}})
                 for nt in nts:
                     # nanotask実体をメモリに登録し、またassign可能な枠があれば別途記憶する
+                    nid = self.namespace_mongo.unwrap_obj_id(nt["_id"])
                     nt["num_remaining"] = nt["num_assignable"]
-                    nt = Nanotask(**nt)
                     aids = await self.namespace_redis.get_answer_ids_for_nanotask_id(redis, nid)
-                    nt.num_remaining -= len(aids)
-                    self.nanotasks[nid] = nt
-                    if nt.num_remaining>0:  self.assignable_nids.add(nid)
+
+                    nanotask = Nanotask(**nt)
+                    nanotask.num_remaining -= len(aids)
+                    self.nanotasks[nid] = nanotask
+                    if nanotask.num_remaining>0:  self.assignable_nids.add(nid)
 
                     # mongoのanswer情報をもとにどのワーカーがどのnanotaskを回答したか集計する
-                    answers = self.mongo[self.namespace_mongo.CLCT_NAME_ANSWER].find(filter={"_id":{"$in":aids}})
+                    answers = self.mongo[self.namespace_mongo.CLCT_NAME_ANSWER].find(filter={"_id":{"$in":self.namespace_mongo.wrap_obj_id(aids)}})
                     for a in answers:
                         wid = a["WorkerId"]
                         if wid not in self.wkr_submitted_nids:
