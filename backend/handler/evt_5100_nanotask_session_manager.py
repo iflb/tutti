@@ -9,8 +9,6 @@ import sys
 import os
 from datetime import datetime
 
-from pymongo import MongoClient
-
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
 
@@ -28,7 +26,6 @@ class Handler(EventHandler):
         super().__init__()
         self.flows = self.load_flows()   # {project_name: TaskFlow}
         self.wsessions = {}               # {session_id: iterator}
-        self.db = MongoClient(os.environ.get("MONGODB_ADDRESS"))
 
         self.dcmodel = DCModel()
         self.nanotasks = {}                     # { nid: Nanotask }
@@ -39,71 +36,121 @@ class Handler(EventHandler):
     async def setup(self, handler_spec, manager):
         self.namespace_redis = manager.load_helper_module('helper_redis_namespace')
         self.namespace_mongo = manager.load_helper_module('helper_mongo_namespace')
+        self.mongo = self.namespace_mongo.get_db()
+
         handler_spec.set_description('テンプレート一覧を取得します。')
         handler_spec.set_as_responsive()
 
-        self.redis = manager.redis
-
-        self.cache_nanotasks()
-        #await self.update_nanotask_assignability()
+        await self.cache_nanotasks(manager.redis)
+        #await self.update_nanotask_assignability(manager.redis)
 
         return handler_spec
 
-
-    def cache_nanotasks(self):
+    async def cache_nanotasks(self, redis):
+        # ディレクトリからプロジェクト名とテンプレート名を操作してメモリに登録
         for pn in common.get_projects():
             prj = self.dcmodel.add_project(Project(pn))
             for tn in common.get_templates(pn):
                 prj.add_template(Template(tn))
 
-        dn = self.namespace_mongo.db_name_for_nanotasks()
-        for cn in self.db[dn].list_collection_names(filter=None):
-            [pn, tn] = self.namespace_mongo.parsed_collection_name_for_answers(cn)
+                # redisに登録されたpn,tnにおける全てのnanotask IDをとってくる
+                nids = await self.namespace_redis.get_all_nanotask_ids(redis, pn, tn)
+                # 全てのnanotask IDにおけるnanotask実体をmongoからとってくる
+                nts = self.mongo[self.namespace_mongo.CLCT_NAME_NANOTASK].find(filter={"_id":{"$in":nids}})
+                for nt in nts:
+                    # nanotask実体をメモリに登録し、またassign可能な枠があれば別途記憶する
+                    nt["num_remaining"] = nt["num_assignable"]
+                    nt = Nanotask(**nt)
+                    aids = await self.namespace_redis.get_answer_ids_for_nanotask_id(redis, nid)
+                    nt.num_remaining -= len(aids)
+                    self.nanotasks[nid] = nt
+                    if nt.num_remaining>0:  self.assignable_nids.add(nid)
 
-            nids = set()
-            for nt in self.db[dn][cn].find():
-                nid = nt["_id"] = str(nt["_id"])
-                nids.add(nid)
-                nt["project_name"] = pn
-                nt["template_name"] = tn
-                nt["num_remaining"] = nt["num_assignable"]
-                self.nanotasks[nid] = Nanotask(**nt)
-                self.assignable_nids.add(nid)
-            self.dcmodel.get_project(pn).get_template(tn).add_nanotask_ids(nids)
-
-
-    async def update_nanotask_assignability(self):
-        import redis
-        r = redis.Redis(host=os.environ["REDIS_ADDRESS"], port=6379, db=0)
-
-        dn = self.namespace_mongo.db_name_for_answers()
-        for nsid in self.db[dn].list_collection_names():
-            #ns = pickle.loads(await self.redis.execute("GET", self.namespace_redis.key_node_session(nsid)))
-            ns = pickle.loads(r.get(self.namespace_redis.key_node_session(nsid)))
-            [pn, tn, nid] = [ns.ws.pid, ns.node.name, ns.nid]
-            answers = self.db[dn][nsid].find()
-
-            if (prj := self.dcmodel.get_project(pn)):
-                if (tmpl := prj.get_template(tn)):
-                    if tmpl.has_nanotasks():
-                        nt = self.nanotasks[nid]
-                        nt.num_remaining -= answers.count()
-                        if nt.num_remaining<=0:  self.assignable_nids.remove(nid)
-                else:
-                    logger.error("template '{}' in project '{}' is not found in memory".format(tn, pn))
-
-                for a in answers:
-                    wid = a["WorkerId"]
-                    if wid not in self.wkr_submitted_nids:
-                        self.wkr_submitted_nids[wid] = set()
-                    if nid:
-                        self.wkr_submitted_nids[wid].add(nid)
-            else:
-                logger.error("project '{}' is not found in memory".format(pn))
+                    # mongoのanswer情報をもとにどのワーカーがどのnanotaskを回答したか集計する
+                    answers = self.mongo[self.namespace_mongo.CLCT_NAME_ANSWER].find(filter={"_id":{"$in":aids}})
+                    for a in answers:
+                        wid = a["WorkerId"]
+                        if wid not in self.wkr_submitted_nids:
+                            self.wkr_submitted_nids[wid] = set()
+                        if nid:
+                            self.wkr_submitted_nids[wid].add(nid)
+                # メモリにpn,tnについてのnanotask ID一覧を記憶する (テンプレートがnanotaskを持つかどうかの判定だけに必要)
+                self.dcmodel.get_project(pn).get_template(tn).add_nanotask_ids(set(nids))
 
         # init queue for workers who answered at least once
         for wid in self.wkr_submitted_nids.keys():
             self.create_task_queue_for_worker(wid)
+
+                #nsids = await self.namespace_redis.get_all_node_session_ids(redis, pn=pn, tn=tn)
+                #print(pn, tn, nsids)
+                #answers = self.mongo[self.namespace_mongo.CLCT_NAME_ANSWER].find(filter={"NodeSessionId":{"$in":nsids}})
+
+
+        #dn = self.namespace_mongo.db_name_for_nanotasks()
+        #for cn in self.mongo[dn].list_collection_names(filter=None):
+        #    [pn, tn] = self.namespace_mongo.parsed_collection_name_for_answers(cn)
+
+        #    nids = set()
+        #    for nt in self.mongo[dn][cn].find():
+        #        nid = nt["_id"] = str(nt["_id"])
+        #        nids.add(nid)
+        #        nt["project_name"] = pn
+        #        nt["template_name"] = tn
+        #        nt["num_remaining"] = nt["num_assignable"]
+        #        self.nanotasks[nid] = Nanotask(**nt)
+        #        self.assignable_nids.add(nid)
+        #    self.dcmodel.get_project(pn).get_template(tn).add_nanotask_ids(nids)
+
+
+    #async def update_nanotask_assignability(self, redis):
+    #    # pn,tnについてのnanotask ID一覧をredisからとってくる
+    #    for pn in self.dcmodel.list_projects():
+    #        for tn in self.dcmodel.get_project(pn).list_templates():
+    #            for nid in await self.namespace_redis.get_nanotask_ids_for_project_name_template_name(redis, pn, tn):
+    #                # あるnidについて回答一覧をとってくる
+    #                nt = self.nanotasks[nid]
+    #                aids = await self.namespace_redis.get_answer_ids_for_nanotask_id(redis, nid)
+    #                nt.num_remaining -= len(aids)
+    #                if nt.num_remaining<=0:  self.assignable_nids.remove(nid)
+
+    #                answers = self.mongo[self.namespace_mongo.CLCT_NAME_ANSWER].find(filter={"_id":{"$in":aids}})
+    #                for a in answers:
+    #                    wid = a["WorkerId"]
+    #                    if wid not in self.wkr_submitted_nids:
+    #                        self.wkr_submitted_nids[wid] = set()
+    #                    if nid:
+    #                        self.wkr_submitted_nids[wid].add(nid)
+
+    #    # init queue for workers who answered at least once
+    #    for wid in self.wkr_submitted_nids.keys():
+    #        self.create_task_queue_for_worker(wid)
+
+    #    #for ans in self.mongo[self.namespace_mongo.CLCT_NAME_ANSWER].find():
+    #    #    nsid = ans["NodeSessionId"]
+    #    #    ns = pickle.loads(await redis.execute("GET", self.namespace_redis.key_node_session(nsid)))
+    #    #    [pn, tn, nid] = [ns.ws.pid, ns.node.name, ns.nid]
+
+    #    #    if (prj := self.dcmodel.get_project(pn)):
+    #    #        if (tmpl := prj.get_template(tn)):
+    #    #            if tmpl.has_nanotasks():
+    #    #                nt = self.nanotasks[nid]
+    #    #                nt.num_remaining -= answers.count()
+    #    #                if nt.num_remaining<=0:  self.assignable_nids.remove(nid)
+    #    #        else:
+    #    #            logger.error("template '{}' in project '{}' is not found in memory".format(tn, pn))
+
+    #    #        for a in answers:
+    #    #            wid = a["WorkerId"]
+    #    #            if wid not in self.wkr_submitted_nids:
+    #    #                self.wkr_submitted_nids[wid] = set()
+    #    #            if nid:
+    #    #                self.wkr_submitted_nids[wid].add(nid)
+    #    #    else:
+    #    #        logger.error("project '{}' is not found in memory".format(pn))
+
+    #    ## init queue for workers who answered at least once
+    #    #for wid in self.wkr_submitted_nids.keys():
+    #    #    self.create_task_queue_for_worker(wid)
 
 
     def create_task_queue_for_worker(self, wid):
@@ -180,14 +227,14 @@ class Handler(EventHandler):
                 self.create_task_queue_for_worker(wid)
 
             flow = self.flows[pn]
-            #wsid = r.get(self.namespace_redis.key_active_work_session_id(ct))
             wsid = WorkSession.generate_id(wid, ct)
             if wsid in self.wsessions:
                 ws = self.wsessions[wsid]
+                await self.namespace_redis.add_work_session_history_for_worker_id(event.session.redis, wsid, wid)
             else:
                 ws = self.wsessions[wsid] = WorkSession(wid, ct, pn, flow.root)
-                #r.sadd(self.namespace_redis.key_work_session_ids_by_project_name(pn), ws.id)
-                #r.set(self.namespace_redis.key_active_work_session_id(ct), ws.id)
+                await self.namespace_redis.register_work_session_id(event.session.redis, ws.id, pn, wid)
+
             output.set("WorkSessionId", ws.id)
             
 
@@ -218,6 +265,7 @@ class Handler(EventHandler):
                     if out_ns.nid is not None:
                         output.set("IsStatic", False)
                         output.set("Props", self.nanotasks[out_ns.nid].props)
+                    await self.namespace_redis.add_node_session_history_for_work_session_id(event.session.redis, out_ns.id, ws.id)
 
                 # get existing node session, when node session is not latest
                 elif ns and (out_ns := ws.get_neighboring_template_node_session(ns, "next")):
@@ -230,6 +278,7 @@ class Handler(EventHandler):
                     if out_ns.nid is not None:
                         output.set("IsStatic", False)
                         output.set("Props", self.nanotasks[out_ns.nid].props)
+                    await self.namespace_redis.add_node_session_history_for_work_session_id(event.session.redis, out_ns.id, ws.id)
 
                 else:   # create new node session, when work session is initialized OR node session is latest
                     try:
@@ -255,6 +304,7 @@ class Handler(EventHandler):
                                 output.set("NanotaskId", None)
                         else:
                             output.set("IsStatic", True)
+                        await self.namespace_redis.register_node_session_id(event.session.redis, out_ns.id, pn, tn, ws.id, wid)
 
                     except StopIteration as e:
                         output.set("Template", None)
@@ -273,6 +323,7 @@ class Handler(EventHandler):
                 else:
                     output.set("IsStatic", True)
                 output.set("NanotaskId", nid)
+                await self.namespace_redis.add_node_session_history_for_work_session_id(event.session.redis, out_ns.id, ws.id)
 
 
             if out_ns:
@@ -314,7 +365,7 @@ class Handler(EventHandler):
                 "Timestamp": datetime.now()
             }
             if nid!="null":  ans_json["NanotaskId"] = nid
-            self.db[self.namespace_mongo.db_name_for_answers()][nsid].insert_one(ans_json)
+            self.mongo[self.namespace_mongo.db_name_for_answers()][nsid].insert_one(ans_json)
             output.set("SentAnswer", answers)
 
 

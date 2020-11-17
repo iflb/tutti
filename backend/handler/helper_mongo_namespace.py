@@ -1,3 +1,20 @@
+import os
+from pymongo import MongoClient
+
+DEFAULT_DB_NAME = "tutti"
+CLCT_NAME_NANOTASK = "nanotask"
+CLCT_NAME_ANSWER = "answer"
+
+def get_db(host=None, port=27017):
+    if host is None:
+        host = os.environ.get("MONGODB_ADDRESS")
+    return MongoClient(host, port)[DEFAULT_DB_NAME]
+
+
+
+
+
+
 def db_name_for_nanotasks():
     return "Nanotask"
 

@@ -95,14 +95,10 @@ class WorkSession(Session):
 
         self.id = self.generate_id(wid, ct)
 
-        #r.sadd(namespace_redis.key_work_session_ids_by_project_name(pid), self.id)
-        #r.sadd(namespace_redis.key_work_session_ids_by_worker_id(wid), self.id)
-        #r.set(namespace_redis.key_active_work_session_id(wid), self.id)
-
     @staticmethod
     def generate_id(wid, ct):
         src = wid+ct
-        return "WS."+hashlib.sha256(src.encode()).hexdigest()
+        return hashlib.sha256(src.encode()).hexdigest()
 
     def finish(self):
         super().finish()

@@ -14,10 +14,12 @@ logger = logging.getLogger(__name__)
 class Handler(EventHandler):
     def __init__(self):
         super().__init__()
-        self.db = MongoClient(os.environ.get("MONGODB_ADDRESS"))
 
     def setup(self, handler_spec, manager):
         self.namespace_mongo = manager.load_helper_module('helper_mongo_namespace')
+        self.namespace_redis = manager.load_helper_module('helper_redis_namespace')
+        self.mongo = self.namespace_mongo.get_db()
+
         self.path = manager.load_helper_module('paths')
         handler_spec.set_description('テンプレート一覧を取得します。')
         handler_spec.set_as_responsive()
@@ -31,12 +33,13 @@ class Handler(EventHandler):
         output.set("Template", tn)
 
         data = {
+            "project_name": pn,
+            "template_name": tn,
             "tag": event.data["tag"],
             "num_assignable": event.data["numAssignable"],
             "priority": event.data["priority"]
         }
-        dn = self.namespace_mongo.db_name_for_nanotasks()
-        cn = self.namespace_mongo.collection_name_for_nanotasks(pn,tn)
-        res = self.db[dn][cn].insert_many([dict(data, **{"props": props}) for props in event.data["props"]])
+        res = self.mongo[self.namespace_mongo.CLCT_NAME_NANOTASK].insert_many([dict(data, **{"props": props}) for props in event.data["props"]])
         inserted_ids = res.inserted_ids
+        await self.namespace_redis.add_nanotask_ids(event.session.redis, pn, tn, [str(id) for id in inserted_ids])
         output.set("NumInserted", len(inserted_ids))

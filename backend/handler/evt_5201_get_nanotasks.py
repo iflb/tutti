@@ -4,7 +4,7 @@ import os
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
 
-from pymongo import MongoClient
+from bson.objectid import ObjectId
 
 from handler.handler_output import handler_output
 
@@ -14,11 +14,13 @@ logger = logging.getLogger(__name__)
 class Handler(EventHandler):
     def __init__(self):
         super().__init__()
-        self.db = MongoClient(os.environ.get("MONGODB_ADDRESS"))
 
     def setup(self, handler_spec, manager):
         self.namespace_mongo = manager.load_helper_module('helper_mongo_namespace')
+        self.namespace_redis = manager.load_helper_module('helper_redis_namespace')
         self.path = manager.load_helper_module('paths')
+        self.mongo = self.namespace_mongo.get_db()
+
         handler_spec.set_description('テンプレート一覧を取得します。')
         handler_spec.set_as_responsive()
         return handler_spec
@@ -30,15 +32,14 @@ class Handler(EventHandler):
         output.set("Project", pn)
         output.set("Template", tn)
 
-        dn = self.namespace_mongo.db_name_for_nanotasks()
-        cn = self.namespace_mongo.collection_name_for_nanotasks(pn, tn)
+        nids = await self.namespace_redis.get_nanotask_ids_for_project_name_template_name(event.session.redis, pn, tn)
 
         if command=="NANOTASKS":
             data = []
-            for d in self.db[dn][cn].find():
-                d["_id"] = str(d["_id"])
-                data.append(d)
+            nts = self.mongo[self.namespace_mongo.CLCT_NAME_NANOTASK].find(filter={"_id":{"$in":[ObjectId(nid) for nid in nids]}})
+            for nt in nts:
+                nt["_id"] = str(nt["_id"])
+                data.append(nt)
             output.set("Nanotasks", data)
         elif command=="COUNT":
-            count = self.db[dn][cn].count()
-            output.set("Count", count)
+            output.set("Count", len(nids))

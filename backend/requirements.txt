@@ -11,7 +11,7 @@ botocore==1.17.44
 chardet==3.0.4
 configparser==5.0.1
 docutils==0.15.2
-ducts==0.0.21
+ducts==0.0.24
 hiredis==1.1.0
 idna==2.10
 ifconf==0.0.15
