@@ -1,23 +1,3 @@
-#def key_work_session_ids_by_project_name(pn):
-#    return f"Project/{pn}/WorkSessionIds"
-
-#def key_work_session_ids_by_worker_id(wid):
-#    return f"Worker/{wid}/WorkSessionIds"
-
-def key_client_tokens(wid):
-    return f"Worker/{wid}/ClientTokens"
-
-def key_active_work_session_id(client_token):
-    return f"ClientToken/{client_token}/ActiveWorkSessionId"
-
-def key_node_session_ids_by_node_id(ndid):
-    return f"Node/{ndid}/NodeSessionIds"
-
-
-
-
-
-
 def key_work_session_ids_by_project_name(pn):
     return f"WorkSessionIds/PRJ:{pn}"
 def key_work_session_ids_by_worker_id(wid):
@@ -43,6 +23,9 @@ def key_answer_ids_by_nanotask_id(nid):
 def key_answer_ids_by_template_name(tn):
     return f"AnswerIds/TMPL:{tn}"
 
+
+
+
 async def get_nanotask_ids_for_project_name_template_name(r, pn, tn):
     return await r.execute_str("SMEMBERS", key_nanotask_ids_by_project_name_template_name(pn,tn))
 
@@ -50,8 +33,6 @@ async def get_answer_ids_for_nanotask_id(r, nid):
     return await r.execute_str("SMEMBERS", key_answer_ids_by_nanotask_id(nid))
 async def get_answer_ids_for_template_name(r, tn):
     return await r.execute_str("SMEMBERS", key_answer_ids_by_template_name(tn))
-async def add_answer_id_for_nanotask_id(r, aid, nid):
-    await r.execute("SADD", key_answer_ids_by_nanotask_id(nid), aid)
 
 async def register_work_session_id(r, wsid, pn, wid):
     await r.execute("SADD", key_work_session_ids_by_project_name(pn), wsid)
@@ -63,6 +44,10 @@ async def register_node_session_id(r, nsid, pn, tn, wsid, wid):
     await r.execute("SADD", key_node_session_ids_by_work_session_id(wsid), nsid)
     await r.execute("SADD", key_node_session_ids_by_worker_id(wid), nsid)
     await add_node_session_history_for_work_session_id(r, nsid, wsid)
+
+async def register_answer_id(r, aid, tn, nid):
+    if nid: await r.execute("SADD", key_answer_ids_by_nanotask_id(nid), aid)
+    await r.execute("SADD", key_answer_ids_by_template_name(tn), aid)
 
 async def get_all_node_session_ids(r, pn=None, tn=None, wsid=None, wid=None):
     try:
@@ -110,6 +95,19 @@ async def add_node_session_history_for_work_session_id(r, nsid, wsid):
 #def key_node_session_ids_by_work_session_id(wsid):
 #    return f"WorkSession/{wsid}/NodeSessionIds"
 
+
+
+
+def key_client_tokens(wid):
+    return f"Worker/{wid}/ClientTokens"
+
+def key_active_work_session_id(client_token):
+    return f"ClientToken/{client_token}/ActiveWorkSessionId"
+
+def key_node_session_ids_by_node_id(ndid):
+    return f"Node/{ndid}/NodeSessionIds"
+
+
 def key_active_node_session_id(wid, wsid):
     return f"WorkSession/{wsid}/ActiveNodeSessionId"
 
@@ -118,8 +116,6 @@ def key_node_session(nsid):
 def key_node_session_answer_id(nsid):
     return f"NodeSession/{nsid}/AnswerId"
 
-#def key_work_session(wsid):
-#    return f"WorkSession/{wsid}"
 
 
 def key_event_query(eid):

@@ -42,7 +42,6 @@ class Handler(EventHandler):
         handler_spec.set_as_responsive()
 
         await self.cache_nanotasks(manager.redis)
-        #await self.update_nanotask_assignability(manager.redis)
 
         return handler_spec
 
@@ -82,77 +81,6 @@ class Handler(EventHandler):
         # init queue for workers who answered at least once
         for wid in self.wkr_submitted_nids.keys():
             self.create_task_queue_for_worker(wid)
-
-                #nsids = await self.namespace_redis.get_all_node_session_ids(redis, pn=pn, tn=tn)
-                #print(pn, tn, nsids)
-                #answers = self.mongo[self.namespace_mongo.CLCT_NAME_ANSWER].find(filter={"NodeSessionId":{"$in":nsids}})
-
-
-        #dn = self.namespace_mongo.db_name_for_nanotasks()
-        #for cn in self.mongo[dn].list_collection_names(filter=None):
-        #    [pn, tn] = self.namespace_mongo.parsed_collection_name_for_answers(cn)
-
-        #    nids = set()
-        #    for nt in self.mongo[dn][cn].find():
-        #        nid = nt["_id"] = str(nt["_id"])
-        #        nids.add(nid)
-        #        nt["project_name"] = pn
-        #        nt["template_name"] = tn
-        #        nt["num_remaining"] = nt["num_assignable"]
-        #        self.nanotasks[nid] = Nanotask(**nt)
-        #        self.assignable_nids.add(nid)
-        #    self.dcmodel.get_project(pn).get_template(tn).add_nanotask_ids(nids)
-
-
-    #async def update_nanotask_assignability(self, redis):
-    #    # pn,tnについてのnanotask ID一覧をredisからとってくる
-    #    for pn in self.dcmodel.list_projects():
-    #        for tn in self.dcmodel.get_project(pn).list_templates():
-    #            for nid in await self.namespace_redis.get_nanotask_ids_for_project_name_template_name(redis, pn, tn):
-    #                # あるnidについて回答一覧をとってくる
-    #                nt = self.nanotasks[nid]
-    #                aids = await self.namespace_redis.get_answer_ids_for_nanotask_id(redis, nid)
-    #                nt.num_remaining -= len(aids)
-    #                if nt.num_remaining<=0:  self.assignable_nids.remove(nid)
-
-    #                answers = self.mongo[self.namespace_mongo.CLCT_NAME_ANSWER].find(filter={"_id":{"$in":aids}})
-    #                for a in answers:
-    #                    wid = a["WorkerId"]
-    #                    if wid not in self.wkr_submitted_nids:
-    #                        self.wkr_submitted_nids[wid] = set()
-    #                    if nid:
-    #                        self.wkr_submitted_nids[wid].add(nid)
-
-    #    # init queue for workers who answered at least once
-    #    for wid in self.wkr_submitted_nids.keys():
-    #        self.create_task_queue_for_worker(wid)
-
-    #    #for ans in self.mongo[self.namespace_mongo.CLCT_NAME_ANSWER].find():
-    #    #    nsid = ans["NodeSessionId"]
-    #    #    ns = pickle.loads(await redis.execute("GET", self.namespace_redis.key_node_session(nsid)))
-    #    #    [pn, tn, nid] = [ns.ws.pid, ns.node.name, ns.nid]
-
-    #    #    if (prj := self.dcmodel.get_project(pn)):
-    #    #        if (tmpl := prj.get_template(tn)):
-    #    #            if tmpl.has_nanotasks():
-    #    #                nt = self.nanotasks[nid]
-    #    #                nt.num_remaining -= answers.count()
-    #    #                if nt.num_remaining<=0:  self.assignable_nids.remove(nid)
-    #    #        else:
-    #    #            logger.error("template '{}' in project '{}' is not found in memory".format(tn, pn))
-
-    #    #        for a in answers:
-    #    #            wid = a["WorkerId"]
-    #    #            if wid not in self.wkr_submitted_nids:
-    #    #                self.wkr_submitted_nids[wid] = set()
-    #    #            if nid:
-    #    #                self.wkr_submitted_nids[wid].add(nid)
-    #    #    else:
-    #    #        logger.error("project '{}' is not found in memory".format(pn))
-
-    #    ## init queue for workers who answered at least once
-    #    #for wid in self.wkr_submitted_nids.keys():
-    #    #    self.create_task_queue_for_worker(wid)
 
 
     def create_task_queue_for_worker(self, wid):
@@ -367,7 +295,8 @@ class Handler(EventHandler):
                 "Timestamp": datetime.now()
             }
             if nid!="null":  ans_json["NanotaskId"] = nid
-            self.mongo[self.namespace_mongo.db_name_for_answers()][nsid].insert_one(ans_json)
+            inserted = self.mongo[self.namespace_mongo.CLCT_NAME_ANSWER].insert_one(ans_json)
+            await self.namespace_redis.register_answer_id(event.session.redis, self.namespace_mongo.unwrap_obj_id(inserted.inserted_id), tn, nid)
             output.set("SentAnswer", answers)
 
 
