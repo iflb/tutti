@@ -1,6 +1,5 @@
-from libs.node import TemplateNode, BatchNode
+from libs.node import TemplateNode, BatchNode, Statement
 
 class TaskFlow:
     def __init__(self):
-        tmpl = TemplateNode("default")
-        self.root = BatchNode("all", children=[tmpl])
+        pass

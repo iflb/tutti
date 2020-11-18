@@ -42,8 +42,11 @@ def templates(project_name):
 def template(project_name, template_name):
     return templates(project_name) / Path(template_name)
 
-def template_preset(preset_name, project_name=None):
-    return template_presets(project_name) / Path(preset_name+".vue")
+def preset_envs(env_name, project_name=None):
+    return template_presets(project_name) / Path(env_name)
+
+def preset_template(env_name, tmpl_name, project_name=None):
+    return template_presets(project_name) / Path(env_name) / Path(tmpl_name+".vue")
 
 def template_main(project_name, template_name):
     return template(project_name, template_name) / Path(cf.template_main+".vue")

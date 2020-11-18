@@ -5,6 +5,7 @@
         <v-form v-model="valid" @submit.prevent="create">
             <v-card-text>
                 <v-text-field autofocus v-model="newTemplateName" filled prepend-icon="mdi-pencil" label="Enter Template Name" :rules="[rules.required, rules.alphanumeric]"></v-text-field>
+                <v-autocomplete v-model="newTemplatePreset" :items="presetsList" dense filled prepend-icon="mdi-shape" label="Choose Preset Template"></v-autocomplete>
             </v-card-text>
             <v-card-actions>
               <v-spacer></v-spacer>
@@ -18,35 +19,72 @@
 
 <script>
 import store from '@/store.js'
-import { mapGetters } from 'vuex'
+import { mapGetters, mapActions } from 'vuex'
 
 export default {
     store,
     computed: {
-        ...mapGetters("ductsModule", [ "duct" ])
+        ...mapGetters("ductsModule", [ "duct" ]),
+        presetsList() {
+            var l = []
+            for(var i in this.presets){
+                l.push({
+                    text: `${this.presets[i][0]} - ${this.presets[i][1]}`,
+                    value: this.presets[i]
+                });
+            }
+            return l;
+        }
     },
     data: () => ({
         shown: false,
         valid: false,
         newTemplateName: "",
+        newTemplatePreset: "",
         rules: {
             required: value => !!value || "This field is required",
             alphanumeric: value => {
                 const pattern = /^[a-zA-Z0-9_-]*$/;
                 return pattern.test(value) || 'Alphabets, numbers, "_", or "-" is only allowed';
             }
-        }
+        },
+        presets: {}
     }),
     props: ["project"],
     methods: {
+        ...mapActions("ductsModule", [ "onDuctOpen" ]),
         create() {
             this.duct.sendMsg({
                 tag: this.name,
-                eid: this.duct.EVENT.CREATE_TEMPLATE,
-                data: `${this.project} ${this.newTemplateName} Default`
+                eid: this.duct.EVENT.TEMPLATE,
+                data: {
+                    "Command": "Create",
+                    "Params": {
+                        "ProjectName": this.project,
+                        "TemplateNames": [this.newTemplateName],
+                        "PresetEnvName": this.newTemplatePreset[0],
+                        "PresetTemplateName": this.newTemplatePreset[1]
+                    }
+                }
             });
             this.shown = false;
         }
+    },
+    created() {
+        this.onDuctOpen(() => {
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.TEMPLATE,
+                data: { "Command": "ListPresets" }
+            });
+            this.duct.addEvtHandler({
+                tag: this.name,
+                eid: this.duct.EVENT.TEMPLATE,
+                handler: (rid, eid, data) => {
+                    this.$set(this, "presets", data["Data"]["Presets"]);
+                }
+            });
+        });
     }
 }
 </script>
