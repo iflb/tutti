@@ -1,4 +1,4 @@
-<img src="/_media/tutti_logo.png" />
+<img src="./_media/tutti_logo.png" />
 
 - [Home](/)
 - [Installation](installation.md)
