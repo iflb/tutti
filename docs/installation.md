@@ -55,21 +55,13 @@ sudo docker-compose up
 
 Then wait while output logs keep printing, until you see the similar message as shown below (this means Vue CLI successfully started the frontend server.)
 
-<img src="/_media/vue-ready-output.png" />
+<img src="./_media/vue-ready-output.png" />
 
 ### 4. Check Tutti Console
 
 Access `https://yourdomain.com/vue/console/` (Web hosting w/ SSL) or `http://localhost/vue/console/` (local host machine) via a web browser (Google Chrome is recommended).
 Make sure that the console is displayed with the green sign "Websocket connected", which means DUCTS backend server is successfully booted.
 
-<img src="/_media/console-ready-screenshot.png" width="700" />
+<img src="./_media/console-ready-screenshot.png" width="700" />
 
 **That's it!** You are now ready to start developing your annotation project with Tutti.
-=======
----
-layout: page
-title: "Installation"
-permalink: /installation/
----
-
-## hoge
