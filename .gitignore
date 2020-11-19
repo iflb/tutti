@@ -8,3 +8,4 @@ projects/*
 !projects/test0812
 !projects/.defaultproject
 .ipynb_checkpoints/
+.DS_Store
