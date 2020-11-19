@@ -65,3 +65,11 @@ Make sure that the console is displayed with the green sign "Websocket connected
 <img src="/_media/console-ready-screenshot.png" width="700" />
 
 **That's it!** You are now ready to start developing your annotation project with Tutti.
+=======
+---
+layout: page
+title: "Installation"
+permalink: /installation/
+---
+
+## hoge
