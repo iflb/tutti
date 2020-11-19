@@ -3,7 +3,7 @@
         <v-app-bar color="indigo" dark app clipped-left dense>
             <v-app-bar-nav-icon @click="drawer = !drawer"></v-app-bar-nav-icon>
             
-            <v-toolbar-title>DynamicCrowd Management Console</v-toolbar-title>
+            <v-toolbar-title>Tutti Management Console</v-toolbar-title>
             <v-spacer></v-spacer>
             <v-autocomplete v-model="project.name" :items="projectNames" :search-input.sync="searchString" label="Select existing project" hide-details cache-items solo-inverted hide-no-data dense rounded></v-autocomplete>
 
