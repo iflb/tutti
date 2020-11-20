@@ -82,7 +82,7 @@ export default {
             this.headerNames = Papa.parse(firstline).data[0];
             this.headers = [];
             for(const i in this.headerNames) this.headers.push({ text: this.headerNames[i], value: this.headerNames[i] });
-            this.contents = Papa.parse(content, { header: true }).data;
+            this.contents = Papa.parse(content, { header: true, skipEmptyLines: true }).data;
           } catch (e) {
             console.log(e)
           }

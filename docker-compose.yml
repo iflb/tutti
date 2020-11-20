@@ -84,18 +84,6 @@ services:
       default:
         ipv4_address: ${MONGODB_ADDRESS}
 
-  #jupyter:
-  #  build:
-  #    context: ./jupyter
-  #  container_name: jupyter
-  #  volumes:
-  #    - ./jupyter:/home/jovyan/work
-  #  ports:
-  #    - "8888:8888"
-  #  networks:
-  #    default:
-  #      ipv4_address: ${JUPYTER_ADDRESS}
-
 networks:
   default:
     driver: bridge

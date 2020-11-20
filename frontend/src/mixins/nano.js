@@ -1,12 +1,12 @@
 export default {
     data: () => ({
         nano: {
-            data: {},
+            props: {},
             ans: {}
         },
         requiredAnsKeys: []
     }),
-    props: ["nanoData", "prevAnswer"],
+    props: ["nanoProps", "prevAnswer"],
     directives: {
         nano: {
             bind: (el, binding, vnode) => {
@@ -57,8 +57,8 @@ export default {
         }
     },
     watch: {
-        nanoData() {   // = when a new nanotask is loaded
-            this.nano.data = this.nanoData;
+        nanoProps() {   // = when a new nanotask is loaded
+            this.nano.props = this.nanoProps;
             this.nano.ans = {};
         },
         "nano.ans": {
@@ -74,7 +74,7 @@ export default {
             this.nano.ans = this.prevAnswer;
         }
 
-        if(!this.nanoData) this.nano.data = this.defaultProps;
-        else this.nano.data = this.nanoData;
+        if(!this.nanoProps) this.nano.props = this.defaultNanoProps;
+        else this.nano.props = this.nanoProps;
     }
 };

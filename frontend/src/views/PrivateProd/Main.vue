@@ -38,7 +38,7 @@
             </v-col>
             <v-col cols="12">
                 <v-slide-x-reverse-transition hide-on-leave>
-                    <component v-if="showTemplate" :is="template" :nano-data="nanoPropData" :prev-answer="prevAnswer" @submit="submit" />
+                    <component v-if="showTemplate" :is="template" :nano-props="nanoProps" :prev-answer="prevAnswer" @submit="submit" />
                 </v-slide-x-reverse-transition>
             </v-col>
         </v-row>
@@ -73,7 +73,7 @@ export default {
         nsid: "",
         answer: {},
         name: "/private-prod/",
-        nanoData: null,
+        nanoProps: null,
         workerId: "",
         dialogLogout: false,
         prevAnswer: null,
@@ -88,9 +88,6 @@ export default {
         template() {
             try { return require(`@/projects/${this.projectName}/templates/${this.templateName}/Main.vue`).default }
             catch { return null }
-        },
-        nanoPropData() {
-            return this.nanoData;
         },
         showWorkerMenu() {
             return platformConfig && platformConfig.showWorkerMenu;
@@ -164,11 +161,11 @@ export default {
                                 this.nsid = d["NodeSessionId"];
                                 if(d["IsStatic"]) {
                                     console.log("loading static task");
-                                    this.nanoData = null;
+                                    this.$set(this, "nanoProps", null);
                                     this.nanotaskId = null;
                                 }
                                 else {
-                                    this.nanoData = d["Props"];
+                                    this.$set(this, "nanoProps", d["Props"]);
                                     this.nanotaskId = d["NanotaskId"];
                                 }
                                 
