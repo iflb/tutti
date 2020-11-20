@@ -51,12 +51,12 @@
         <v-navigation-drawer v-model="drawer" app clipped>
             <v-list nav dense>
                 <v-list-item-group active-class="indigo--text text--accent-4">
-                    <v-list-item>
+                    <!--<v-list-item>
                         <v-list-item-content>
                             <v-list-item-title class="title">DynamicCrowd</v-list-item-title>
                             <v-list-item-subtitle>Alpha Version</v-list-item-subtitle>
                         </v-list-item-content>
-                    </v-list-item>
+                    </v-list-item>-->
 
                     <v-list-item to="/console/dashboard/">
                         <v-list-item-icon>
@@ -186,7 +186,7 @@ export default {
         "projectName" (name) {  // called when project name is selected on the app bar
             localStorage.setItem("tuttiProject", name);
             this.project = this.projects[name];
-            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_TEMPLATES, data: name })
+            this.listTemplates(name);
             this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER, data: `LOAD_FLOW ${name}` })
         },
         project: {
@@ -209,6 +209,16 @@ export default {
             "closeDuct"
         ]),
         launchProductionMode(){ window.open(`/vue/private-prod/${this.projectName}`); },
+        listTemplates(pn) {
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.TEMPLATE,
+                data: {
+                    "Command": "List",
+                    "Params": { "ProjectName": pn }
+                }
+            });
+        },
         querySelections (v) {
             this.loading = true
             setTimeout(() => {
@@ -282,9 +292,6 @@ export default {
             this.duct.setEventHandler(this.duct.EVENT.CREATE_PROJECT, () => {
                 this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_PROJECTS, data: null });
             });
-            this.duct.setEventHandler(this.duct.EVENT.CREATE_TEMPLATE, () => {
-                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_TEMPLATES, data: this.projectName });
-            });
             this.duct.setEventHandler(this.duct.EVENT.LIST_PROJECTS, (rid, eid, data) => {
                 if(data["Status"]==="Success"){
                     var projects = data["Data"]["Projects"];
@@ -298,23 +305,28 @@ export default {
                     if(selected)  this.$set(this, "projectName", selected);
                 }
             });
-            this.duct.setEventHandler(this.duct.EVENT.LIST_TEMPLATES, (rid, eid, data) => {
+            this.duct.setEventHandler(this.duct.EVENT.TEMPLATE, (rid, eid, data) => {
                 if(data["Status"]=="Error") return;
 
-                const pn = data["Data"]["Project"];
-                const tns = data["Data"]["Templates"];
-                var templates = {};
-                for(const i in tns){
-                    var template = new Template(tns[i]);
-                    templates[tns[i]] = template;
+                const command = data["Data"]["Command"];
+                if(command=="Create"){
+                    this.listTemplates(this.projectName);
+                } else if (command=="List"){
+                    const pn = data["Data"]["Project"];
+                    const tns = data["Data"]["Templates"];
+                    var templates = {};
+                    for(const i in tns){
+                        var template = new Template(tns[i]);
+                        templates[tns[i]] = template;
 
-                    this.duct.sendMsg({
-                        tag: this.name,
-                        eid: this.duct.EVENT.GET_NANOTASKS,
-                        data: `COUNT ${pn} ${tns[i]}`
-                    });
+                        this.duct.sendMsg({
+                            tag: this.name,
+                            eid: this.duct.EVENT.GET_NANOTASKS,
+                            data: `COUNT ${pn} ${tns[i]}`
+                        });
+                    }
+                    this.$set(this.project, "templates", templates);
                 }
-                this.$set(this.project, "templates", templates);
             });
 
             this.duct.setEventHandler(this.duct.EVENT.UPLOAD_NANOTASKS, (rid, eid, data) => {

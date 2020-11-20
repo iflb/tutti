@@ -17,11 +17,15 @@ def key_node_session_history_for_work_session_id(wsid):
 
 def key_nanotask_ids_by_project_name_template_name(pn,tn):
     return f"NanotaskIds/PRJ:{pn}/TMPL:{tn}"
+def pubsub_key_nanotask_upload_template():
+    return f"NanotaskUploadTemplate"
 
 def key_answer_ids_by_nanotask_id(nid):
     return f"AnswerIds/NT:{nid}"
 def key_answer_ids_by_template_name(pn, tn):
     return f"AnswerIds/PRJ:{pn}/TMPL:{tn}"
+
+
 
 
 
@@ -66,7 +70,8 @@ async def get_all_node_session_ids(r, pn=None, tn=None, wsid=None, wid=None):
 async def get_all_nanotask_ids(r, pn, tn):
     return await r.execute_str("SMEMBERS", key_nanotask_ids_by_project_name_template_name(pn,tn))
 async def add_nanotask_ids(r, pn, tn, nids):
-    return await r.execute("SADD", key_nanotask_ids_by_project_name_template_name(pn,tn), *nids)
+    await r.execute("SADD", key_nanotask_ids_by_project_name_template_name(pn,tn), *nids)
+    await r.execute("PUBLISH", pubsub_key_nanotask_upload_template(), f"{pn}/{tn}")
 
 async def add_work_session_history_for_worker_id(r, wsid, wid):
     await r.execute("XADD", key_work_session_history_for_worker_id(wid), "*", "WorkSessionId", wsid)

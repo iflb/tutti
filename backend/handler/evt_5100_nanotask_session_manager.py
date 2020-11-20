@@ -10,6 +10,7 @@ import os
 from datetime import datetime
 
 from ducts.event import EventHandler
+from ducts.redis import ChannelForMultiConsumer
 from ifconf import configure_module, config_callback
 
 from handler import common
@@ -45,38 +46,53 @@ class Handler(EventHandler):
 
         return handler_spec
 
+    async def nanotask_upload_watcher(self, r):
+        ch = await r.conn_for_subscription.subscribe(self.namespace_redis.pubsub_key_nanotask_upload_template())
+        ch = ChannelForMultiConsumer(ch[0], r.loop)
+        async for message in ch.iter():
+            message = message.decode()
+            [pn, tn] = message.split("/")
+            await self.cache_nanotasks_each(r, pn, tn)
+
+    async def run(self, manager):
+        return await self.nanotask_upload_watcher(manager.redis)
+
+    async def cache_nanotasks_each(self, redis, pn, tn):
+        # redisに登録されたpn,tnにおける全てのnanotask IDをとってくる
+        nids = await self.namespace_redis.get_all_nanotask_ids(redis, pn, tn)
+        # 全てのnanotask IDにおけるnanotask実体をmongoからとってくる
+        nts = self.mongo[self.namespace_mongo.CLCT_NAME_NANOTASK].find(filter={"_id":{"$in":self.namespace_mongo.wrap_obj_id(nids)}})
+        for nt in nts:
+            # nanotask実体をメモリに登録し、またassign可能な枠があれば別途記憶する
+            nid = self.namespace_mongo.unwrap_obj_id(nt["_id"])
+            nt["num_remaining"] = nt["num_assignable"]
+            aids = await self.namespace_redis.get_answer_ids_for_nanotask_id(redis, nid)
+
+            nanotask = Nanotask(**nt)
+            nanotask.num_remaining -= len(aids)
+            self.nanotasks[nid] = nanotask
+            if nanotask.num_remaining>0:  self.assignable_nids.add(nid)
+
+            # mongoのanswer情報をもとにどのワーカーがどのnanotaskを回答したか集計する
+            answers = self.mongo[self.namespace_mongo.CLCT_NAME_ANSWER].find(filter={"_id":{"$in":self.namespace_mongo.wrap_obj_id(aids)}})
+            for a in answers:
+                wid = a["WorkerId"]
+                if wid not in self.wkr_submitted_nids:
+                    self.wkr_submitted_nids[wid] = set()
+                if nid:
+                    self.wkr_submitted_nids[wid].add(nid)
+        # メモリにpn,tnについてのnanotask ID一覧を記憶する (テンプレートがnanotaskを持つかどうかの判定だけに必要)
+        if not self.dcmodel.get_project(pn):  prj = self.dcmodel.add_project(Project(pn))
+        if not self.dcmodel.get_project(pn).get_template(tn):  prj.add_template(Template(tn))
+        self.dcmodel.get_project(pn).get_template(tn).add_nanotask_ids(set(nids))
+
     async def cache_nanotasks(self, redis):
         # ディレクトリからプロジェクト名とテンプレート名を操作してメモリに登録
         for pn in common.get_projects():
             prj = self.dcmodel.add_project(Project(pn))
             for tn in common.get_templates(pn):
                 prj.add_template(Template(tn))
-
-                # redisに登録されたpn,tnにおける全てのnanotask IDをとってくる
-                nids = await self.namespace_redis.get_all_nanotask_ids(redis, pn, tn)
-                # 全てのnanotask IDにおけるnanotask実体をmongoからとってくる
-                nts = self.mongo[self.namespace_mongo.CLCT_NAME_NANOTASK].find(filter={"_id":{"$in":self.namespace_mongo.wrap_obj_id(nids)}})
-                for nt in nts:
-                    # nanotask実体をメモリに登録し、またassign可能な枠があれば別途記憶する
-                    nid = self.namespace_mongo.unwrap_obj_id(nt["_id"])
-                    nt["num_remaining"] = nt["num_assignable"]
-                    aids = await self.namespace_redis.get_answer_ids_for_nanotask_id(redis, nid)
-
-                    nanotask = Nanotask(**nt)
-                    nanotask.num_remaining -= len(aids)
-                    self.nanotasks[nid] = nanotask
-                    if nanotask.num_remaining>0:  self.assignable_nids.add(nid)
-
-                    # mongoのanswer情報をもとにどのワーカーがどのnanotaskを回答したか集計する
-                    answers = self.mongo[self.namespace_mongo.CLCT_NAME_ANSWER].find(filter={"_id":{"$in":self.namespace_mongo.wrap_obj_id(aids)}})
-                    for a in answers:
-                        wid = a["WorkerId"]
-                        if wid not in self.wkr_submitted_nids:
-                            self.wkr_submitted_nids[wid] = set()
-                        if nid:
-                            self.wkr_submitted_nids[wid].add(nid)
-                # メモリにpn,tnについてのnanotask ID一覧を記憶する (テンプレートがnanotaskを持つかどうかの判定だけに必要)
-                self.dcmodel.get_project(pn).get_template(tn).add_nanotask_ids(set(nids))
+                await self.cache_nanotasks_each(redis, pn, tn)
 
         # init queue for workers who answered at least once
         for wid in self.wkr_submitted_nids.keys():

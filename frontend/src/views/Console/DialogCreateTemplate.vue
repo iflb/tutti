@@ -67,6 +67,8 @@ export default {
                     }
                 }
             });
+            this.newTemplateName = "";
+            this.newTemplatePreset = "";
             this.shown = false;
         }
     },
@@ -81,7 +83,10 @@ export default {
                 tag: this.name,
                 eid: this.duct.EVENT.TEMPLATE,
                 handler: (rid, eid, data) => {
-                    this.$set(this, "presets", data["Data"]["Presets"]);
+                    const command = data["Data"]["Command"];
+                    if(command=="ListPresets") {
+                        this.$set(this, "presets", data["Data"]["Presets"]);
+                    }
                 }
             });
         });
