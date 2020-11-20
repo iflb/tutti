@@ -183,6 +183,7 @@ export default {
             val && val !== this.select && this.querySelections(val)
         },
         "project.name" (name) {  // called when project name is selected on the app bar
+            localStorage.setItem("tuttiProject", name);
             this.project = this.projects[name];
             this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_TEMPLATES, data: name })
             this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER, data: `LOAD_FLOW ${name}` })
@@ -292,6 +293,8 @@ export default {
                         var project = new Project(name, path);
                         this.$set(this.projects, name, project);
                     }
+                    var selected = localStorage.getItem("tuttiProject");   
+                    if(selected)  this.$set(this.project, "name", selected);
                 }
             });
             this.duct.setEventHandler(this.duct.EVENT.LIST_TEMPLATES, (rid, eid, data) => {
