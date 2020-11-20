@@ -65,7 +65,7 @@ import nanoMixIn from "@/mixins/nano";
 export default {
     mixins: [nanoMixIn],
     data: () => ({
-        defaultProps: {
+        defaultNanoProps: {
             "img_url0": "https://images-na.ssl-images-amazon.com/images/I/61qEl7SAq9L._AC_SL1000_.jpg",
             "img_url1": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcQJxhbQz2Oy8Dn8ksxkaXPbzMIvhTaGUBH98P5nQ9zIXlQVV5OnWT1ozp9joA&usqp=CAc"
         }
@@ -81,8 +81,8 @@ In Tutti, we call these fields for nanotasks **nano-props**.
 
 #### Default values
 
-So where did the cute bear images that you just saw during the test run come from?
-They are defined as the placeholder values in the JavaScript code as the members of `defaultProps`.
+So where did the cute teddy bear images that you just saw during the test run come from?
+They are defined as the placeholder values in the JavaScript code as the members of `defaultNanoProps`.
 The placeholder values are used when no nanotask is registered to the template or when you test the template in the browser console's Template page.
 In the practical usage as an annotation system, you need to register nanotasks before you run the project so that dynamic image pairs are loaded.
 

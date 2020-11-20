@@ -34,7 +34,7 @@ Tutti's **flow**-designing strategy enables you to build as complex and detailed
           b_main = BatchNode("main",
                              [t_main1, t_main2],
                              statement=Statement.WHILE,
-                             cond=("cnt", "<", 3))
+                             cond=("cnt", "<", 5))
 
           t_post = TemplateNode("post")
   
