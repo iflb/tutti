@@ -5,7 +5,7 @@
             
             <v-toolbar-title>Tutti Management Console</v-toolbar-title>
             <v-spacer></v-spacer>
-            <v-autocomplete v-model="project.name" :items="projectNames" :search-input.sync="searchString" label="Select existing project" hide-details cache-items solo-inverted hide-no-data dense rounded></v-autocomplete>
+            <v-autocomplete v-model="projectName" :items="projectNames" :search-input.sync="searchString" label="Select existing project" hide-details cache-items solo-inverted hide-no-data dense rounded></v-autocomplete>
 
             <v-menu bottom left offset-y>
                 <template v-slot:activator="{ on, attrs }">
@@ -15,7 +15,7 @@
                     <v-list-item @click="$refs.dlgCreateProject.shown=true">
                         <v-list-item-title>Create New Project...</v-list-item-title>
                     </v-list-item>
-                    <v-list-item :disabled="project.name==''" @click="launchProductionMode()">
+                    <v-list-item :disabled="projectName==''" @click="launchProductionMode()">
                         <v-list-item-title>Launch in Production Mode (Private)</v-list-item-title>
                         <v-list-item-action>
                             <v-icon>mdi-open-in-new</v-icon>
@@ -51,12 +51,12 @@
         <v-navigation-drawer v-model="drawer" app clipped>
             <v-list nav dense>
                 <v-list-item-group active-class="indigo--text text--accent-4">
-                    <!--<v-list-item>
+                    <v-list-item>
                         <v-list-item-content>
                             <v-list-item-title class="title">DynamicCrowd</v-list-item-title>
                             <v-list-item-subtitle>Alpha Version</v-list-item-subtitle>
                         </v-list-item-content>
-                    </v-list-item>-->
+                    </v-list-item>
 
                     <v-list-item to="/console/dashboard/">
                         <v-list-item-icon>
@@ -166,6 +166,7 @@ export default {
 
         projects: {},
         project: new Project("", null),
+        projectName: "",
 
         answers: {},
 
@@ -182,9 +183,9 @@ export default {
         searchString (val) {
             val && val !== this.select && this.querySelections(val)
         },
-        "project.name" (name) {  // called when project name is selected on the app bar
+        "projectName" (name) {  // called when project name is selected on the app bar
             localStorage.setItem("tuttiProject", name);
-            this.project = this.projects[name];
+            //this.project = this.projects[name];
             this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_TEMPLATES, data: name })
             this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER, data: `LOAD_FLOW ${name}` })
         },
@@ -207,7 +208,7 @@ export default {
             "openDuct",
             "closeDuct"
         ]),
-        launchProductionMode(){ window.open(`/vue/private-prod/${this.project.name}`); },
+        launchProductionMode(){ window.open(`/vue/private-prod/${this.projectName}`); },
         querySelections (v) {
             this.loading = true
             setTimeout(() => {
@@ -282,7 +283,7 @@ export default {
                 this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_PROJECTS, data: null });
             });
             this.duct.setEventHandler(this.duct.EVENT.CREATE_TEMPLATE, () => {
-                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_TEMPLATES, data: this.project.name });
+                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_TEMPLATES, data: this.projectName });
             });
             this.duct.setEventHandler(this.duct.EVENT.LIST_PROJECTS, (rid, eid, data) => {
                 if(data["Status"]==="Success"){
@@ -294,7 +295,7 @@ export default {
                         this.$set(this.projects, name, project);
                     }
                     var selected = localStorage.getItem("tuttiProject");   
-                    if(selected)  this.$set(this.project, "name", selected);
+                    if(selected)  this.$set(this, "projectName", selected);
                 }
             });
             this.duct.setEventHandler(this.duct.EVENT.LIST_TEMPLATES, (rid, eid, data) => {
