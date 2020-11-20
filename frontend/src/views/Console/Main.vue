@@ -185,7 +185,7 @@ export default {
         },
         "projectName" (name) {  // called when project name is selected on the app bar
             localStorage.setItem("tuttiProject", name);
-            //this.project = this.projects[name];
+            this.project = this.projects[name];
             this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_TEMPLATES, data: name })
             this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER, data: `LOAD_FLOW ${name}` })
         },
