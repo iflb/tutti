@@ -91,9 +91,10 @@ See the [official documentation](https://vuejs.org/v2/guide/single-file-componen
 For instance, `Main.vue` for the `main2` template looks like this (note that this template uses [Vuetify](https://vuetifyjs.com/en/), a Vue UI Library for Material Design):
 
 ```vue
-<!-- post/Main.vue -->
+<!-- main2/Main.vue -->
 
-<template>   <!-- Your HTML code here -->
+<!-- Your HTML code here -->
+<template>   
     <v-container pa-10>
         <v-card width="600" class="mx-auto my-6 pa-6">
             <v-row>
@@ -101,7 +102,7 @@ For instance, `Main.vue` for the `main2` template looks like this (note that thi
                     <header><b>Q.</b> Describe what you saw in the right picture.</header>
                 </v-col>
                 <v-col cols="12">
-                    <v-text-field outlined flat v-nano.required v-model="workerId" label="Worker ID" />
+                    <v-text-field outlined flat v-nano.required v-model="description" label="Describe..." />
                 </v-col>
             </v-row>
             <v-row class="d-flex" justify="end">
@@ -111,7 +112,8 @@ For instance, `Main.vue` for the `main2` template looks like this (note that thi
     </v-container>
 </template>
 
-<script>   <!-- Your JavaScript code here -->
+<!-- Your JavaScript code here -->
+<script>   
 import nanoMixIn from "@/mixins/nano";
 export default {
     mixins: [nanoMixIn],
@@ -119,7 +121,8 @@ export default {
 };
 </script>
 
-<style scoped>   <!-- Your CSS here -->
+<!-- Your CSS here -->
+<style scoped>   
 </style>
 ```
 

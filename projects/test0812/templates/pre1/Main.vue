@@ -1,7 +1,5 @@
 <template>
     <v-container pa-10>
-        <div class="text-h4">Pre-1</div>
-
         <v-card width="600" class="mx-auto my-6 pa-6">
             <v-row>
                 <v-col cols="12"><header><b>Pre-survey.</b> Please answer the following questions first.</header></v-col>

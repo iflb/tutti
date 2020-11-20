@@ -1,6 +1,6 @@
 # Design Flow
 
-## What is flow?
+## Flow
 
 Now that you've created projects and templates -- but how would you define their order of which template comes first, next, and last?
 Here we introduce **flow**.
@@ -77,4 +77,12 @@ For further details of the flow configuration API, see [Programming Reference](.
 
 1. In the browser console, make sure that **first-project** is selected in the top dropdown menu, and click the <svg width="24" height="24" viewBox="0 0 24 24"><path d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z" /></svg> icon to select "**Launch in Production Mode (Private)**".
 
-2. 
+2. A new page tab appears, enter "**testworker**" as a worker name and click "LOGIN".
+
+3. Now you are a worker of the task you created, and you should be seeing `preliminary` task first. Start filling the form and proceed by clicking "NEXT", and continue until you see `post` task.
+
+  <img src="./_media/task-sample.gif" width="600" />
+
+  ?> Task templates can go back-and-forth with their answers saved. Try clicking <svg width="24" height="24" viewBox="0 0 24 24"><path d="M15.41,16.58L10.83,12L15.41,7.41L14,6L8,12L14,18L15.41,16.58Z" /></svg> and <svg width="24" height="24" viewBox="0 0 24 24"><path d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z" /></svg> buttons at the top.
+
+4. Fill the `post` task's form and click "NEXT". Make sure that the page is reloaded (which means the whole flow is completed,) and `preliminary` task appears again.
