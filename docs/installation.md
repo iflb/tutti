@@ -25,8 +25,7 @@ This is especially necessary when you are planning to use some crowdsourcing pla
 
 To enable this feature, you first need to edit an environment configuration file `tutti/.env` as follows:
 
-```bash
-<!-- tutti/.env -->
+```tutti/.env
 
 DOMAIN_NAME=<Your domain name here (e.g., yourdomain.com)>
 EMAIL=<Your email address here>

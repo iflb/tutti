@@ -22,7 +22,7 @@ Tutti's **flow**-designing strategy enables you to build as complex and detailed
 
 3. Edit & save `flow.py` as follows:
 
-  ```python
+  ```flow.py
   from libs.node import TemplateNode, BatchNode, Statement
   
   class TaskFlow:

@@ -90,8 +90,7 @@ See the [official documentation](https://vuejs.org/v2/guide/single-file-componen
 
 For instance, `Main.vue` for the `main2` template looks like this (note that this template uses [Vuetify](https://vuetifyjs.com/en/), a Vue UI Library for Material Design):
 
-```vue
-<!-- main2/Main.vue -->
+```main2/Main.vue
 
 <!-- Your HTML code here -->
 <template>   

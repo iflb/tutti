@@ -16,8 +16,7 @@ Rather, it is just a **template**, literally; actual contents to be dynamically 
 
 Let's take a look at `Main.vue` for `main1` template. In the HTML part of the code, you can see that the source URLs of the images (i.e., `:src` attribute in `<v-img>`) look like some sort of object variables (e.g., `nano.data.img_url0`)  but not hard-coded URLs.
 
-```vue
-<!-- main1/Main.vue -->
+```main1/Main.vue
 
 <template>
     <v-container pa-10>
@@ -78,6 +77,7 @@ export default {
 Strictly speaking, the string value `nano.data.img_url0` and `nano.data.img_url1` actually works as javascript object variables, when the attribute name of their tags has a colon prefix (i.e., `:src`).
 This is a part of Vue.js' template syntax -- [a shorthand of `v-bind` directive](https://vuejs.org/v2/guide/syntax.html#v-bind-Shorthand) which interpolates the value of the specified variable in HTML attributes.
 `nano.data` is also a reserved structure for Tutti's functionality, which means the values for the fields `img_url0` and `img_url` is loaded from one of the registered nanotasks and interpolated to the `src` attributes.
+In Tutti, we call these fields for nanotasks **nano-props**.
 
 #### Default values
 
@@ -105,3 +105,21 @@ In below, we explain how to upload nanotask data for `main1` template.
 5. Restart Tutti service (or restart Tutti's backend service with `docker-compose restart backend`), refresh the browser console, and select **first-project** as the project name in the top navigation bar.
 
 6. Go to "Launch in Production Mode (Private)" again and start the annotation tasks. You will see the images for `main1` template are now of URLs used in the registered nanotasks.
+
+### Understanding nanotask CSV
+
+Currently, the only way we prepared for uploading nanotasks is via CSV file.
+`sample-nanotasks.csv` contains information in the following format:
+```sample-nanotasks.csv
+"img_url0","img_url1"
+"<URL string 0>","<URL string 1>"
+"<URL string 0>","<URL string 1>"
+"<URL string 0>","<URL string 1>"
+"<URL string 0>","<URL string 1>"
+"<URL string 0>","<URL string 1>"
+"<URL string 0>","<URL string 1>"
+...
+```
+
+The first row lists the nano-prop field names, each of which is quoted by doublequotes `"` and separated by comma `,`.
+Each row from the second row to the bottom row represents nano-prop values of a nanotask, with the same quotechars and delimiters.
