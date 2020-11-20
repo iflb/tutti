@@ -4,7 +4,7 @@ class TaskFlow:
     def __init__(self):
         t_pre = TemplateNode("pre1")
 
-        t_main1 = TemplateNode("main3")
+        t_main1 = TemplateNode("main4")
         t_main2 = TemplateNode("main2")
         b_main = BatchNode("main",
                            [t_main1, t_main2],

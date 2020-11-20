@@ -42,14 +42,15 @@ class Handler(EventHandler):
 
             templates_success = []
             for template_name in template_names:
-                dst = self.path.template_main(project_name, template_name)
+                dst = self.path.template(project_name, template_name)
     
                 if os.path.exists(dst):
                     raise Exception("template '{}' already exists (Successful for templates: {})".format(template_name, templates_success))
     
                 try:
-                    os.makedirs(os.path.dirname(dst), exist_ok=True)
-                    shutil.copyfile(preset, dst)
+                    #os.makedirs(os.path.dirname(dst), exist_ok=True)
+                    print(preset, dst)
+                    shutil.copytree(preset, dst)
                     templates_success.append(template_name)
                 except Exception as e:
                     raise Exception("Error for '{}': {} (Successful for templates: {})".format(template_name, e, templates_success))
