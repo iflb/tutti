@@ -30,7 +30,7 @@ class Handler(EventHandler):
         output.set("Command", command)
 
         if command=="get":
-            aids = await self.namespace_redis.get_answer_ids_for_template_name(event.session.redis, tn)
+            aids = await self.namespace_redis.get_answer_ids_for_project_name_template_name(event.session.redis, pn, tn)
             answers = self.mongo[self.namespace_mongo.CLCT_NAME_ANSWER].find(filter={"_id":{"$in":self.namespace_mongo.wrap_obj_id(aids)}})
             answers = self.namespace_mongo.unwrap_obj_id(list(answers))
             [a.update({"Timestamp": time.mktime(a["Timestamp"].timetuple())}) for a in answers]

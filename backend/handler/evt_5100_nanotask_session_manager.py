@@ -296,7 +296,7 @@ class Handler(EventHandler):
             }
             if nid!="null":  ans_json["NanotaskId"] = nid
             inserted = self.mongo[self.namespace_mongo.CLCT_NAME_ANSWER].insert_one(ans_json)
-            await self.namespace_redis.register_answer_id(event.session.redis, self.namespace_mongo.unwrap_obj_id(inserted.inserted_id), tn, nid)
+            await self.namespace_redis.register_answer_id(event.session.redis, self.namespace_mongo.unwrap_obj_id(inserted.inserted_id), pn, tn, nid)
             output.set("SentAnswer", answers)
 
 

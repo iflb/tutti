@@ -20,8 +20,8 @@ def key_nanotask_ids_by_project_name_template_name(pn,tn):
 
 def key_answer_ids_by_nanotask_id(nid):
     return f"AnswerIds/NT:{nid}"
-def key_answer_ids_by_template_name(tn):
-    return f"AnswerIds/TMPL:{tn}"
+def key_answer_ids_by_template_name(pn, tn):
+    return f"AnswerIds/PRJ:{pn}/TMPL:{tn}"
 
 
 
@@ -31,8 +31,8 @@ async def get_nanotask_ids_for_project_name_template_name(r, pn, tn):
 
 async def get_answer_ids_for_nanotask_id(r, nid):
     return await r.execute_str("SMEMBERS", key_answer_ids_by_nanotask_id(nid))
-async def get_answer_ids_for_template_name(r, tn):
-    return await r.execute_str("SMEMBERS", key_answer_ids_by_template_name(tn))
+async def get_answer_ids_for_project_name_template_name(r, pn, tn):
+    return await r.execute_str("SMEMBERS", key_answer_ids_by_template_name(pn, tn))
 
 async def register_work_session_id(r, wsid, pn, wid):
     await r.execute("SADD", key_work_session_ids_by_project_name(pn), wsid)
@@ -45,9 +45,9 @@ async def register_node_session_id(r, nsid, pn, tn, wsid, wid):
     await r.execute("SADD", key_node_session_ids_by_worker_id(wid), nsid)
     await add_node_session_history_for_work_session_id(r, nsid, wsid)
 
-async def register_answer_id(r, aid, tn, nid):
+async def register_answer_id(r, aid, pn, tn, nid):
     if nid: await r.execute("SADD", key_answer_ids_by_nanotask_id(nid), aid)
-    await r.execute("SADD", key_answer_ids_by_template_name(tn), aid)
+    await r.execute("SADD", key_answer_ids_by_template_name(pn, tn), aid)
 
 async def get_all_node_session_ids(r, pn=None, tn=None, wsid=None, wid=None):
     try:
