@@ -183,11 +183,13 @@ export default {
         searchString (val) {
             val && val !== this.select && this.querySelections(val)
         },
-        "projectName" (name) {  // called when project name is selected on the app bar
-            localStorage.setItem("tuttiProject", name);
-            this.project = this.projects[name];
-            this.listTemplates(name);
-            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER, data: `LOAD_FLOW ${name}` })
+        projectName (name) {  // called when project name is selected on the app bar
+            if(name){
+                localStorage.setItem("tuttiProject", name);
+                this.project = this.projects[name];
+                this.listTemplates(name);
+                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER, data: `LOAD_FLOW ${name}` })
+            } 
         },
         project: {
             handler: function(val) {

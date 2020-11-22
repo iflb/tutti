@@ -12,7 +12,7 @@
                             <v-col cols="2">
                                 <v-tooltip bottom>
                                     <template v-slot:activator="{ on, attrs }">
-                                        <v-btn fab small icon v-on="on" v-bind="attrs" :disabled="project.name==''" @click.stop="$refs.dlgCreateTemplate.shown=true"><v-icon dark>mdi-plus-box-multiple-outline</v-icon></v-btn>
+                                        <v-btn fab small icon v-on="on" v-bind="attrs" :disabled="!project || project.name==''" @click.stop="$refs.dlgCreateTemplate.shown=true"><v-icon dark>mdi-plus-box-multiple-outline</v-icon></v-btn>
                                     </template>
                                     <span>Create New Template...</span>
                                 </v-tooltip>
@@ -44,7 +44,7 @@
         </v-row>
 
         <dialog-submit-answer ref="dlgSubmitAnswer" :answer="sentAnswer" />
-        <dialog-create-template ref="dlgCreateTemplate" :project="project.name" />
+        <dialog-create-template ref="dlgCreateTemplate" :project="project ? project.name : null" />
 
     </v-main>
 </template>
@@ -77,17 +77,17 @@ export default {
         nanotaskTemplateComponent: {
             cache: true,
             get: function() {
-                if(this.project.name && this.templateName){
+                if(this.project && this.project.name && this.templateName){
                     return require(`@/projects/${this.project.name}/templates/${this.templateName}/Main.vue`).default;
                 } else { return null }
             }
         },
 
         isTemplateSelectDisabled() {
-            return !this.project.templates || Object.keys(this.project.templates).length==0
+            return !this.project || !this.project.templates || Object.keys(this.project.templates).length==0
         },
         templateNames() {
-            if(this.project.templates) return Object.keys(this.project.templates);
+            if(this.project && this.project.templates) return Object.keys(this.project.templates);
             else return [];
         }
     },
