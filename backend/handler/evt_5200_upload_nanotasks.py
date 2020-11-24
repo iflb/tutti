@@ -1,5 +1,6 @@
 import csv
 import os
+import json
 
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
@@ -41,5 +42,8 @@ class Handler(EventHandler):
         }
         res = self.mongo[self.namespace_mongo.CLCT_NAME_NANOTASK].insert_many([dict(data, **{"props": props}) for props in event.data["props"]])
         inserted_ids = res.inserted_ids
+
+        for i,props in enumerate(event.data["props"]):
+            await event.session.redis.execute("SET", self.namespace_redis.key_nano_props(i), json.dumps(props))
         await self.namespace_redis.add_nanotask_ids(event.session.redis, pn, tn, self.namespace_mongo.unwrap_obj_id(inserted_ids))
         output.set("NumInserted", len(inserted_ids))

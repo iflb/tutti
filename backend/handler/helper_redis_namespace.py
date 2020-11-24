@@ -26,7 +26,15 @@ def key_answer_ids_by_template_name(pn, tn):
     return f"AnswerIds/PRJ:{pn}/TMPL:{tn}"
 
 
+#def key_nano_props_counter():
+#    return f"NanoProps/Counter"
+def key_nano_props(nid):
+    return f"NanoProps/NT:{nid}"
 
+#def key_answers_counter():
+#    return f"NanoProps/Counter"
+def key_answers(nid):
+    return f"Answers/NT:{nid}"
 
 
 
