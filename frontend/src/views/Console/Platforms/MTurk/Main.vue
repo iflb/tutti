@@ -8,12 +8,8 @@
             <v-col cols="7">
                 <div class="text-h3">Amazon Mechanical Turk</div>
                 <v-row class="mt-4">
-                    <v-btn class="ma-2" color="green" dark @click="windowOpen('https://worker.mturk.com', '_blank');">Workers</v-btn>
-                    <v-btn class="ma-2" color="orange" dark @click="windowOpen('https://requester.mturk.com', '_blank');">Requesters</v-btn>
-                </v-row>
-                <v-row>
-                    <v-btn class="ma-2" color="green" outlined @click="windowOpen('https://workersandbox.mturk.com', '_blank');">Workers sandbox</v-btn>
-                    <v-btn class="ma-2" color="orange" outlined @click="windowOpen('https://requestersandbox.mturk.com', '_blank');">Requesters sandbox</v-btn>
+                    <v-btn class="ma-2" color="indigo" outlined @click="windowOpen('https://worker.mturk.com', '_blank');"><v-icon>mdi-account-group</v-icon>Workers</v-btn>
+                    <v-btn class="ma-2" color="indigo" outlined @click="windowOpen('https://requester.mturk.com', '_blank');"><v-icon>mdi-account-circle</v-icon>Requesters</v-btn>
                 </v-row>
             </v-col>
         </v-row>
