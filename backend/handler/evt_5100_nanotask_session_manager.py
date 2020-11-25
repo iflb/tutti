@@ -308,9 +308,9 @@ class Handler(EventHandler):
                 "NodeSessionId": nsid,
                 "WorkerId": wid,
                 "Answers": answers,
-                "Timestamp": datetime.now()
+                "Timestamp": datetime.now().timestamp()
             }
-            await event.session.redis.execute("SET", self.namespace_redis.key_answers(nid), json.dumps(answers))
+            await event.session.redis.execute("JSON.SET", self.namespace_redis.key_answers(nid), ".", json.dumps(ans_json))
             if nid!="null":  ans_json["NanotaskId"] = nid
             inserted = self.mongo[self.namespace_mongo.CLCT_NAME_ANSWER].insert_one(ans_json)
             await self.namespace_redis.register_answer_id(event.session.redis, self.namespace_mongo.unwrap_obj_id(inserted.inserted_id), pn, tn, nid)

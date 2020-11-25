@@ -65,7 +65,8 @@ services:
         ipv4_address: ${BACKEND_ADDRESS}
 
   redis:
-    image: redis:6-alpine
+    #image: redis:6-alpine
+    image: redislabs/rejson:latest
     container_name: redis
     ports:
       - "6379:6379"
