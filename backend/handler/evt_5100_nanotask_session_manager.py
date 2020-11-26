@@ -22,6 +22,9 @@ from libs.task_resource import DCModel, Project, Template, TaskQueue, Nanotask
 import logging
 logger = logging.getLogger(__name__)
 
+from handler.redis_resource import NanotaskResource, WorkSessionResource, AnswerResource
+import handler.redis_index as ri
+
 class Handler(EventHandler):
     def __init__(self):
         super().__init__()
@@ -36,77 +39,52 @@ class Handler(EventHandler):
 
     async def setup(self, handler_spec, manager):
         self.namespace_redis = manager.load_helper_module('helper_redis_namespace')
-        self.namespace_mongo = manager.load_helper_module('helper_mongo_namespace')
-        self.mongo = self.namespace_mongo.get_db()
+        self.r_nt = NanotaskResource(manager.redis)
+        self.r_ws = WorkSessionResource(manager.redis)
+        self.r_ns = NodeSessionResource(manager.redis)
+        self.r_ans = AnswerResource(manager.redis)
+        #await self.cache_nanotasks(manager.redis)
 
         handler_spec.set_description('テンプレート一覧を取得します。')
         handler_spec.set_as_responsive()
 
-        await self.cache_nanotasks(manager.redis)
-
         return handler_spec
 
-    async def nanotask_upload_watcher(self, r):
-        ch = await r.conn_for_subscription.subscribe(self.namespace_redis.pubsub_key_nanotask_upload_template())
-        ch = ChannelForMultiConsumer(ch[0], r.loop)
-        async for message in ch.iter():
-            message = message.decode()
-            [pn, tn] = message.split("/")
-            await self.cache_nanotasks_each(r, pn, tn)
+    #async def nanotask_upload_watcher(self, r):
+    #    ch = await r.conn_for_subscription.subscribe(self.namespace_redis.pubsub_key_nanotask_upload_template())
+    #    ch = ChannelForMultiConsumer(ch[0], r.loop)
+    #    async for message in ch.iter():
+    #        message = message.decode()
+    #        [pn, tn] = message.split("/")
+    #        await self.cache_nanotasks_each(r, pn, tn)
 
-    async def run(self, manager):
-        return await self.nanotask_upload_watcher(manager.redis)
+    #async def run(self, manager):
+    #    return await self.nanotask_upload_watcher(manager.redis)
 
-    async def cache_nanotasks_each(self, redis, pn, tn):
-        # redisに登録されたpn,tnにおける全てのnanotask IDをとってくる
-        nids = await self.namespace_redis.get_all_nanotask_ids(redis, pn, tn)
-        # 全てのnanotask IDにおけるnanotask実体をmongoからとってくる
-        nts = self.mongo[self.namespace_mongo.CLCT_NAME_NANOTASK].find(filter={"_id":{"$in":self.namespace_mongo.wrap_obj_id(nids)}})
-        for nt in nts:
-            # nanotask実体をメモリに登録し、またassign可能な枠があれば別途記憶する
-            nid = self.namespace_mongo.unwrap_obj_id(nt["_id"])
-            nt["num_remaining"] = nt["num_assignable"]
-            aids = await self.namespace_redis.get_answer_ids_for_nanotask_id(redis, nid)
+    #async def cache_nanotasks_each(self, redis, pn, tn):
+    #    nids = await self.r_nt.get_ids_for_pn_tn(pn, tn)
+    #    for nid in nids:
+    #        nt = await self.r_nt.get(nid)
+    #        aids = await self.r_ans.get_ids_for_nid(nid)
+    #        if nt["num_assignable"] < len(aids):
+    #            await ri.add_completed_nid_for_pn_tn(redis, pn, tn, nid)
+    #        for aid in aids:
+    #            a = await self.r_ans.get(aid)
+    #            wid = a["WorkerId"]
+    #            await ri.add_completed_nid_for_pn_tn_wid(redis, pn, tn, wid, nid)
 
-            nanotask = Nanotask(**nt)
-            nanotask.num_remaining -= len(aids)
-            self.nanotasks[nid] = nanotask
-            if nanotask.num_remaining>0:  self.assignable_nids.add(nid)
+    #async def cache_nanotasks(self, redis):
+    #    for pn in common.get_projects():
+    #        for tn in common.get_templates(pn):
+    #            await self.cache_nanotasks_each(redis, pn, tn)
 
-            # mongoのanswer情報をもとにどのワーカーがどのnanotaskを回答したか集計する
-            answers = self.mongo[self.namespace_mongo.CLCT_NAME_ANSWER].find(filter={"_id":{"$in":self.namespace_mongo.wrap_obj_id(aids)}})
-            for a in answers:
-                wid = a["WorkerId"]
-                if wid not in self.wkr_submitted_nids:
-                    self.wkr_submitted_nids[wid] = set()
-                if nid:
-                    self.wkr_submitted_nids[wid].add(nid)
-        # メモリにpn,tnについてのnanotask ID一覧を記憶する (テンプレートがnanotaskを持つかどうかの判定だけに必要)
-        if not self.dcmodel.get_project(pn):  prj = self.dcmodel.add_project(Project(pn))
-        if not self.dcmodel.get_project(pn).get_template(tn):  prj.add_template(Template(tn))
-        self.dcmodel.get_project(pn).get_template(tn).add_nanotask_ids(set(nids))
-
-    async def cache_nanotasks(self, redis):
-        # ディレクトリからプロジェクト名とテンプレート名を操作してメモリに登録
-        for pn in common.get_projects():
-            prj = self.dcmodel.add_project(Project(pn))
-            for tn in common.get_templates(pn):
-                prj.add_template(Template(tn))
-                await self.cache_nanotasks_each(redis, pn, tn)
-
-        # init queue for workers who answered at least once
-        for wid in self.wkr_submitted_nids.keys():
-            self.create_task_queue_for_worker(wid)
-
-
-    def create_task_queue_for_worker(self, wid):
-        wkr_assignable_nids = self.assignable_nids - self.wkr_submitted_nids[wid]
-        for nid in wkr_assignable_nids:
-            nt = self.nanotasks[nid]
-            [pn,tn] = [nt.project_name, nt.template_name]
-            q = self.tqueue.get_queue(wid, pn, tn)
-            self.tqueue.push(q, nid, nt.priority)
-
+    #def create_task_queue_for_worker(self, wid):
+    #    wkr_assignable_nids = self.assignable_nids - self.wkr_submitted_nids[wid]
+    #    for nid in wkr_assignable_nids:
+    #        nt = self.nanotasks[nid]
+    #        [pn,tn] = [nt.project_name, nt.template_name]
+    #        q = self.tqueue.get_queue(wid, pn, tn)
+    #        self.tqueue.push(q, nid, nt.priority)
 
     def load_flow_config(self, project_name):
         mod_flow = importlib.import_module("projects.{}.flow".format(project_name))
@@ -157,42 +135,51 @@ class Handler(EventHandler):
             self.flows[pn] = flow
             output.set("Flow", self.get_batch_info_dict(flow.root))
 
-        elif command=="CREATE_SESSION":    # フローをワーカーが開始するごとに作成
+        elif command=="CREATE_SESSION":
             [pn, wid, ct] = event.data[1:]
-            logger.debug(pn)
-            logger.debug(wid)
-            logger.debug(ct)
 
-            if not wid or wid=="":
-                raise Exception("worker ID cannot be empty")
-            if not ct or ct=="":
-                raise Exception("client token cannot be empty")
+            if not (pn and wid and ct):
+                raise Exception("ProjectName, WorkerId, and ClientToken are required")
 
-            if wid not in self.wkr_submitted_nids:
-                self.wkr_submitted_nids[wid] = set()
-                self.create_task_queue_for_worker(wid)
+            wsid = await self.r_ws.get_id_for_pn_wid_ct(pn,wid,ct)
+            if not wsid:
+                wsid = await self.r_ws.add(WorkSessionResource.create_instance(pn,wid,ct))
 
-            flow = self.flows[pn]
-            wsid = WorkSession.generate_id(wid, ct)
-            if wsid in self.wsessions:
-                ws = self.wsessions[wsid]
-                await self.namespace_redis.add_work_session_history_for_worker_id(event.session.redis, wsid, wid)
-            else:
-                ws = self.wsessions[wsid] = WorkSession(wid, ct, pn, flow.root)
-                await self.namespace_redis.register_work_session_id(event.session.redis, ws.id, pn, wid)
-
-            output.set("WorkSessionId", ws.id)
-            
+            output.set("WorkSessionId", wsid)
 
         elif command=="GET":
             [target, wsid, nsid] = event.data[1:]
-            if wsid not in self.wsessions:  raise Exception("No session found")
+            ws = await self.r_ws.get(wsid)
+            if not ws:  raise Exception("No session found")
 
-            ws = self.wsessions[wsid]
-            [pn, wid] = [ws.pid, ws.wid]
+            pn = ws["ProjectName"]
+            wid = ws["WorkerId"]
+
+            if not nsid:
+                if (nsid := await r_ns.get_id_for_wsid_by_index(wsid, -1)):
+                    # current ns found, return it
+                else:
+                    # ws is new, create and return ns
+            else:
+                if target=="NEXT":
+                    next_nsid = await self.r_ns.get_next_id(nsid)
+                    if next_nsid:
+                        out_ns = await self.r_ns.get(next_nsid)
+                        # also record this behavior to history?
+                    else:
+                        # create new next ns and return ns
+                elif target=="PREV":
+                    prev_nsid = await self.r_ns.get_prev_id(nsid)
+                    if prev_nsid:
+                        out_ns = await self.r_ns.get(prev_nsid)
+                        # also record this behavior to history?
+                    else:
+                        # Error! This is not an expected behavior
+                    
+                    
 
             ns = None
-            if nsid != "":
+            if nsid:
                 if (ns := ws.get_existing_node_session(nsid)):
                     [name, id] = [ns.node.name, ns.id]
                     [p_name, p_id] = [ns.prev.node.name, ns.prev.id]
@@ -310,10 +297,8 @@ class Handler(EventHandler):
                 "Answers": answers,
                 "Timestamp": datetime.now().timestamp()
             }
-            await event.session.redis.execute("JSON.SET", self.namespace_redis.key_answers(nid), ".", json.dumps(ans_json))
             if nid!="null":  ans_json["NanotaskId"] = nid
-            inserted = self.mongo[self.namespace_mongo.CLCT_NAME_ANSWER].insert_one(ans_json)
-            await self.namespace_redis.register_answer_id(event.session.redis, self.namespace_mongo.unwrap_obj_id(inserted.inserted_id), pn, tn, nid)
+            await add_answer_for_nsid(event.session.redis, nsid, ans_json)
             output.set("SentAnswer", answers)
 
 

@@ -9,3 +9,4 @@ projects/*
 !projects/.defaultproject
 .ipynb_checkpoints/
 .DS_Store
+*.swp

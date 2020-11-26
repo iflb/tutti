@@ -1,3 +1,4 @@
+
 def key_work_session_ids_by_project_name(pn):
     return f"WorkSessionIds/PRJ:{pn}"
 def key_work_session_ids_by_worker_id(wid):
@@ -15,36 +16,47 @@ def key_work_session_history_for_worker_id(wid):
 def key_node_session_history_for_work_session_id(wsid):
     return f"NodeSessionIdHistory/WS:{wsid}"
 
-def key_nanotask_ids_by_project_name_template_name(pn,tn):
+def key_nids_by_project_name_template_name(pn,tn):
     return f"NanotaskIds/PRJ:{pn}/TMPL:{tn}"
 def pubsub_key_nanotask_upload_template():
     return f"NanotaskUploadTemplate"
 
-def key_answer_ids_by_nanotask_id(nid):
+def key_nsid_by_nid(nid):
     return f"AnswerIds/NT:{nid}"
-def key_answer_ids_by_template_name(pn, tn):
+def key_nsid_by_pn_tn(pn, tn):
     return f"AnswerIds/PRJ:{pn}/TMPL:{tn}"
 
 
-#def key_nano_props_counter():
-#    return f"NanoProps/Counter"
-def key_nano_props(nid):
-    return f"NanoProps/NT:{nid}"
+async def get_next_nid(r):
+    cnt = await r.execute("INCR", key_nanotask_counter())
+    return nid(cnt)
+#async def get_next_nanotask_key():
+#    return key_nanotask(get_next_nid())
+async def get_nanotask(r, nid):
+    return json.loads(await r.execute("JSON.GET", key_nanotask(nid)))
+async def add_new_nanotask(r, pn, tn, data):
+    nid = await self.namespace_redis.get_next_nid(event.session.redis)
+    await event.session.redis.execute("JSON.SET", self.namespace_redis.key_nanotask(nid), ".", json.dumps(data))
 
-#def key_answers_counter():
-#    return f"NanoProps/Counter"
-def key_answers(nid):
-    return f"Answers/NT:{nid}"
+    await r.execute("SADD", key_nids_by_project_name_template_name(pn,tn), nid)
+    await r.execute("PUBLISH", pubsub_key_nanotask_upload_template(), f"{pn}/{tn}")
+
+    return nid
+
+def key_answers(nsid):
+    return f"Answers/{nsid}"
+async def add_answer_for_nsid(r, nsid, data):
+    await r.execute("JSON.SET", key_answers(nsid), json.dumps(data))
 
 
 
-async def get_nanotask_ids_for_project_name_template_name(r, pn, tn):
-    return await r.execute_str("SMEMBERS", key_nanotask_ids_by_project_name_template_name(pn,tn))
+async def get_nids_for_project_name_template_name(r, pn, tn):
+    return await r.execute_str("SMEMBERS", key_nids_by_project_name_template_name(pn,tn))
 
-async def get_answer_ids_for_nanotask_id(r, nid):
-    return await r.execute_str("SMEMBERS", key_answer_ids_by_nanotask_id(nid))
+async def get_node_session_ids_for_nid(r, nid):
+    return await r.execute_str("SMEMBERS", key_nsid_by_nid(nid))
 async def get_answer_ids_for_project_name_template_name(r, pn, tn):
-    return await r.execute_str("SMEMBERS", key_answer_ids_by_template_name(pn, tn))
+    return await r.execute_str("SMEMBERS", key_nsid_by_pn_tn(pn, tn))
 
 async def register_work_session_id(r, wsid, pn, wid):
     await r.execute("SADD", key_work_session_ids_by_project_name(pn), wsid)
@@ -57,9 +69,9 @@ async def register_node_session_id(r, nsid, pn, tn, wsid, wid):
     await r.execute("SADD", key_node_session_ids_by_worker_id(wid), nsid)
     await add_node_session_history_for_work_session_id(r, nsid, wsid)
 
-async def register_answer_id(r, aid, pn, tn, nid):
-    if nid: await r.execute("SADD", key_answer_ids_by_nanotask_id(nid), aid)
-    await r.execute("SADD", key_answer_ids_by_template_name(pn, tn), aid)
+async def register_nsid(r, aid, pn, tn, nid):
+    if nid: await r.execute("SADD", key_nsid_by_nid(nid), aid)
+    await r.execute("SADD", key_nsid_by_pn_tn(pn, tn), aid)
 
 async def get_all_node_session_ids(r, pn=None, tn=None, wsid=None, wid=None):
     try:
@@ -75,17 +87,16 @@ async def get_all_node_session_ids(r, pn=None, tn=None, wsid=None, wid=None):
     except:
         raise Exception("confused keys for node session ids")
 
-async def get_all_nanotask_ids(r, pn, tn):
-    return await r.execute_str("SMEMBERS", key_nanotask_ids_by_project_name_template_name(pn,tn))
-async def add_nanotask_ids(r, pn, tn, nids):
-    await r.execute("SADD", key_nanotask_ids_by_project_name_template_name(pn,tn), *nids)
+async def get_all_nids(r, pn, tn):
+    return await r.execute_str("SMEMBERS", key_nids_by_project_name_template_name(pn,tn))
+async def add_nids(r, pn, tn, nids):
+    await r.execute("SADD", key_nids_by_project_name_template_name(pn,tn), *nids)
     await r.execute("PUBLISH", pubsub_key_nanotask_upload_template(), f"{pn}/{tn}")
 
 async def add_work_session_history_for_worker_id(r, wsid, wid):
     await r.execute("XADD", key_work_session_history_for_worker_id(wid), "*", "WorkSessionId", wsid)
 async def add_node_session_history_for_work_session_id(r, nsid, wsid):
     await r.execute("XADD", key_node_session_history_for_work_session_id(wsid), "*", "NodeSessionId", nsid)
-
 
 
 #async def enqueue_global_assignable_queue(r, score, nid, pn, tn):
