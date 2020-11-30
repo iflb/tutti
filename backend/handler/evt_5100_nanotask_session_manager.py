@@ -155,10 +155,18 @@ class Handler(EventHandler):
             pn = ws["ProjectName"]
             wid = ws["WorkerId"]
 
+            out = {}
             if not nsid:
                 if (nsid := await r_ns.get_id_for_wsid_by_index(wsid, -1)):
-                    # current ns found, return it
+                    ns = await r_ns.get(nsid)
+                    out["NodeSessionId"] = nsid
+                    nid = out["NanotaskId"] = ns["NanotaskId"]
+                    tn = out["TemplateName"] = ns["TemplateName"]
+                    answer = out["Answers"] = await r_ans.get(nsid)
+                    out["IsStatic"] = False if nid else True
+                    out["Props"] = (await r_nt.get(nid))["Props"] else None
                 else:
+                    self.flows[pn]
                     # ws is new, create and return ns
             else:
                 if target=="NEXT":
@@ -175,6 +183,19 @@ class Handler(EventHandler):
                         # also record this behavior to history?
                     else:
                         # Error! This is not an expected behavior
+
+            output.set("NodeSessionId", out_ns.id)
+            output.set("Template", out_ns.node.name)
+            output.set("Answers", answer)
+            output.set("NanotaskId", out_ns.nid)
+            if out_ns.nid is not None:
+                output.set("IsStatic", False)
+                output.set("Props", self.nanotasks[out_ns.nid].props)
+
+            output.set("HasPrevTemplate", (ws.get_neighboring_template_node_session(out_ns, "prev") is not None))
+            output.set("HasNextTemplate", (ws.get_neighboring_template_node_session(out_ns, "next") is not None))
+
+            logger.info(f"{name}({id}), prev={p_name}({p_id}), next={n_name}({n_id})")
                     
                     
 
