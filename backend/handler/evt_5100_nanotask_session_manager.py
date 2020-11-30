@@ -28,7 +28,8 @@ import handler.redis_index as ri
 class Handler(EventHandler):
     def __init__(self):
         super().__init__()
-        self.flows = self.load_flows()   # {project_name: TaskFlow}
+        #self.flows = self.load_flows()   # {project_name: TaskFlow}
+        self.schemes = self.load_all_project_schemes()
         self.wsessions = {}               # {session_id: iterator}
 
         self.dcmodel = DCModel()
@@ -86,22 +87,41 @@ class Handler(EventHandler):
     #        q = self.tqueue.get_queue(wid, pn, tn)
     #        self.tqueue.push(q, nid, nt.priority)
 
-    def load_flow_config(self, project_name):
-        mod_flow = importlib.import_module("projects.{}.flow".format(project_name))
-        importlib.reload(mod_flow)
-        flow = mod_flow.TaskFlow()
-        flow.root.scan()
-        return flow
-
-    def load_flows(self):
-        flows = {}
+    def load_all_project_schemes(self):
+        schemes = {}
         for project_name in common.get_projects():
             try:
-                flows[project_name] = self.load_flow_config(project_name)
+                schemes[project_name] = self.load_project_scheme(project_name)
             except Exception as e:
-                logger.error("could not load flow for {}, {}".format("projects.{}.flow".format(project_name), str(e)))
-                continue   
-        return flows
+                logger.error(str(e))
+        return schemes
+
+    def load_project_scheme(self, project_name):
+        try:
+            module = "projects.{}.scheme".format(project_name)
+            mod_flow = importlib.import_module(module)
+            importlib.reload(mod_flow)
+            scheme = mod_flow.ProjectScheme()
+            return scheme
+        except Exception as e:
+            raise Exception(f"could not load scheme for {module}: {str(e)}")
+
+    #def load_flow_config(self, project_name):
+    #    mod_flow = importlib.import_module("projects.{}.flow".format(project_name))
+    #    importlib.reload(mod_flow)
+    #    flow = mod_flow.TaskFlow()
+    #    flow.root.scan()
+    #    return flow
+
+    #def load_flows(self):
+    #    flows = {}
+    #    for project_name in common.get_projects():
+    #        try:
+    #            flows[project_name] = self.load_flow_config(project_name)
+    #        except Exception as e:
+    #            logger.error("could not load flow for {}, {}".format("projects.{}.flow".format(project_name), str(e)))
+    #            continue   
+    #    return flows
 
     def get_batch_info_dict(self, child):
         if child.is_batch():
@@ -111,15 +131,15 @@ class Handler(EventHandler):
             return {
                 "name": child.name,
                 "statement": child.statement.value,
-                "cond": child.cond,
-                "skippable": child.skippable,
+                "condition": child.condition,
+                "is_skippable": child.is_skippable,
                 "children": _info
             }
         elif child.is_template():
             return {
                 "statement": child.statement.value,
-                "cond": child.cond,
-                "skippable": child.skippable,
+                "condition": child.condition,
+                "is_skippable": child.is_skippable,
                 "name": child.name
             }
 
@@ -131,9 +151,9 @@ class Handler(EventHandler):
         if command=="LOAD_FLOW":
             pn = event.data[1]
 
-            flow = self.load_flow_config(pn)
-            self.flows[pn] = flow
-            output.set("Flow", self.get_batch_info_dict(flow.root))
+            scheme = self.load_project_scheme(pn)
+            self.schemes[pn] = scheme
+            output.set("Flow", self.get_batch_info_dict(scheme.flow_nodes["root"]))
 
         elif command=="CREATE_SESSION":
             [pn, wid, ct] = event.data[1:]
@@ -148,6 +168,27 @@ class Handler(EventHandler):
             output.set("WorkSessionId", wsid)
 
         elif command=="GET":
+            def _get_next_template_node(next_node):
+                while (next_node := next_node.forward(None, None, None)):
+                    ns = NodeSessionResource.create_instance(pn=pn,
+                                                             name=next_node.name,
+                                                             wsid=wsid,
+                                                             prev_id=None,
+                                                             is_template=next_node.is_template())
+                    nsid = await r_ns.add(ns)
+                    if next_node.is_template():
+                        return ns, nsid
+
+            def _get_neighboring_template_node_session(ns, direction):
+                _ns = ns
+                if direction=="prev":
+                    while (_ns := await r_ns.get(_ns["PrevId"]))
+                        if _ns["IsTemplateNode"]:  return _ns
+                elif direction=="next":
+                    while (_ns := await r_ns.get(_ns["NextId"]))
+                        if _ns["IsTemplateNode"]:  return _ns
+                return None
+                
             [target, wsid, nsid] = event.data[1:]
             ws = await self.r_ws.get(wsid)
             if not ws:  raise Exception("No session found")
@@ -155,140 +196,142 @@ class Handler(EventHandler):
             pn = ws["ProjectName"]
             wid = ws["WorkerId"]
 
+            scheme = self.schemes[pn]
+
             out = {}
             if not nsid:
                 if (nsid := await r_ns.get_id_for_wsid_by_index(wsid, -1)):
-                    ns = await r_ns.get(nsid)
-                    out["NodeSessionId"] = nsid
-                    nid = out["NanotaskId"] = ns["NanotaskId"]
-                    tn = out["TemplateName"] = ns["TemplateName"]
-                    answer = out["Answers"] = await r_ans.get(nsid)
-                    out["IsStatic"] = False if nid else True
-                    out["Props"] = (await r_nt.get(nid))["Props"] else None
+                    out_nsid = nsid
+                    out_ns = await r_ns.get(nsid)
+                    out_ans = await r_ans.get(nsid)
                 else:
-                    self.flows[pn]
-                    # ws is new, create and return ns
+                    out_ns, out_nsid = _get_next_template_node(scheme.flow_nodes["begin"])
+                    out_ans = None
             else:
+                ns = await self.r_ns.get(nsid)
                 if target=="NEXT":
-                    next_nsid = await self.r_ns.get_next_id(nsid)
-                    if next_nsid:
-                        out_ns = await self.r_ns.get(next_nsid)
+                    if ns["NextId"]:
+                        out_nsid = ns["NextId"]
+                        out_ns = await self.r_ns.get(ns["NextId"])
+                        out_ans = await self.r_ans.get(ns["NextId"])
                         # also record this behavior to history?
                     else:
-                        # create new next ns and return ns
+                        out_ns = _get_next_template_node(scheme.flow.get_node_by_name(ns["TemplateName"]))
+                        out_ans = None
                 elif target=="PREV":
-                    prev_nsid = await self.r_ns.get_prev_id(nsid)
-                    if prev_nsid:
-                        out_ns = await self.r_ns.get(prev_nsid)
+                    if ns["PrevId"]:
+                        out_nsid = ns["PrevId"]
+                        out_ns = await self.r_ns.get(ns["PrevId"])
+                        out_ans = await self.r_ans.get(ns["PrevId"])
                         # also record this behavior to history?
                     else:
-                        # Error! This is not an expected behavior
+                        raise Exception("Unexpected request for previous node session")
 
-            output.set("NodeSessionId", out_ns.id)
-            output.set("Template", out_ns.node.name)
-            output.set("Answers", answer)
-            output.set("NanotaskId", out_ns.nid)
-            if out_ns.nid is not None:
+            output.set("NodeSessionId", out_nsid)
+            output.set("Template", out_ns["TemplateName"])
+            output.set("Answers", out_ans)
+            output.set("NanotaskId", out_ns["NanotaskId"])
+            if out_ns["NanotaskId"] is not None:
+                nt = await self.r_nt.get(out_ns["NanotaskId"])
                 output.set("IsStatic", False)
-                output.set("Props", self.nanotasks[out_ns.nid].props)
+                output.set("Props", nt["Props"])
+            else:
+                output.set("IsStatic", True)
 
-            output.set("HasPrevTemplate", (ws.get_neighboring_template_node_session(out_ns, "prev") is not None))
-            output.set("HasNextTemplate", (ws.get_neighboring_template_node_session(out_ns, "next") is not None))
-
-            logger.info(f"{name}({id}), prev={p_name}({p_id}), next={n_name}({n_id})")
-                    
-                    
-
-            ns = None
-            if nsid:
-                if (ns := ws.get_existing_node_session(nsid)):
-                    [name, id] = [ns.node.name, ns.id]
-                    [p_name, p_id] = [ns.prev.node.name, ns.prev.id]
-                    [n_name, n_id] = [ns.next.node.name, ns.next.id] if ns.next else [None, None]
-                    logger.info(f"IN:: {name}({id}), prev={p_name}({p_id}), next={n_name}({n_id})")
-                else:
-                    raise Exception(f"Invalid node session ID: {nsid}")
-
-            if target=="NEXT":
-                if (not ns) and (ws.current_ns):
-                    out_ns = ws.current_ns
-                    output.set("NodeSessionId", out_ns.id)
-                    output.set("Template", out_ns.node.name)
-                    output.set("Answers", out_ns.answers)
-                    output.set("NanotaskId", out_ns.nid)
-                    if out_ns.nid is not None:
-                        output.set("IsStatic", False)
-                        output.set("Props", self.nanotasks[out_ns.nid].props)
-                    await self.namespace_redis.add_node_session_history_for_work_session_id(event.session.redis, out_ns.id, ws.id)
-
-                # get existing node session, when node session is not latest
-                elif ns and (out_ns := ws.get_neighboring_template_node_session(ns, "next")):
-                    if out_ns != ws.get_existing_node_session(out_ns.id):
-                        raise Exception("Broken consistency of node sessions in work session")
-                    output.set("NodeSessionId", out_ns.id)
-                    output.set("Template", out_ns.node.name)
-                    output.set("Answers", out_ns.answers)
-                    output.set("NanotaskId", out_ns.nid)
-                    if out_ns.nid is not None:
-                        output.set("IsStatic", False)
-                        output.set("Props", self.nanotasks[out_ns.nid].props)
-                    await self.namespace_redis.add_node_session_history_for_work_session_id(event.session.redis, out_ns.id, ws.id)
-
-                else:   # create new node session, when work session is initialized OR node session is latest
-                    try:
-                        # if there is no more available template
-                        if not (out_ns := ws.create_next_template_node_session(ns)):
-                            raise StopIteration()
-
-                        tn = out_ns.node.name
-                        output.set("NodeSessionId", out_ns.id)
-                        output.set("Template", tn)
-                        tmpl = self.dcmodel.get_project(pn).get_template(tn)
-                        if tmpl.has_nanotasks():
-                            q = self.tqueue.get_queue(wid, pn, tn)
-                            if len(q)>0:
-                                nid = self.tqueue.pop(q)
-                                out_ns.update_attr("nid", nid)
-
-                                nt = self.nanotasks[nid]
-                                output.set("IsStatic", False)
-                                output.set("NanotaskId", nid)
-                                output.set("Props", nt.props)
-                            else:
-                                output.set("NanotaskId", None)
-                        else:
-                            output.set("IsStatic", True)
-                        await self.namespace_redis.register_node_session_id(event.session.redis, out_ns.id, pn, tn, ws.id, wid)
-
-                    except StopIteration as e:
-                        output.set("Template", None)
-
-            elif target=="PREV":
-                out_ns = ws.get_neighboring_template_node_session(ns, "prev")
-                if out_ns != ws.get_existing_node_session(out_ns.id):
-                    raise Exception("Broken consistency of node sessions in work session")
-                
-                output.set("NodeSessionId", out_ns.id)
-                output.set("Template", out_ns.node.name)
-                output.set("Answers", out_ns.answers)
-                if (nid := out_ns.nid):
-                    output.set("IsStatic", False)
-                    output.set("Props", self.nanotasks[nid].props)
-                else:
-                    output.set("IsStatic", True)
-                output.set("NanotaskId", nid)
-                await self.namespace_redis.add_node_session_history_for_work_session_id(event.session.redis, out_ns.id, ws.id)
+            output.set("HasPrevTemplate", (_get_neighboring_template_node_session(out_ns, "prev") is not None))
+            output.set("HasNextTemplate", (_get_neighboring_template_node_session(out_ns, "next") is not None))
 
 
-            if out_ns:
-                ws.current_ns = out_ns
-                [name, id] = [out_ns.node.name, out_ns.id]
-                [p_name, p_id] = [out_ns.prev.node.name, out_ns.prev.id]
-                [n_name, n_id] = [out_ns.next.node.name, out_ns.next.id] if out_ns.next else [None, None]
-                logger.info(f"OUT:: {name}({id}), prev={p_name}({p_id}), next={n_name}({n_id})")
+            #ns = None
+            #if nsid:
+            #    if (ns := ws.get_existing_node_session(nsid)):
+            #        [name, id] = [ns.node.name, ns.id]
+            #        [p_name, p_id] = [ns.prev.node.name, ns.prev.id]
+            #        [n_name, n_id] = [ns.next.node.name, ns.next.id] if ns.next else [None, None]
+            #        logger.info(f"IN:: {name}({id}), prev={p_name}({p_id}), next={n_name}({n_id})")
+            #    else:
+            #        raise Exception(f"Invalid node session ID: {nsid}")
 
-                output.set("HasPrevTemplate", (ws.get_neighboring_template_node_session(out_ns, "prev") is not None))
-                output.set("HasNextTemplate", (ws.get_neighboring_template_node_session(out_ns, "next") is not None))
+            #if target=="NEXT":
+            #    if (not ns) and (ws.current_ns):
+            #        out_ns = ws.current_ns
+            #        output.set("NodeSessionId", out_ns.id)
+            #        output.set("Template", out_ns.node.name)
+            #        output.set("Answers", out_ns.answers)
+            #        output.set("NanotaskId", out_ns.nid)
+            #        if out_ns.nid is not None:
+            #            output.set("IsStatic", False)
+            #            output.set("Props", self.nanotasks[out_ns.nid].props)
+            #        await self.namespace_redis.add_node_session_history_for_work_session_id(event.session.redis, out_ns.id, ws.id)
+
+            #    # get existing node session, when node session is not latest
+            #    elif ns and (out_ns := ws.get_neighboring_template_node_session(ns, "next")):
+            #        if out_ns != ws.get_existing_node_session(out_ns.id):
+            #            raise Exception("Broken consistency of node sessions in work session")
+            #        output.set("NodeSessionId", out_ns.id)
+            #        output.set("Template", out_ns.node.name)
+            #        output.set("Answers", out_ns.answers)
+            #        output.set("NanotaskId", out_ns.nid)
+            #        if out_ns.nid is not None:
+            #            output.set("IsStatic", False)
+            #            output.set("Props", self.nanotasks[out_ns.nid].props)
+            #        await self.namespace_redis.add_node_session_history_for_work_session_id(event.session.redis, out_ns.id, ws.id)
+
+            #    else:   # create new node session, when work session is initialized OR node session is latest
+            #        try:
+            #            # if there is no more available template
+            #            if not (out_ns := ws.create_next_template_node_session(ns)):
+            #                raise StopIteration()
+
+            #            tn = out_ns.node.name
+            #            output.set("NodeSessionId", out_ns.id)
+            #            output.set("Template", tn)
+            #            tmpl = self.dcmodel.get_project(pn).get_template(tn)
+            #            if tmpl.has_nanotasks():
+            #                q = self.tqueue.get_queue(wid, pn, tn)
+            #                if len(q)>0:
+            #                    nid = self.tqueue.pop(q)
+            #                    out_ns.update_attr("nid", nid)
+
+            #                    nt = self.nanotasks[nid]
+            #                    output.set("IsStatic", False)
+            #                    output.set("NanotaskId", nid)
+            #                    output.set("Props", nt.props)
+            #                else:
+            #                    output.set("NanotaskId", None)
+            #            else:
+            #                output.set("IsStatic", True)
+            #            await self.namespace_redis.register_node_session_id(event.session.redis, out_ns.id, pn, tn, ws.id, wid)
+
+            #        except StopIteration as e:
+            #            output.set("Template", None)
+
+            #elif target=="PREV":
+            #    out_ns = ws.get_neighboring_template_node_session(ns, "prev")
+            #    if out_ns != ws.get_existing_node_session(out_ns.id):
+            #        raise Exception("Broken consistency of node sessions in work session")
+            #    
+            #    output.set("NodeSessionId", out_ns.id)
+            #    output.set("Template", out_ns.node.name)
+            #    output.set("Answers", out_ns.answers)
+            #    if (nid := out_ns.nid):
+            #        output.set("IsStatic", False)
+            #        output.set("Props", self.nanotasks[nid].props)
+            #    else:
+            #        output.set("IsStatic", True)
+            #    output.set("NanotaskId", nid)
+            #    await self.namespace_redis.add_node_session_history_for_work_session_id(event.session.redis, out_ns.id, ws.id)
+
+
+            #if out_ns:
+            #    ws.current_ns = out_ns
+            #    [name, id] = [out_ns.node.name, out_ns.id]
+            #    [p_name, p_id] = [out_ns.prev.node.name, out_ns.prev.id]
+            #    [n_name, n_id] = [out_ns.next.node.name, out_ns.next.id] if out_ns.next else [None, None]
+            #    logger.info(f"OUT:: {name}({id}), prev={p_name}({p_id}), next={n_name}({n_id})")
+
+            #    output.set("HasPrevTemplate", (ws.get_neighboring_template_node_session(out_ns, "prev") is not None))
+            #    output.set("HasNextTemplate", (ws.get_neighboring_template_node_session(out_ns, "next") is not None))
 
                     
         elif command=="ANSWER":

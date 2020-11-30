@@ -26,7 +26,6 @@ class RedisResource:
         cnt = await self.next_count()
         id = self.id(cnt=cnt)
         res = await self.redis.execute("JSON.SET", self.key(id=id), ".", json.dumps(data))
-        print(res)
         await self._on_add(id, data)
         return id
 
@@ -42,6 +41,17 @@ class RedisResource:
 class NanotaskResource(RedisResource):
     def __init__(self, redis):
         super().__init__(redis, "Nanotask", "NT")
+
+    @classmethod
+    def create_instance(cls, pn, tn, tag, num_assignable, priority, props):
+        return {
+            "ProjectName": pn,
+            "TemplateName": tn,
+            "Tag": tag,
+            "NumAssignable": num_assignable,
+            "Priority": priority,
+            "Props": props
+        }
 
     async def _on_add(self, id, data):
         pn = data["ProjectName"]
@@ -84,10 +94,11 @@ class NodeSessionResource(RedisResource):
         super().__init__(redis, "NodeSession", "NS")
 
     @classmethod
-    def create_instance(cls, pn, wid, wsid, prev_id):
+    def create_instance(cls, pn, name, wsid, prev_id, is_template):
         return {
             "ProjectName": pn,
-            "TemplateName": wid,
+            "NodeName": name,
+            "IsTemplateNode": is_template,
             "WorkSessionId": wsid
             "PrevId": prev_id,
             "NextId": None,

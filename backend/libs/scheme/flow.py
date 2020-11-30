@@ -1,5 +1,4 @@
 from enum import Enum
-from IPython import embed
 
 class Statement(Enum):
     NONE = 0
@@ -23,6 +22,9 @@ class Node:
         self.statement    = kwargs["statement"]    if "statement"    in kwargs else Statement.NONE
         self.condition    = kwargs["condition"]    if "condition"    in kwargs else None
         self.is_skippable = kwargs["is_skippable"] if "is_skippable" in kwargs else False
+
+    def is_template(self):
+        return isinstance(self, TemplateNode)
         
     def eval_cond(self, node, ws, fs, ns):
         # TODO
@@ -94,50 +96,3 @@ class BatchNode(Node):
             c.prev = c_prev
             c.next = self.children[i+1] if i<len(self.children)-1 else None
             c_prev = c
-
-    
-class ProjectSchemeBase:
-    def __init__(self):
-        self.config_params()
-        self._set_flow_root()
-
-    def _set_flow_root(self):
-        root_node = self.flow()
-        self.flow_nodes = {
-            "begin": BeginNode(),
-            "root": root_node
-            "end": EndNode()
-        }
-        self.flow_nodes["begin"].next = root_node
-        self.flow_nodes["end"].prev = root_node
-        self.flow_nodes["root"].prev = self.flow_nodes["begin"]
-        self.flow_nodes["root"].next = self.flow_nodes["end"]
-
-class ProjectScheme(ProjectSchemeBase):
-    def config_params(self):
-        self.pagination = False
-        
-    def flow(self):
-        tmp1 = TemplateNode("tmp1")
-        tmp2 = TemplateNode("tmp2")
-        batch1 = BatchNode("batch1", children=[tmp1, tmp2], statement=Statement.IF, cond_func=self.batch1_if)
-
-        tmp3 = TemplateNode("tmp3")
-        tmp4 = TemplateNode("tmp4")
-        tmp5 = TemplateNode("tmp5")
-        batch2 = BatchNode("batch2", children=[tmp3, tmp4, tmp5], statement=Statement.IF, is_skippable=True)
-
-        return BatchNode("batch", children=[batch1, batch2], statement=Statement.WHILE)
-
-    def batch1_if(self, some_session):
-        # write some rules
-        return True
-
-if __name__=="__main__":
-    flow = Flow()
-    next_node = flow.begin_node
-    while (next_node := next_node.forward(None, None, None)):
-        print(f"--> {next_node.__class__.__name__} {next_node.name}")
-        print("===")
-        if isinstance(next_node, EndNode):
-            break

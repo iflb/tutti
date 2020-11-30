@@ -22,7 +22,7 @@ class Handler(EventHandler):
         self.namespace_mongo = manager.load_helper_module('helper_mongo_namespace')
         self.namespace_redis = manager.load_helper_module('helper_redis_namespace')
         self.mongo = self.namespace_mongo.get_db()
-        self.res_nanotask = NanotaskResource(manager.redis)
+        self.r_nt = NanotaskResource(manager.redis)
 
         self.path = manager.load_helper_module('paths')
         handler_spec.set_description('テンプレート一覧を取得します。')
@@ -44,9 +44,11 @@ class Handler(EventHandler):
             "priority": event.data["priority"]
         }
 
-        #res = self.mongo[self.namespace_mongo.CLCT_NAME_NANOTASK].insert_many([dict(data, **{"props": props}) for props in event.data["props"]])
-        #inserted_ids = res.inserted_ids
-
         for props in event.data["props"]:
-            await self.res_nanotask.add(dict(data, **{"props": props}))
+            await self.r_nt.add(NanotaskResource.create_instance(pn=pn,
+                                                                 tn=tn,
+                                                                 tag=event.data["tag"],
+                                                                 num_assignable=event.data["numAssignable"],
+                                                                 priority=event.data["priority"],
+                                                                 props=props))
         output.set("NumInserted", len(event.data["props"]))
