@@ -16,13 +16,17 @@ from ifconf import configure_module, config_callback
 from handler import common
 from handler.handler_output import handler_output
 
-from libs.session import WorkSession
+#from libs.session import WorkSession
 from libs.task_resource import DCModel, Project, Template, TaskQueue, Nanotask
 
 import logging
 logger = logging.getLogger(__name__)
 
-from handler.redis_resource import NanotaskResource, WorkSessionResource, AnswerResource
+from libs.scheme.flow import SessionEndException, UnskippableNodeException
+from handler.redis_resource import (NanotaskResource,
+                                   WorkSessionResource,
+                                   NodeSessionResource,
+                                   AnswerResource)
 import handler.redis_index as ri
 
 class Handler(EventHandler):
@@ -32,10 +36,10 @@ class Handler(EventHandler):
         self.schemes = self.load_all_project_schemes()
         self.wsessions = {}               # {session_id: iterator}
 
-        self.dcmodel = DCModel()
-        self.nanotasks = {}                     # { nid: Nanotask }
-        self.assignable_nids = set()               # set(nid)
-        self.tqueue = TaskQueue()
+        #self.dcmodel = DCModel()
+        #self.nanotasks = {}                     # { nid: Nanotask }
+        #self.assignable_nids = set()               # set(nid)
+        #self.tqueue = TaskQueue()
         self.wkr_submitted_nids = {}                   # worker_id -> set(nanotask_id)
 
     async def setup(self, handler_spec, manager):
@@ -124,7 +128,14 @@ class Handler(EventHandler):
     #    return flows
 
     def get_batch_info_dict(self, child):
-        if child.is_batch():
+        if child.is_template():
+            return {
+                "statement": child.statement.value,
+                "condition": child.condition,
+                "is_skippable": child.is_skippable,
+                "name": child.name
+            }
+        else:
             _info = []
             for c in child.children:
                 _info.append(self.get_batch_info_dict(c))
@@ -134,13 +145,6 @@ class Handler(EventHandler):
                 "condition": child.condition,
                 "is_skippable": child.is_skippable,
                 "children": _info
-            }
-        elif child.is_template():
-            return {
-                "statement": child.statement.value,
-                "condition": child.condition,
-                "is_skippable": child.is_skippable,
-                "name": child.name
             }
 
     @handler_output
@@ -153,7 +157,7 @@ class Handler(EventHandler):
 
             scheme = self.load_project_scheme(pn)
             self.schemes[pn] = scheme
-            output.set("Flow", self.get_batch_info_dict(scheme.flow_nodes["root"]))
+            output.set("Flow", self.get_batch_info_dict(scheme.flow.root_node))
 
         elif command=="CREATE_SESSION":
             [pn, wid, ct] = event.data[1:]
@@ -168,24 +172,38 @@ class Handler(EventHandler):
             output.set("WorkSessionId", wsid)
 
         elif command=="GET":
-            def _get_next_template_node(next_node):
+            async def _get_next_template_node(next_node, wid, pn):
                 while (next_node := next_node.forward(None, None, None)):
+                    if next_node.is_template():
+                        avail_nids = await self.r_nt.get_ids_for_pn_tn(pn, next_node.name)
+                        if len(avail_nids)>0:
+                            next_nid = await self.r_nt.get_first_id_for_pn_tn_wid(pn, next_node.name, wid)
+                            if not nid:  continue
+                        else:
+                            nid = None
+                    else:
+                        continue
                     ns = NodeSessionResource.create_instance(pn=pn,
                                                              name=next_node.name,
+                                                             wid=wid,
                                                              wsid=wsid,
+                                                             nid=nid,
                                                              prev_id=None,
                                                              is_template=next_node.is_template())
-                    nsid = await r_ns.add(ns)
+                    nsid = await self.r_ns.add(ns)
                     if next_node.is_template():
                         return ns, nsid
+                raise SessionEndException()
+                    
 
-            def _get_neighboring_template_node_session(ns, direction):
+
+            async def _get_neighboring_template_node_session(ns, direction):
                 _ns = ns
                 if direction=="prev":
-                    while (_ns := await r_ns.get(_ns["PrevId"]))
+                    while _ns["PrevId"] is not None and (_ns := await self.r_ns.get(_ns["PrevId"])):
                         if _ns["IsTemplateNode"]:  return _ns
                 elif direction=="next":
-                    while (_ns := await r_ns.get(_ns["NextId"]))
+                    while _ns["NextId"] is not None and (_ns := await self.r_ns.get(_ns["NextId"])):
                         if _ns["IsTemplateNode"]:  return _ns
                 return None
                 
@@ -198,15 +216,26 @@ class Handler(EventHandler):
 
             scheme = self.schemes[pn]
 
+            print(event.data)
             out = {}
             if not nsid:
-                if (nsid := await r_ns.get_id_for_wsid_by_index(wsid, -1)):
+                if (nsid := await self.r_ns.get_id_for_wsid_by_index(wsid, -1)):
                     out_nsid = nsid
-                    out_ns = await r_ns.get(nsid)
-                    out_ans = await r_ans.get(nsid)
+                    out_ns = await self.r_ns.get(nsid)
+                    out_ans = await self.r_ans.get(nsid)
                 else:
-                    out_ns, out_nsid = _get_next_template_node(scheme.flow_nodes["begin"])
-                    out_ans = None
+                    try:
+                        out_ns, out_nsid = await _get_next_template_node(scheme.flow.get_begin_node(), wid, pn)
+                        out_ans = None
+                    except SessionEndException as e:
+                        output.set("FlowSessionStatus", "Terminated")
+                        output.set("TerminateReason", "SessionEnd")
+                        return 
+                    except UnskippableNodeException as e:
+                        output.set("FlowSessionStatus", "Terminated")
+                        output.set("TerminateReason", "UnskippableNode")
+                        return
+                        
             else:
                 ns = await self.r_ns.get(nsid)
                 if target=="NEXT":
@@ -216,8 +245,17 @@ class Handler(EventHandler):
                         out_ans = await self.r_ans.get(ns["NextId"])
                         # also record this behavior to history?
                     else:
-                        out_ns = _get_next_template_node(scheme.flow.get_node_by_name(ns["TemplateName"]))
-                        out_ans = None
+                        try:
+                            out_ns, out_nsid = await _get_next_template_node(scheme.flow.get_node_by_name(ns["NodeName"]), wid, pn)
+                            out_ans = None
+                        except SessionEndException as e:
+                            output.set("FlowSessionStatus", "Terminated")
+                            output.set("TerminateReason", "SessionEnd")
+                            return 
+                        except UnskippableNodeException as e:
+                            output.set("FlowSessionStatus", "Terminated")
+                            output.set("TerminatedReason", "UnskippableNode")
+                            return
                 elif target=="PREV":
                     if ns["PrevId"]:
                         out_nsid = ns["PrevId"]
@@ -227,8 +265,9 @@ class Handler(EventHandler):
                     else:
                         raise Exception("Unexpected request for previous node session")
 
+            output.set("FlowSessionStatus", "Active")
             output.set("NodeSessionId", out_nsid)
-            output.set("Template", out_ns["TemplateName"])
+            output.set("Template", out_ns["NodeName"])
             output.set("Answers", out_ans)
             output.set("NanotaskId", out_ns["NanotaskId"])
             if out_ns["NanotaskId"] is not None:
@@ -238,8 +277,8 @@ class Handler(EventHandler):
             else:
                 output.set("IsStatic", True)
 
-            output.set("HasPrevTemplate", (_get_neighboring_template_node_session(out_ns, "prev") is not None))
-            output.set("HasNextTemplate", (_get_neighboring_template_node_session(out_ns, "next") is not None))
+            output.set("HasPrevTemplate", (await _get_neighboring_template_node_session(out_ns, "prev") is not None))
+            output.set("HasNextTemplate", (await _get_neighboring_template_node_session(out_ns, "next") is not None))
 
 
             #ns = None
@@ -336,35 +375,45 @@ class Handler(EventHandler):
                     
         elif command=="ANSWER":
             [wsid, nsid] = event.data[1:3]
+            print(event.data)
 
             ### FIXME
             answers = json.loads(" ".join(event.data[3:]))
 
-            ws = self.wsessions[wsid]
-            wid = ws.wid
-            pn = ws.pid
+            ws = await self.r_ws.get(wsid)
+            wid = ws["WorkerId"]
+            pn = ws["ProjectName"]
+
+            #ws = self.wsessions[wsid]
+            #wid = ws.wid
+            #pn = ws.pid
 
             if nsid=="":
                 raise Exception(f"node session ID cannot be null")
 
-            ns = ws.get_existing_node_session(nsid)
-            tn = ns.node.name
-            nid = ns.nid
+            ns = await self.r_ns.get(nsid)
+            tn = ns["NodeName"]
+            nid = ns["NanotaskId"]
 
-            ns.answers = answers
+            #ns = ws.get_existing_node_session(nsid)
+            #tn = ns.node.name
+            #nid = ns.nid
+            #ns.answers = answers
 
-            self.wkr_submitted_nids[wid].add(nid)
-            ans_json = {
-                "WorkSessionId": wsid,
-                "NodeSessionId": nsid,
-                "WorkerId": wid,
-                "Answers": answers,
-                "Timestamp": datetime.now().timestamp()
-            }
-            if nid!="null":  ans_json["NanotaskId"] = nid
-            await add_answer_for_nsid(event.session.redis, nsid, ans_json)
-            output.set("SentAnswer", answers)
-
+            #self.wkr_submitted_nids[wid].add(nid)
+            #ans_json = {
+            #    "WorkSessionId": wsid,
+            #    "NodeSessionId": nsid,
+            #    "WorkerId": wid,
+            #    "Answers": answers,
+            #    "Timestamp": datetime.now().timestamp()
+            #}
+            #if nid!="null":  ans_json["NanotaskId"] = nid
+            #await add_answer_for_nsid(event.session.redis, nsid, ans_json)
+            answer = AnswerResource.create_instance(answers)
+            print(answer)
+            await self.r_ans.add(nsid, answer)
+            output.set("SentAnswer", answer)
 
         else:
             raise Exception("unknown command '{}'".format(command))

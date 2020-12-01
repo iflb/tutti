@@ -174,6 +174,7 @@ export default {
                                 }
                             });
                         } else {
+                            alert(d["TerminateReason"]);
                             platformConfig.onSubmitWorkSession(this);
                         }
                     }

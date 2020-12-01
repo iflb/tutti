@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class Statement(Enum):
     NONE = 0
     IF = 1
@@ -9,8 +10,36 @@ class Statement(Enum):
     def __repr__(self):
         return self.name
 
-class UnSkippableNodeException(Exception):
+class UnskippableNodeException(Exception):
     pass
+
+class SessionEndException(Exception):
+    pass
+
+class Flow:
+    def __init__(self, root_node):
+        self.begin_node = BeginNode()
+        self.end_node = EndNode()
+
+        self.begin_node.next = self.end_node.prev = self.root_node = root_node
+        self.root_node.prev = self.begin_node
+        self.root_node.next = self.end_node
+
+        self.nodes = self.register_nodes(root_node)
+
+    def register_nodes(self, node):
+        ret = {}
+        ret[node.name] = node
+        if isinstance(node, BatchNode):
+            for child in node.children:
+                ret.update(self.register_nodes(child))
+        return ret
+
+    def get_begin_node(self):
+        return self.begin_node
+
+    def get_node_by_name(self, name):
+        return self.nodes[name]
 
 class Node:
     def __init__(self, name, parent=None, prev=None, next=None, **kwargs):
@@ -40,7 +69,7 @@ class Node:
                     return node
                 else:
                     if node.is_skippable:  return None
-                    else:  raise UnSkippableNodeException(f"unskippable node '{node.name}'")
+                    else:  raise UnskippableNodeException(f"unskippable node '{node.name}'")
             else:
                 return node
 

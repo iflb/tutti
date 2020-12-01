@@ -30,12 +30,14 @@ class RedisResource:
         return id
 
     async def get(self, id):
-        return json.loads(await self.redis.execute("JSON.GET", self.key(id=id)))
+        data = await self.redis.execute("JSON.GET", self.key(id=id))
+        return json.loads(data) if data else None
 
     async def _get_by_json_path(self, id, path):
-        return json.loads(await self.redis.execute("JSON.GET", self.key(id=id), path))
+        data = await self.redis.execute("JSON.GET", self.key(id=id), path)
+        return json.loads(data) if data else None
 
-    def _on_add(self, id, data):
+    async def _on_add(self, id, data):
         pass
 
 class NanotaskResource(RedisResource):
@@ -59,11 +61,24 @@ class NanotaskResource(RedisResource):
 
         await self.add_id_for_pn_tn(pn, tn, id)
         
-    async def add_id_for_pn_tn(self, pn, tn, id):
-        await self.redis.execute("SADD", ri.key_nids_for_pn_tn(pn,tn), id)
+    async def add_id_for_pn_tn(self, pn, tn, priority, id):
+        await self.redis.execute("ZADD", ri.key_nids_for_pn_tn(pn,tn), priority, id)
 
     async def get_ids_for_pn_tn(self, pn, tn):
-        return await self.redis.execute_str("SMEMBERS", ri.key_nids_for_pn_tn(pn,tn))
+        return await self.redis.execute_str("ZRANGE", ri.key_nids_for_pn_tn(pn,tn), 0, -1)
+
+    async def get_first_id_for_pn_tn_wid(self, pn, tn, wid):
+        await self.redis.execute("ZUNIONSTORE",
+                                 ri.key_assignable_nids_for_pn_tn_wid(pn,tn,wid), 3,
+                                 ri.key_nids_for_pn_tn(pn,tn),
+                                 ri.key_completed_nids_for_pn_tn(pn,tn),
+                                 ri.key_completed_nids_for_pn_tn_wid(pn,tn,wid),
+                                 "WEIGHTS", 1, 0, 0, "AGGREGATE", "MIN")
+        ret = await self.redis.execute_str("ZRANGEBYSCORE",
+                                       ri.key_assignable_nids_for_pn_tn_wid(pn,tn,wid),
+                                       1, "+inf", "LIMIT", 0, 1)
+        return ret
+
 
 class WorkSessionResource(RedisResource):
     def __init__(self, redis):
@@ -94,25 +109,26 @@ class NodeSessionResource(RedisResource):
         super().__init__(redis, "NodeSession", "NS")
 
     @classmethod
-    def create_instance(cls, pn, name, wsid, prev_id, is_template):
+    def create_instance(cls, pn, name, wid, wsid, prev_id, is_template, nid):
         return {
+            "WorkerId": wid,
             "ProjectName": pn,
             "NodeName": name,
             "IsTemplateNode": is_template,
-            "WorkSessionId": wsid
+            "WorkSessionId": wsid,
+            "NanotaskId": nid,
             "PrevId": prev_id,
             "NextId": None,
         }
 
-    def _on_add(self, id, data):
+    async def _on_add(self, id, data):
         wsid = data["WorkSessionId"]
-        await self.set_id_for_wsid(wsid, id)
+        await self.add_id_for_wsid(wsid, id)
 
-    async def set_id_for_wsid(self, wsid, id):
-        await self.redis.execute("LPUSH", ri.key_nsid_list_for_wsid(wsid), id)
-        #await self.redis.execute("SADD", ri.key_nsid_set_for_wsid(wsid), id)
+    async def add_id_for_wsid(self, wsid, id):
+        await self.redis.execute("RPUSH", ri.key_nsid_list_for_wsid(wsid), id)
     async def get_id_for_wsid_by_index(self, wsid, idx):
-        return json.loads(await self.redis.execute("LINDEX", ri.key_nsid_list_for_wsid(wsid), idx))
+        return await self.redis.execute_str("LINDEX", ri.key_nsid_list_for_wsid(wsid), idx)
     async def get_length_for_wsid(self, wsid):
         return await self.redis.execute("LLEN", ri.key_nsid_list_for_wsid(wsid))
     async def get_ids_for_wsid(self, wsid):
@@ -124,13 +140,6 @@ class NodeSessionResource(RedisResource):
         return await self._get_by_json_path(id, "PrevId")
     async def get_next_id(self, id):
         return await self._get_by_json_path(id, "NextId")
-    #async def check_id_for_wsid(self, wsid, id):
-    #    res = await self.redis.execute("SADD", ri.key_nsid_set_for_wsid(wsid), id)
-    #    if res:
-    #        await self.redis.execute("SREM", ri.key_nsid_set_for_wsid(wsid), id)
-    #        return False
-    #    else:
-    #        return True
 
 class AnswerResource(RedisResource):
     def __init__(self, redis):
@@ -139,8 +148,12 @@ class AnswerResource(RedisResource):
         self.res_nt = NanotaskResource(redis)
         self.res_ns = NodeSessionResource(redis)
 
-    def key(self, nsid=None):
-        return f"{self.base_path}/{nsid}"
+    @classmethod
+    def create_instance(cls, answer):
+        return answer
+
+    def key(self, id=None):
+        return f"{self.base_path}/{id}"
 
     async def next_count(self):
         pass
@@ -150,16 +163,21 @@ class AnswerResource(RedisResource):
         await self._on_add(nsid, data)
 
     async def _on_add(self, nsid, data):
-        ns = self.res_ns.get(nsid)
+        ns = await self.res_ns.get(nsid)
         wid = ns["WorkerId"]
+        pn = ns["ProjectName"]
+        tn = ns["NodeName"]
         nid = ns["NanotaskId"]
-        await self.add_id_for_nid(nid, nsid)
+        if nid:  await self.add_id_for_nid(nid, nsid)
+        else:    await self.add_id_for_tn(tn, nsid)
 
-        nt = self.res_nt.get(nid)
-        pn = nt["ProjectName"]
-        tn = nt["TemplateName"]
-        await self.add_completed_nid_for_pn_tn(pn, tn, nid)
-        await self.add_completed_nid_for_pn_tn_wid(pn, tn, wid, nid)
+        if nid:
+            nt = await self.res_nt.get(nid)
+            num_assignable = nt["NumAssignable"]
+            answers = await self.get_ids_for_nid(nid)
+            await self.add_completed_nid_for_pn_tn_wid(pn, tn, wid, nid)
+            if num_assignable<=len(answers):
+                await self.add_completed_nid_for_pn_tn(pn, tn, nid)
         
     async def add_completed_nid_for_pn_tn_wid(self, pn, tn, wid, nid):
         await redis.execute("SADD", ri.key_completed_nids_for_pn_tn_wid(pn,tn,wid), nid)
@@ -170,5 +188,11 @@ class AnswerResource(RedisResource):
     async def add_id_for_nid(self, nid, id):
         await self.redis.execute("SADD", ri.key_aids_for_nid(nid), id)
 
+    async def add_id_for_tn(self, tn, id):
+        await self.redis.execute("SADD", ri.key_aids_for_tn(tn), id)
+
     async def get_ids_for_nid(self, nid):
         return await self.redis.execute_str("SMEMBERS", ri.key_aids_for_nid(nid))
+
+    async def get_ids_for_tn(self, tn):
+        return await self.redis.execute_str("SMEMBERS", ri.key_aids_for_tn(tn))
