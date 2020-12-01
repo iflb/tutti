@@ -149,8 +149,13 @@ class AnswerResource(RedisResource):
         self.res_ns = NodeSessionResource(redis)
 
     @classmethod
-    def create_instance(cls, answer):
-        return answer
+    def create_instance(cls, wsid, wid, nid, answer):
+        return {
+            "WorkSessionId": wsid,
+            "WorkerId": wid,
+            "NanotaskId": nid,
+            "Answers": answer
+        }
 
     def key(self, id=None):
         return f"{self.base_path}/{id}"
@@ -169,7 +174,7 @@ class AnswerResource(RedisResource):
         tn = ns["NodeName"]
         nid = ns["NanotaskId"]
         if nid:  await self.add_id_for_nid(nid, nsid)
-        else:    await self.add_id_for_tn(tn, nsid)
+        else:    await self.add_id_for_pn_tn(pn, tn, nsid)
 
         if nid:
             nt = await self.res_nt.get(nid)
@@ -188,11 +193,11 @@ class AnswerResource(RedisResource):
     async def add_id_for_nid(self, nid, id):
         await self.redis.execute("SADD", ri.key_aids_for_nid(nid), id)
 
-    async def add_id_for_tn(self, tn, id):
-        await self.redis.execute("SADD", ri.key_aids_for_tn(tn), id)
+    async def add_id_for_pn_tn(self, pn, tn, id):
+        await self.redis.execute("SADD", ri.key_aids_for_pn_tn(pn,tn), id)
 
     async def get_ids_for_nid(self, nid):
         return await self.redis.execute_str("SMEMBERS", ri.key_aids_for_nid(nid))
 
-    async def get_ids_for_tn(self, tn):
-        return await self.redis.execute_str("SMEMBERS", ri.key_aids_for_tn(tn))
+    async def get_ids_for_pn_tn(self, pn, tn):
+        return await self.redis.execute_str("SMEMBERS", ri.key_aids_for_pn_tn(pn,tn))

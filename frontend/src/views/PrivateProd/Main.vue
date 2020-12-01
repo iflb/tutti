@@ -110,10 +110,14 @@ export default {
         },
         submit($event) {
             Object.assign(this.answer, $event);
-            //console.log(this.answer);
             this.duct.sendMsg({
-                tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
-                data: `ANSWER ${this.wsid} ${this.nsid} ${JSON.stringify(this.answer)}`
+                tag: this.name, eid: this.duct.EVENT.ANSWER,
+                data: {
+                    "Command": "Set",
+                    "WorkSessionId": this.wsid,
+                    "NodeSessionId": this.nsid,
+                    "Answer": this.answer
+                }
             })
         },
         logout() {
@@ -178,14 +182,20 @@ export default {
                             platformConfig.onSubmitWorkSession(this);
                         }
                     }
-                    else if(command=="ANSWER"){
-                        if(data["Status"]=="Error") { console.error(`failed to send answer: ${data["Reason"]}`); return; }
+                })
+                this.duct.setEventHandler(this.duct.EVENT.ANSWER, (rid, eid, data) => {
+                    console.log(data);
+                    const d = data["Data"];
+                    const command = d["Command"];
+                    const status = d["Status"];
+                    if(command=="Set"){
+                        if(status=="Error") { console.error(`failed to send answer: ${data["Reason"]}`); return; }
 
-                        console.log(`successfully sent answer: ${data["Data"]["SentAnswer"]}`);
+                        console.log(`successfully sent answer: ${d["SentAnswer"]}`);
                         this.answer = {}
                         this.getTemplate("NEXT");
                     }
-                })
+                });
 
                 this.openDuct().then(() => {
                     this.duct.sendMsg({

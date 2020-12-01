@@ -453,7 +453,7 @@ export default {
             })
 
             this.duct.addEvtHandler({
-                tag: "/console/answers/", eid: this.duct.EVENT.ANSWERS,
+                tag: "/console/answers/", eid: this.duct.EVENT.ANSWER,
                 handler: (rid, eid, data) => {
                     this.answers = data["Data"]["Answers"];
                 }

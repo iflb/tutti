@@ -11,8 +11,8 @@ def key_nsid_list_for_wsid(wsid):
 
 def key_aids_for_nid(nid):
     return f"AnswerIds/{nid}"
-def key_aids_for_tn(tn):
-    return f"AnswerIds/TN:{tn}"
+def key_aids_for_pn_tn(pn,tn):
+    return f"AnswerIds/PRJ:{pn}/TMPL:{tn}"
 
 def key_completed_nids_for_pn_tn_wid(pn,tn,wid):
     return f"CompletedNanotaskIds/PRJ:{pn}/TMPL:{tn}/WKR:{wid}"

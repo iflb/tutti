@@ -86,11 +86,14 @@ export default {
     watch: {
         "project.name"() { this.templateName = null },
         templateName() {
-            console.log(this.project.name, this.templateName);
             this.duct.sendMsg({
                 tag: this.name,
-                eid: this.duct.EVENT.ANSWERS,
-                data: `get ${this.project.name} ${this.templateName}`
+                eid: this.duct.EVENT.ANSWER,
+                data: {
+                    "Command": "Get",
+                    "ProjectName": this.project.name,
+                    "TemplateName": this.templateName
+                }
             })
         },
         answers(val) {
@@ -111,6 +114,7 @@ export default {
                     }
                 }
             }
+            console.log(headers, headerValues);
             this.ansTableHeaderValues = headerValues;
             this.ansTableHeaders = headers;
         }
