@@ -38,6 +38,7 @@ class Handler(EventHandler):
             if nids:  [aids.extend(await self.r_ans.get_ids_for_nid(nid)) for nid in nids]
 
             answers = [await self.r_ans.get(aid) for aid in aids]
+            print(answers)
             output.set("Answers", answers)
 
         elif command=="Set":

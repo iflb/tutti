@@ -1,5 +1,6 @@
 import json
 import handler.redis_index as ri
+from datetime import datetime
 
 class RedisResource:
     def __init__(self, redis, base_path, id_prefix):
@@ -25,6 +26,7 @@ class RedisResource:
     async def add(self, data):
         cnt = await self.next_count()
         id = self.id(cnt=cnt)
+        data["Timestamp"] = datetime.now().timestamp()
         res = await self.redis.execute("JSON.SET", self.key(id=id), ".", json.dumps(data))
         await self._on_add(id, data)
         return id
@@ -58,8 +60,9 @@ class NanotaskResource(RedisResource):
     async def _on_add(self, id, data):
         pn = data["ProjectName"]
         tn = data["TemplateName"]
+        priority = data["Priority"]
 
-        await self.add_id_for_pn_tn(pn, tn, id)
+        await self.add_id_for_pn_tn(pn, tn, priority, id)
         
     async def add_id_for_pn_tn(self, pn, tn, priority, id):
         await self.redis.execute("ZADD", ri.key_nids_for_pn_tn(pn,tn), priority, id)
@@ -164,6 +167,7 @@ class AnswerResource(RedisResource):
         pass
 
     async def add(self, nsid, data):
+        data["Timestamp"] = datetime.now().timestamp()
         res = await self.redis.execute("JSON.SET", self.key(nsid), ".", json.dumps(data))
         await self._on_add(nsid, data)
 
