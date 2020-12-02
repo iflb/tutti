@@ -114,7 +114,6 @@ export default {
                     }
                 }
             }
-            console.log(headers, headerValues);
             this.ansTableHeaderValues = headerValues;
             this.ansTableHeaders = headers;
         }

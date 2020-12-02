@@ -64,8 +64,13 @@ export default {
         show() {
             if(this.show) {
                 this.duct.sendMsg({
-                    tag: "recursive", eid: this.duct.EVENT.GET_NANOTASKS,
-                    data: `NANOTASKS ${this.project.name} ${this.template}`
+                    tag: "recursive",
+                    eid: this.duct.EVENT.NANOTASK,
+                    data: {
+                        "Command": "Get",
+                        "ProjectName": this.project.name,
+                        "TemplateName": this.template
+                    }
                 });
             }
         },

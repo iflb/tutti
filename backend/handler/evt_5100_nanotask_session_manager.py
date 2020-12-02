@@ -1,23 +1,10 @@
-import random, string
-import json
-import copy
 import importlib.util
 from importlib import reload
-import inspect
-import pickle
-import sys
-import os
-from datetime import datetime
 
 from ducts.event import EventHandler
-from ducts.redis import ChannelForMultiConsumer
-from ifconf import configure_module, config_callback
 
 from handler import common
 from handler.handler_output import handler_output
-
-#from libs.session import WorkSession
-from libs.task_resource import DCModel, Project, Template, TaskQueue, Nanotask
 
 import logging
 logger = logging.getLogger(__name__)
@@ -27,7 +14,6 @@ from handler.redis_resource import (NanotaskResource,
                                    WorkSessionResource,
                                    NodeSessionResource,
                                    AnswerResource)
-import handler.redis_index as ri
 
 class Handler(EventHandler):
     def __init__(self):
@@ -213,7 +199,6 @@ class Handler(EventHandler):
             output.set("Template", out_ns["NodeName"])
             output.set("Answers", out_ans["Answers"] if out_ans else None)
             output.set("NanotaskId", out_ns["NanotaskId"])
-            print(out_ns)
             if out_ns["NanotaskId"] is not None:
                 nt = await self.r_nt.get(out_ns["NanotaskId"])
                 output.set("IsStatic", False)
@@ -221,14 +206,13 @@ class Handler(EventHandler):
             else:
                 output.set("IsStatic", True)
 
-            # FIXME: currently not working
             output.set("HasPrevTemplate", (await self._get_neighboring_template_node_session(out_ns, "prev") is not None))
             output.set("HasNextTemplate", (await self._get_neighboring_template_node_session(out_ns, "next") is not None))
 
-            nsids = await self.r_ns.get_ids_for_wsid(wsid)
-            print(nsids)
-            for nsid in nsids:
-                print(await self.r_ns.get(nsid))
+            #nsids = await self.r_ns.get_ids_for_wsid(wsid)
+            #print(nsids)
+            #for nsid in nsids:
+            #    print(await self.r_ns.get(nsid))
 
         else:
             raise Exception("unknown command '{}'".format(command))

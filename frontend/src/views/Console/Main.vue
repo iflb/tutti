@@ -323,35 +323,44 @@ export default {
 
                         this.duct.sendMsg({
                             tag: this.name,
-                            eid: this.duct.EVENT.GET_NANOTASKS,
-                            data: `COUNT ${pn} ${tns[i]}`
+                            eid: this.duct.EVENT.NANOTASK,
+                            data: {
+                                "Command": "Get",
+                                "ProjectName": pn,
+                                "TemplateName": tns[i]
+                            }
                         });
                     }
                     this.$set(this.project, "templates", templates);
                 }
             });
 
-            this.duct.setEventHandler(this.duct.EVENT.UPLOAD_NANOTASKS, (rid, eid, data) => {
-                if(data["Status"]=="Error") return;
-
-                const project = data["Data"]["Project"];
-                const template = data["Data"]["Template"];
-                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.GET_NANOTASKS, data: `COUNT ${project} ${template}` });
-            });
-
-            this.duct.setEventHandler(this.duct.EVENT.GET_NANOTASKS, (rid, eid, data) => {
+            this.duct.setEventHandler(this.duct.EVENT.NANOTASK, (rid, eid, data) => {
                 if(data["Status"]=="Error") return;
 
                 const command = data["Data"]["Command"];
-                const project = data["Data"]["Project"];
-                const template = data["Data"]["Template"];
-                if(command=="NANOTASKS"){
-                    const d = data["Data"]["Nanotasks"];
-                    this.projects[project].templates[template].nanotask.data = d;
-                }
-                else if(command=="COUNT") {
-                    const cnt = data["Data"]["Count"];
-                    this.projects[project].templates[template].nanotask.cnt = cnt;
+                const pn = data["Data"]["ProjectName"];
+                const tn = data["Data"]["TemplateName"];
+
+                switch(command){
+                    case "Upload": {
+                        this.duct.sendMsg({
+                            tag: this.name,
+                            eid: this.duct.EVENT.NANOTASK,
+                            data: {
+                                "Command": "Get",
+                                "ProjectName": pn,
+                                "TemplateName": tn
+                            }
+                        });
+                        break;
+                    }
+                    case "Get": {
+                        const d = data["Data"]["Nanotasks"];
+                        const cnt = data["Data"]["Count"];
+                        this.projects[pn].templates[tn].nanotask.data = d;
+                        this.projects[pn].templates[tn].nanotask.cnt = cnt;
+                    }
                 }
             });
 

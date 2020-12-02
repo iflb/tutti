@@ -63,15 +63,19 @@ export default {
             this.show = false;
         },
         importNanotasks() {
-            const data = {
-                projectName: this.project.name,
-                templateName: this.template,
-                tag: this.tagName,
-                numAssignable: this.numAssignments,
-                priority: this.priority,
-                props: this.contents
-            }
-            this.duct.sendMsg({ tag: "recursive", eid: this.duct.EVENT.UPLOAD_NANOTASKS, data: data });
+            this.duct.sendMsg({
+                tag: "recursive",
+                eid: this.duct.EVENT.NANOTASK,
+                data: {
+                    "Command":       "Upload",
+                    "ProjectName":   this.project.name,
+                    "TemplateName":  this.template,
+                    "Tag":           this.tagName,
+                    "NumAssignable": this.numAssignments,
+                    "Priority":      this.priority,
+                    "Props":         this.contents
+                }
+            });
             this.closeDialog();
         },
         async getFileContent (file) {

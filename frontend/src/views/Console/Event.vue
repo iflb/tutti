@@ -26,6 +26,10 @@
                     </v-text-field>
                 </v-card-title>
                 <v-data-table :headers="logTableHeaders" :items="serverLogTableRows" :items-per-page="10" :search="searchStr">
+                    <template v-slot:item.sent="{ item }">
+                        {{ item.eid }}
+                        <vue-json-pretty :data="item.sent" :deep="1" style="font-size:0.6em;"></vue-json-pretty>
+                    </template>
                     <template v-slot:item.received="{ item }">
                         <vue-json-pretty :data="item.received" :deep="1" style="font-size:0.6em;"></vue-json-pretty>
                     </template>
@@ -74,9 +78,11 @@ export default {
 
                     const rid = s.rid;
                     const tag = s.tag;
-                    const sent = `${s.eid}__${s.data}`;
+                    //const sent = `${s.eid}__${s.data}`;
+                    const sent = s.data;
+                    const eid = s.eid;
                     const received = null;
-                    rows.unshift({ rid, tag, sent, received })
+                    rows.unshift({ rid, tag, eid, sent, received })
                 }
     
                 const receivedAll = this.duct.log.received;
