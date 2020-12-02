@@ -89,7 +89,7 @@ class Handler(EventHandler):
             if next_node.is_template():
                 avail_nids = await self.r_nt.get_ids_for_pn_tn(pn, next_node.name)
                 if len(avail_nids)>0:
-                    next_nid = await self.r_nt.get_first_id_for_pn_tn_wid(pn, next_node.name, wid)
+                    nid = await self.r_nt.get_first_id_for_pn_tn_wid(pn, next_node.name, wid)
                     if not nid:  continue
                 else:
                     nid = None
@@ -205,6 +205,7 @@ class Handler(EventHandler):
             output.set("Template", out_ns["NodeName"])
             output.set("Answers", out_ans["Answers"] if out_ans else None)
             output.set("NanotaskId", out_ns["NanotaskId"])
+            print(out_ns)
             if out_ns["NanotaskId"] is not None:
                 nt = await self.r_nt.get(out_ns["NanotaskId"])
                 output.set("IsStatic", False)

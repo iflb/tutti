@@ -80,7 +80,7 @@ class NanotaskResource(RedisResource):
         ret = await self.redis.execute_str("ZRANGEBYSCORE",
                                        ri.key_assignable_nids_for_pn_tn_wid(pn,tn,wid),
                                        1, "+inf", "LIMIT", 0, 1)
-        return ret
+        return ret[0] if ret else None
 
 
 class WorkSessionResource(RedisResource):
@@ -189,10 +189,10 @@ class AnswerResource(RedisResource):
                 await self.add_completed_nid_for_pn_tn(pn, tn, nid)
         
     async def add_completed_nid_for_pn_tn_wid(self, pn, tn, wid, nid):
-        await redis.execute("SADD", ri.key_completed_nids_for_pn_tn_wid(pn,tn,wid), nid)
+        await self.redis.execute("SADD", ri.key_completed_nids_for_pn_tn_wid(pn,tn,wid), nid)
 
     async def add_completed_nid_for_pn_tn(self, pn, tn, nid):
-        await redis.execute("SADD", ri.key_completed_nids_for_pn_tn(pn,tn), nid)
+        await self.redis.execute("SADD", ri.key_completed_nids_for_pn_tn(pn,tn), nid)
 
     async def add_id_for_nid(self, nid, id):
         await self.redis.execute("SADD", ri.key_aids_for_nid(nid), id)
