@@ -31,6 +31,10 @@ class RedisResource:
         await self._on_add(id, data)
         return id
 
+    async def update(self, id, data):
+        await self.redis.execute("JSON.SET", self.key(id=id), ".", json.dumps(data))
+        await self._on_update(id, data)
+
     async def get(self, id):
         data = await self.redis.execute("JSON.GET", self.key(id=id))
         return json.loads(data) if data else None
@@ -40,6 +44,9 @@ class RedisResource:
         return json.loads(data) if data else None
 
     async def _on_add(self, id, data):
+        pass
+
+    async def _on_update(self, id, data):
         pass
 
 class NanotaskResource(RedisResource):
@@ -135,7 +142,7 @@ class NodeSessionResource(RedisResource):
     async def get_length_for_wsid(self, wsid):
         return await self.redis.execute("LLEN", ri.key_nsid_list_for_wsid(wsid))
     async def get_ids_for_wsid(self, wsid):
-        return json.loads(await self.redis.execute("LRANGE", ri.key_nsid_list_for_wsid(wsid), 0, -1))
+        return await self.redis.execute_str("LRANGE", ri.key_nsid_list_for_wsid(wsid), 0, -1)
     async def set_next_id(self, id, next_id):
         await self.redis.execute("JSON.SET", self.key(id=id), "NextId", next_id)
 

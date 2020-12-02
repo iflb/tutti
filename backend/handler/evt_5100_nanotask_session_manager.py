@@ -84,7 +84,8 @@ class Handler(EventHandler):
                 "children": _info
             }
 
-    async def _get_next_template_node(self, next_node, wid, pn, wsid):
+    async def _get_next_template_node(self, next_node, wid, pn, wsid, nsid):
+        prev_nsid = nsid
         while (next_node := next_node.forward(None, None, None)):
             if next_node.is_template():
                 avail_nids = await self.r_nt.get_ids_for_pn_tn(pn, next_node.name)
@@ -100,9 +101,16 @@ class Handler(EventHandler):
                                                      wid=wid,
                                                      wsid=wsid,
                                                      nid=nid,
-                                                     prev_id=None,
+                                                     prev_id=prev_nsid,
                                                      is_template=next_node.is_template())
             nsid = await self.r_ns.add(ns)
+
+            if prev_nsid:
+                prev_ns = await self.r_ns.get(prev_nsid)
+                prev_ns["NextId"] = nsid
+                await self.r_ns.update(prev_nsid, prev_ns)
+
+            prev_nsid = nsid
             if next_node.is_template():
                 return ns, nsid
         raise SessionEndException()
@@ -160,7 +168,7 @@ class Handler(EventHandler):
                     out_ans = await self.r_ans.get(nsid)
                 else:
                     try:
-                        out_ns, out_nsid = await self._get_next_template_node(scheme.flow.get_begin_node(), wid, pn, wsid)
+                        out_ns, out_nsid = await self._get_next_template_node(scheme.flow.get_begin_node(), wid, pn, wsid, None)
                         out_ans = None
                     except SessionEndException as e:
                         output.set("FlowSessionStatus", "Terminated")
@@ -181,7 +189,7 @@ class Handler(EventHandler):
                         # also record this behavior to history?
                     else:
                         try:
-                            out_ns, out_nsid = await self._get_next_template_node(scheme.flow.get_node_by_name(ns["NodeName"]), wid, pn, wsid)
+                            out_ns, out_nsid = await self._get_next_template_node(scheme.flow.get_node_by_name(ns["NodeName"]), wid, pn, wsid, nsid)
                             out_ans = None
                         except SessionEndException as e:
                             output.set("FlowSessionStatus", "Terminated")
@@ -216,6 +224,11 @@ class Handler(EventHandler):
             # FIXME: currently not working
             output.set("HasPrevTemplate", (await self._get_neighboring_template_node_session(out_ns, "prev") is not None))
             output.set("HasNextTemplate", (await self._get_neighboring_template_node_session(out_ns, "next") is not None))
+
+            nsids = await self.r_ns.get_ids_for_wsid(wsid)
+            print(nsids)
+            for nsid in nsids:
+                print(await self.r_ns.get(nsid))
 
         else:
             raise Exception("unknown command '{}'".format(command))
