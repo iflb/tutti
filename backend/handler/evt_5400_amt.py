@@ -1,7 +1,3 @@
-import json
-
-import boto3
-
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
 
@@ -30,84 +26,34 @@ class Handler(EventHandler):
     async def handle(self, event, output):
         command = event.data["Command"]
 
-        if command=="Authorize":
-            try:     access_key_id = event.data["AccessKeyId"]
-            except:  access_key_id = await event.session.redis.execute_str("GET", key_mturk_access_key_id())
+        if command=="SetCredentials":
+            access_key_id = event.data["AccessKeyId"]
+            secret_access_key = event.data["SecretAccessKey"]
+            if not (is_sandbox := event.data["IsSandbox"]):
+                is_sandbox = 1
 
-            try:     secret_access_key = event.data["SecretAccessKey"]
-            except:  secret_access_key = await event.session.redis.execute_str("GET", key_mturk_secret_access_key())
+            async with await self.mturk.get_client_async(event.session.redis, access_key_id=access_key_id, secret_access_key=secret_access_key, sandbox=is_sandbox) as client:
+                ret = await client.get_account_balance()
+                await event.session.redis.execute("SET", key_mturk_access_key_id(), access_key_id)
+                await event.session.redis.execute("SET", key_mturk_secret_access_key(), secret_access_key)
+                await event.session.redis.execute("SET", key_mturk_is_sandbox(), is_sandbox)
+                output.set("AccessKeyId", access_key_id)
+                output.set("SecretAccessKey", secret_access_key)
+                output.set("IsSandbox", is_sandbox)
+                output.set("Result", ret)
 
-            is_sandbox = await event.session.redis.execute("GET", key_mturk_is_sandbox())
-            if is_sandbox is None:  is_sandbox = True
+        elif command=="GetCredentials":
+            output.set("AccessKeyId", await event.session.redis.execute("GET", key_mturk_access_key_id()))
+            output.set("SecretAccessKey", await event.session.redis.execute("GET", key_mturk_secret_access_key()))
+            output.set("IsSandbox", await event.session.redis.execute("GET", key_mturk_is_sandbox()))
 
-            async with self.mturk.get_client_async(event.session.redis) as client:
-                print(client)
+        elif command=="SetSandboxMode":
+            is_sandbox = event.data["Enabled"]
+            if is_sandbox:  is_sandbox = 1
+            await event.session.redis.execute("SET", key_mturk_is_sandbox(), is_sandbox)
+            output.set("IsSandbox", is_sandbox)
 
         elif command=="ResetAuthorization":
             await event.session.redis.execute("DEL", key_mturk_access_key_id())
             await event.session.redis.execute("DEL", key_mturk_secret_access_key())
             await event.session.redis.execute("DEL", key_mturk_is_sandbox())
-        #self.redis = event.session.redis
-
-        #async with self.mturk.get_client_async(self.redis) as client:
-        #    command = event.data[0]
-        #    project_name = event.data[1]
-        #    #options = event.data[2:]
-
-        #    output.set("Command", command)
-
-        #    if command=="boto3_raw":
-        #        operation = event.data[1]
-        #        params = json.loads("".join(event.data[2:]))
-        #        output.set("Operation", operation)
-        #        output.set("Params", params)
-
-        #        try:
-        #            eval(f"func = await client.{operation}")
-        #        except:
-        #            raise Exception(f"boto3 operation '{operation}' not found")
-        #        res = func(**params)
-
-        #        res = self.mturk.datetime_to_unixtime(res)
-        #        output.set("Results", res)
-
-        #    elif command=="list_all_hits" or (command=="list_all_hits_cached" and len(self.hits)==0):
-        #        self.hits = []
-        #        next_token = None
-        #        while True:
-        #            if next_token:  res = await client.list_hits(MaxResults=100,NextToken=next_token)
-        #            else:           res = await client.list_hits(MaxResults=100)
-
-        #            for h in res["HITs"]:
-        #                h["CreationTime"] = h["CreationTime"].timestamp()
-        #                h["Expiration"] = h["Expiration"].timestamp()
-
-        #            self.hits.extend(res["HITs"])
-
-        #            if "NextToken" in res:  next_token = res["NextToken"]
-        #            else:                   break
-
-        #        output.set("HITs", self.hits)
-
-        #    elif command=="list_all_hits_cached":
-        #        output.set("HITs", self.hits)
-
-        #    elif command=="create_hit":
-        #        #is_prod_mode = (options[1]=="production")
-        #        params = {
-        #            "MaxAssignments": 1,
-        #            "LifetimeInSeconds": 360000,
-        #            "AutoApprovalDelayInSeconds": 259200,
-        #            "AssignmentDurationInSeconds": 36000,
-        #            "Reward": "0.01",
-        #            "Title": "My HIT",
-        #            "Keywords": "susumu",
-        #            "Description": "this is my test hit"
-        #        }
-        #        params["Question"] = '<ExternalQuestion xmlns="http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2006-07-14/ExternalQuestion.xsd">'\
-        #            + '<ExternalURL>{}</ExternalURL>'.format(f"https://saito2.r9n.net/vue/private-prod/{project_name}/")\
-        #            + '<FrameHeight>{}</FrameHeight>'.format(800)\
-        #            + '</ExternalQuestion>'
-        #        await client.create_hit(**params)
-        #    else:
-        #        raise Exception(f"unknown command '{command}'")
