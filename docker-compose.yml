@@ -1,6 +1,4 @@
 version: "3"
-#volumes:
-#  node_modules:
 
 services:
 
@@ -30,11 +28,8 @@ services:
       context: ./frontend
       args:
         - FRONTEND_HOME=${FRONTEND_HOME}
-    #expose:
-    #  - 80
     volumes:
       - ./frontend:${FRONTEND_HOME}
-      #- node_modules:${FRONTEND_HOME}/node_modules
       - ${FRONTEND_HOME}/node_modules/
       - ./projects/:${FRONTEND_HOME}/src/projects/
     stdin_open: true
@@ -51,8 +46,6 @@ services:
       context: ./backend
       args:
         - BACKEND_HOME=${BACKEND_HOME}
-    #expose:
-    #  - "80"
     volumes:
       - ./backend:${BACKEND_HOME}
       - ./projects:${BACKEND_HOME}/projects
@@ -65,7 +58,6 @@ services:
         ipv4_address: ${BACKEND_ADDRESS}
 
   redis:
-    #image: redis:6-alpine
     image: redislabs/rejson:latest
     container_name: redis
     ports:
@@ -74,16 +66,6 @@ services:
     networks:
       default:
         ipv4_address: ${REDIS_ADDRESS}
-
-  mongodb:
-    image: mongo:latest
-    container_name: mongodb
-    ports:
-      - "27017:27017"
-    restart: always
-    networks:
-      default:
-        ipv4_address: ${MONGODB_ADDRESS}
 
 networks:
   default:

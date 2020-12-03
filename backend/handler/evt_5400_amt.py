@@ -1,12 +1,9 @@
 import json
-import os
 
 import boto3
 
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
-
-from pymongo import MongoClient
 
 import logging
 logger = logging.getLogger(__name__)
@@ -15,13 +12,11 @@ logging.getLogger('boto3').setLevel(logging.CRITICAL)
 logging.getLogger('botocore').setLevel(logging.CRITICAL)
 logging.getLogger('nose').setLevel(logging.CRITICAL)
 
-from handler import paths, common
 from handler.handler_output import handler_output
 
 class Handler(EventHandler):
     def __init__(self):
         super().__init__()
-        self.db = MongoClient(os.environ.get("MONGODB_ADDRESS"))
         self.hits = []
 
     def setup(self, handler_spec, manager):
