@@ -11,10 +11,12 @@ info = {
 
 iam = boto3.resource('iam', **info)
 
-#client = boto3.client('iam', **info)
-username = "hoge"
-client.create_user(UserName=username)
-res = client.create_access_key(UserName=username)
-akid = res["AccessKey"]["AccessKeyId"]
-sakey = res["AccessKey"]["SecretAccessKey"]
-print(akid, sakey)
+print(iam)
+
+##client = boto3.client('iam', **info)
+#username = "hoge"
+#client.create_user(UserName=username)
+#res = client.create_access_key(UserName=username)
+#akid = res["AccessKey"]["AccessKeyId"]
+#sakey = res["AccessKey"]["SecretAccessKey"]
+#print(akid, sakey)

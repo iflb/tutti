@@ -3,11 +3,17 @@
         <v-row justify="center"><v-col cols="11">
             <v-card class="pa-3">
                 <v-row class="d-flex">
-                    <v-col>
+                    <v-col cols="3">
                     <v-select hide-details :items="events" item-text="label" item-value="eid" label="Event" v-model="selectedEventId"></v-select>
                     </v-col>
-                    <v-col>
+                    <v-col cols="3">
                     <v-combobox v-model="selectedEventArgs" @input.native="selectedEventArgs=$event.srcElement.value" :items="selectedEventArgsHistory" placeholder="Args separated by spaces"></v-combobox>
+                    </v-col>
+                </v-row>
+                <v-row class="d-flex">
+                    <v-col>
+                    Requested JSON:
+                    <codemirror v-model="selectedEventArgs" :options="cmOptions">hogehoge</codemirror>
                     </v-col>
                     <v-col>
                     <v-container>
@@ -44,11 +50,14 @@ import store from '@/store.js'
 import { mapGetters, mapActions } from 'vuex'
 import VueJsonPretty from 'vue-json-pretty'
 import 'vue-json-pretty/lib/styles.css'
+import { codemirror } from 'vue-codemirror'
+import 'codemirror/lib/codemirror.css'
 
 export default {
     store,
     components: {
-        VueJsonPretty
+        VueJsonPretty,
+        codemirror
     },
     data: () => ({
         selectedEventId: null,
@@ -61,7 +70,19 @@ export default {
             { text: "Sent Message", value: "sent" },
             { text: "Received Message", value: "received" },
         ],
-        searchStr: ""
+        searchStr: "",
+        cmOptions: {
+            styleActiveLine: true,
+            lineNumbers: true,
+            line: true,
+            mode: 'text/javascript',
+            lineWrapping: true,
+            theme: 'base16-dark',
+            indentWithTabs: true
+            //smartIndent: true,
+            //indentUnit: 4,
+        },
+        code: "hoge = 1"
     }),
     props: ["sharedProps","name"],
     computed: {
@@ -121,7 +142,13 @@ export default {
         },
         sendEvent() {
             const histEid = this.duct.EVENT.EVENT_HISTORY;
-            this.duct.sendMsg({ tag: this.name, eid: this.selectedEventId, data: this.selectedEventArgs });
+            var args;
+            try {
+                args = JSON.parse(this.selectedEventArgs);
+            } catch {
+                args = this.selectedEventArgs;
+            }
+            this.duct.sendMsg({ tag: this.name, eid: this.selectedEventId, data: args });
             this.duct.sendMsg({ tag: this.name, eid: histEid, data: `${this.selectedEventId} ${this.selectedEventArgs}`});
             this.selectedEventArgs = "";
         }
@@ -138,5 +165,8 @@ export default {
 <style>
 .is-root, .is-root div {
     font-size: 9pt;
+}
+.CodeMirror {
+    height: 150px;
 }
 </style>

@@ -1,3 +1,10 @@
+def key_mturk_access_key_id():
+    return f"Platform/AMT/AccessKeyId"
+def key_mturk_secret_access_key():
+    return f"Platform/AMT/SecretAccessKey"
+def key_mturk_is_sandbox():
+    return f"Platform/AMT/IsSandbox"
+
 def key_nids_for_pn_tn(pn,tn):
     return f"NanotaskIds/PRJ:{pn}/TMPL:{tn}"
 
