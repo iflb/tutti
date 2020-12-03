@@ -39,7 +39,14 @@ export default {
     }),
     methods: {
         create() {
-            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.CREATE_PROJECT, data: this.newProjectName })
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.PROJECT,
+                data: {
+                    "Command": "Create",
+                    "ProjectName": this.newProjectName
+                }
+            });
             this.shown = false;
         }
     }
