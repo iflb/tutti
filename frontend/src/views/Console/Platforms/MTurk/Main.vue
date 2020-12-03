@@ -25,6 +25,7 @@
                 Secret Access Key: {{ secretAccessKey }}<br>
                 Balance: ${{ sharedProps.mTurkAccount.availableBalance }} <span v-if="'onHoldBalance' in sharedProps.mTurkAccount">(on hold: {{ sharedProps.mTurkAccount.onHoldBalance }})</span>
             </v-card-text>
+                <v-alert dense v-if="sharedProps.mTurkAccount.isSandbox==0" text type="warning">You are in the <b>production mode</b>; real payments can happen <v-btn text color="indigo" @click="toSandbox()">Change to Sandbox</v-btn></v-alert>
         </v-card>
         <dialog-set-account ref="dlgSetAccount" />
         <v-row>
@@ -82,16 +83,13 @@ export default {
         windowOpen(url, target){
             window.open(url, target);
         },
-        init() {
-
+        toSandbox() {
+            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.AMT, data: { "Command": "SetSandboxMode", "Enabled": 1 } });
         }
     },
     mounted() {
         this.onDuctOpen(() => {
-            if(Object.keys(this.sharedProps.mTurkAccount).length==0) {
-                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.MTURK_ACCOUNT, data: "get" });
-                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.MTURK_REQUESTER_INFO, data: null });
-            }
+            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.AMT, data: { "Command": "GetCredentials" } });
         });
     }
 }

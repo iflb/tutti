@@ -25,6 +25,7 @@ class Handler(EventHandler):
     @handler_output
     async def handle(self, event, output):
         command = event.data["Command"]
+        output.set("Command", command)
 
         if command=="SetCredentials":
             access_key_id = event.data["AccessKeyId"]
@@ -40,12 +41,15 @@ class Handler(EventHandler):
                 output.set("AccessKeyId", access_key_id)
                 output.set("SecretAccessKey", secret_access_key)
                 output.set("IsSandbox", is_sandbox)
-                output.set("Result", ret)
+                output.set("AccountBalance", ret)
 
         elif command=="GetCredentials":
             output.set("AccessKeyId", await event.session.redis.execute("GET", key_mturk_access_key_id()))
             output.set("SecretAccessKey", await event.session.redis.execute("GET", key_mturk_secret_access_key()))
             output.set("IsSandbox", await event.session.redis.execute("GET", key_mturk_is_sandbox()))
+            async with await self.mturk.get_client_async(event.session.redis) as client:
+                ret = await client.get_account_balance()
+                output.set("AccountBalance", ret)
 
         elif command=="SetSandboxMode":
             is_sandbox = event.data["Enabled"]
