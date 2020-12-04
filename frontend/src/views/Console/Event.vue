@@ -13,7 +13,7 @@
                 <v-row class="d-flex">
                     <v-col>
                     Requested JSON:
-                    <codemirror v-model="selectedEventArgs" :options="cmOptions">hogehoge</codemirror>
+                    <codemirror v-model="selectedEventArgs" :options="cmOptions"></codemirror>
                     </v-col>
                     <v-col>
                     <v-container>

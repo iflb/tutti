@@ -16,6 +16,7 @@ from handler import paths, common
 from handler.handler_output import handler_output, CommandError
 
 from handler.redis_index import *
+from handler.redis_resource import MTurkResource
 
 class Handler(EventHandler):
     def __init__(self):
@@ -24,6 +25,7 @@ class Handler(EventHandler):
     async def setup(self, handler_spec, manager):
         self.namespace_redis = manager.load_helper_module('helper_redis_namespace')
         self.mturk = manager.load_helper_module('helper_mturk')
+        self.r_mt = MTurkResource(manager.redis)
         handler_spec.set_description('テンプレート一覧を取得します。')
         handler_spec.set_as_responsive()
         return handler_spec
@@ -38,10 +40,9 @@ class Handler(EventHandler):
                 cached = event.data["Cached"] if "Cached" in event.data else True
 
                 if cached:
-                    access_key_id = await event.session.redis.execute_str("GET", key_mturk_access_key_id())
-                    ret = await event.session.redis.execute_str("JSON.GET", key_mturk_hit_types(access_key_id))
-                    if ret:  output.set("Result", json.loads(ret))
-                    else:  cached = False
+                    hits = await self.r_mt.get_hits()
+                    if hits:  output.set("Result", hits)
+                    else:     cached = False
 
                 if cached==False:
                     next_token = None
@@ -98,10 +99,19 @@ class Handler(EventHandler):
                         else:
                             break
 
-                    access_key_id = await event.session.redis.execute_str("GET", key_mturk_access_key_id())
                     ret = { "LastRetrieved": datetime.now().timestamp(), "HITTypes": hits }
-                    await event.session.redis.execute("JSON.SET", key_mturk_hit_types(access_key_id), ".", json.dumps(ret))
+                    await self.r_mt.set_hits(ret)
                     output.set("Result", ret)
+
+            elif command=="LoadHITType":
+                htid = event.data["HITTypeId"]
+                attrs = await self.r_mt.get_hit_type_attrs_for_htid(htid)
+                output.set("HITTypeAttributes", attrs)
+
+            elif command=="CreateHITType":
+                htid = event.data["HITTypeId"]
+                attrs = event.data["Attributes"]
+                await self.r_mt.set_hit_type_attrs_for_htid(htid, attrs)
 
             elif command=="create":
                 params = json.loads(event.data[1])
@@ -138,3 +148,6 @@ class Handler(EventHandler):
             elif command=="delete":
                 qid = event.data[1]
                 await self.client.delete_qualification_type(QualificationTypeId=qid)
+
+            else:
+                raise Exception(f"unknown command '{command}'")

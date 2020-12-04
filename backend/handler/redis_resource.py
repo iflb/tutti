@@ -212,3 +212,80 @@ class AnswerResource(RedisResource):
 
     async def get_ids_for_pn_tn(self, pn, tn):
         return await self.redis.execute_str("SMEMBERS", ri.key_aids_for_pn_tn(pn,tn))
+
+class MTurkResource:
+    def __init__(self, redis):
+        self.redis = redis
+
+    @classmethod
+    def key_access_key_id(cls):
+        return f"Platform/AMT/AccessKeyId"
+    @classmethod
+    def key_secret_access_key(cls):
+        return f"Platform/AMT/SecretAccessKey"
+    @classmethod
+    def key_is_sandbox(cls):
+        return f"Platform/AMT/IsSandbox"
+
+    async def key_base(self):
+        [aki, sak, sandbox] = await self.get_credentials()
+        sandbox_str = "Sandbox" if sandbox==1 else "Production"
+        return f"Platform/AMT/{aki}/{sandbox_str}"
+    async def key_hits(self):
+        return "{}/HITs".format(await self.key_base())
+    async def key_hit_type_attrs_for_htid(self, htid):
+        return "{}/HITTypeAttributes".format(await self.key_base())
+
+    async def get_access_key_id(self):
+        return await self.redis.execute_str("GET", self.key_access_key_id())
+    async def set_access_key_id(self, aki):
+        return await self.redis.execute("SET", self.key_access_key_id(), aki)
+    async def remove_access_key_id(self):
+        return await self.redis.execute("DEL", self.key_access_key_id())
+    async def get_secret_access_key(self):
+        return await self.redis.execute_str("GET", self.key_secret_access_key())
+    async def set_secret_access_key(self, sak):
+        return await self.redis.execute("SET", self.key_secret_access_key(), sak)
+    async def remove_secret_access_key(self):
+        return await self.redis.execute("DEL", self.key_secret_access_key())
+    async def get_is_sandbox(self):
+        ret = await self.redis.execute_str("GET", self.key_is_sandbox())
+        return ret=="1"
+    async def set_is_sandbox(self, sandbox):
+        val = 1 if sandbox==True else 0
+        await self.redis.execute_str("SET", self.key_is_sandbox(), val)
+    async def remove_is_sandbox(self):
+        ret = await self.redis.execute("DEL", self.key_is_sandbox())
+    async def get_credentials(self):
+        return [
+            await self.get_access_key_id(),
+            await self.get_secret_access_key(),
+            await self.get_is_sandbox()
+        ]
+    async def set_credentials(self, aki, sak, sandbox):
+        await self.set_access_key_id(aki)
+        await self.set_secret_access_key(sak)
+        await self.set_is_sandbox(sandbox)
+    async def remove_credentials(self):
+        await self.remove_access_key_id()
+        await self.remove_secret_access_key()
+        await self.remove_is_sandbox()
+
+    async def get_hit_type_attrs_for_htid(self, htid):
+        data = await self.redis.execute("JSON.GET", await self.key_hit_type_attrs_for_htid(htid))
+        return json.loads(data) if data else None
+
+    async def set_hit_type_attrs_for_htid(self, htid, attrs):
+        timestamp = datetime.now().timestamp()
+        data = {
+            "Timestamp": timestamp,
+            "Attributes": attr
+        }
+        await self.redis.execute("JSON.SET", await self.key_hit_type_attrs_for_htid(htid), ".", json.dumps(attrs))
+
+    async def get_hits(self):
+        data = await self.redis.execute("JSON.GET", await self.key_hits())
+        return json.loads(data) if data else None
+        
+    async def set_hits(self, hits):
+        await self.redis.execute("JSON.SET", await self.key_hits(), ".", json.dumps(hits))

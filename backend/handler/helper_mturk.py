@@ -5,22 +5,21 @@ import json
 import aiobotocore
 
 from handler.redis_index import *
+from handler.redis_resource import MTurkResource
 
 import logging
 logger = logging.getLogger(__name__)
 
 async def get_client_async(redis, access_key_id=None, secret_access_key=None, region_name="us-east-1", sandbox=None):
+    r_mt = MTurkResource(redis)
     try:
         session = aiobotocore.get_session()
         if not access_key_id:
-            access_key_id = await redis.execute_str("GET", key_mturk_access_key_id())
+            access_key_id = await r_mt.get_access_key_id()
         if not secret_access_key:
-            secret_access_key = await redis.execute_str("GET", key_mturk_secret_access_key())
+            secret_access_key = await r_mt.get_secret_access_key()
         if not sandbox:
-            if (sandbox := await redis.execute_str("GET", key_mturk_is_sandbox())):
-                sandbox = int(sandbox)
-            else:
-                sandbox = 1  # fail safe
+            sandbox = await r_mt.get_is_sandbox()
 
         if sandbox:  endpoint_url = "https://mturk-requester-sandbox.us-east-1.amazonaws.com"
         else:        endpoint_url = "https://mturk-requester.us-east-1.amazonaws.com"

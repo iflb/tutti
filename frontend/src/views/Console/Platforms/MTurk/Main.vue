@@ -20,14 +20,14 @@
             </v-card-text>
         </v-card>
         <v-card v-if="isAccountSet" :loading="credentialRequested">
-            <v-alert v-if="sharedProps.mTurkAccount.isSandbox==0" dense text type="warning">You are in the <b>production mode</b>; real payments can happen</v-alert>
+            <v-alert v-if="!sharedProps.mTurkAccount.isSandbox" dense text type="warning">You are in the <b>production mode</b>; real payments can happen</v-alert>
             <v-card-text>
                 Access Key ID: {{ accessKeyId }}<br>
                 Secret Access Key: {{ secretAccessKey }}<br>
                 Balance: ${{ sharedProps.mTurkAccount.availableBalance }} <span v-if="'onHoldBalance' in sharedProps.mTurkAccount">(on hold: {{ sharedProps.mTurkAccount.onHoldBalance }})</span>
             </v-card-text>
             <v-card-text class="pt-0">
-            <v-btn outlined color="indigo" v-text="sharedProps.mTurkAccount.isSandbox==0 ? 'Change to sandbox' : 'Change to production'" @click="setSandboxMode(!sharedProps.mTurkAccount.isSandbox)"></v-btn>
+            <v-btn outlined color="indigo" v-text="sharedProps.mTurkAccount.isSandbox ? 'Change to production' : 'Change to sandbox'" @click="toggleSandboxMode()"></v-btn>
             <v-btn class="ml-3" color="grey" outlined @click="clearCredentials()">Clear credentials</v-btn>
             </v-card-text>
         </v-card>
@@ -97,9 +97,16 @@ export default {
                 data: { "Command": "GetCredentials" }
             });
         },
-        setSandboxMode() {
+        toggleSandboxMode() {
             this.credentialRequested = true;
-            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.AMT, data: { "Command": "SetSandboxMode", "Enabled": this.sharedProps.mTurkAccount.isSandbox==1 ? 0 : 1 } });
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.AMT,
+                data: {
+                    "Command": "SetSandboxMode",
+                    "Enabled": !this.sharedProps.mTurkAccount.isSandbox
+                }
+            });
         },
         clearCredentials() {
             this.credentialRequested = true;

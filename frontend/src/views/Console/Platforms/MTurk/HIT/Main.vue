@@ -1,6 +1,44 @@
 <template>
     <v-main class="mt-10 grey lighten-4">
-        <div style="max-width:1000px" class="mx-auto">
+        <div style="max-width:1200px" class="mx-auto">
+            <!--<v-card class="my-3">
+                <v-card-text class="py-1">
+                    <v-row align="center">
+                        <v-col class="pa-0">
+                            <v-list-item two-line>
+                                <v-list-item-content>
+                                    <v-list-item-title>Create HIT Type</v-list-item-title>
+                                    <v-list-item-subtitle>HIT Metadata (title, reward, time limit, etc.) is required before posting.</v-list-item-subtitle>
+                                </v-list-item-content>
+                            </v-list-item>
+                        </v-col>
+                        <v-col class="text-end py-0">
+                            <v-btn>Create HIT Type</v-btn>
+                        </v-col>
+                    </v-row>
+                </v-card-text>
+                <v-divider></v-divider>
+                <v-card-text class="py-1">
+                    <v-row align="center">
+                        <v-col class="pa-0">
+                            <v-list-item two-line>
+                                <v-list-item-content>
+                                    <v-list-item-title>Create HIT Type</v-list-item-title>
+                                    <v-list-item-subtitle>HIT Metadata (title, reward, time limit, etc.) is required before posting.</v-list-item-subtitle>
+                                </v-list-item-content>
+                            </v-list-item>
+                        </v-col>
+                        <v-col class="text-end py-0">
+                            <v-btn>Create HIT Type</v-btn>
+                        </v-col>
+                    </v-row>
+                </v-card-text>
+            </v-card>-->
+            <v-row>
+                <v-col class="text-right">
+                    <v-btn dark color="indigo" to="/console/platform/mturk/hit/create/">Create HITs</v-btn>
+                </v-col>
+            </v-row>
             <v-card>
                 <v-data-table
                   :headers="headers"
@@ -16,8 +54,12 @@
                         <v-card-title>
                             HITs
                             <v-spacer></v-spacer>
+                            <v-spacer></v-spacer>
                             <v-text-field v-model="search" append-icon="mdi-magnify" label="Search" single-line hide-details></v-text-field>
                         </v-card-title>
+                        <v-card-subtitle>
+                        (Last retrieved: {{ unixTimeToLocaleString(listLastRetrieved) }})
+                        </v-card-subtitle>
                     </template>
                     <template v-slot:expanded-item="{ headers, item }">
                         <td :colspan="headers.length">
@@ -26,9 +68,8 @@
                                     <v-btn icon color="grey lighten-1"><v-icon>mdi-pencil</v-icon></v-btn>
                                     <v-btn icon color="grey lighten-1"><v-icon>mdi-account-edit</v-icon></v-btn>
                                 </div>
+                                Keywords: <b>{{ item.detail.Keywords }}</b><br>
                                 Description: <b>{{ item.detail.Description }}</b><br>
-                                First created at: <b>{{ unixTimeToLocaleString(item.detail.FirstCreationTime) }}</b><br>
-                                Expires at: <b>{{ unixTimeToLocaleString(item.detail.Expiration) }}</b><br>
                                 Auto-approval delay: <b>{{ secondsToTimeString(item.detail.AutoApprovalDelayInSeconds) }}</b><br>
                                 Assignment duration: <b>{{ secondsToTimeString(item.detail.AssignmentDurationInSeconds) }}</b><br>
                                 Raw data:
@@ -45,42 +86,43 @@
 //import DialogCreate from './DialogCreate.vue'
 import { mapGetters, mapActions } from 'vuex'
 import VueJsonPretty from 'vue-json-pretty'
+import 'vue-json-pretty/lib/styles.css'
+//import { codemirror } from 'vue-codemirror'
+//import 'codemirror/lib/codemirror.css'
 
 export default {
     components: {
-        VueJsonPretty
+        VueJsonPretty,
+        //codemirror
     },
     data: () => ({
-      search: "",
-      expanded: [],
+        search: "",
+        expanded: [],
         headers: [
-          { text: 'HITTypeId', value: 'id' },
+          { text: 'HIT Type ID', value: 'id' },
           { text: 'Title', value: 'title' },
           { text: 'Reward', value: 'reward' },
           { text: '# Posted HITs', value: 'num_hits' },
+          { text: 'Creation Time', value: 'creation_time' },
           { text: '', value: 'data-table-expand' },
         ],
+        listLastRetrieved: null,
+        hitTypes: [],
+        cmOptions: {
+            styleActiveLine: true,
+            lineNumbers: true,
+            line: true,
+            mode: 'text/javascript',
+            lineWrapping: true,
+            theme: 'base16-dark',
+            indentWithTabs: true
+        },
+        hitTypeParams: ""
     }),
     props: ["sharedProps","name"],
 
     computed: {
         ...mapGetters("ductsModule", [ "duct" ]),
-        hitTypes() {
-            var h = []
-            if("HITTypes" in this.sharedProps) {
-                for(var htid in this.sharedProps.HITTypes){
-                    const _h = this.sharedProps.HITTypes[htid];
-                    h.push({
-                        "id": htid,
-                        "title": _h.info["Title"],
-                        "reward": "$"+_h.info["Reward"],
-                        "num_hits": _h.cnt,
-                        "detail": _h.info
-                    });
-                }
-            }
-            return h
-        }
     },
     methods: {
         ...mapActions("ductsModule", [ "onDuctOpen" ]),
@@ -98,7 +140,39 @@ export default {
     },
     mounted() {
         this.onDuctOpen(() => {
-            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.MTURK_HIT, data: "list" });
+            this.duct.addEvtHandler({
+                tag: this.name, eid: this.duct.EVENT.MTURK_HIT,
+                handler: (rid, eid, data) => {
+                    if(data["Status"]=="Error") return;
+
+                    const command = data["Data"]["Command"];
+                    switch(command) {
+                        case "List": {
+                            this.listLastRetrieved = data["Data"]["Result"]["LastRetrieved"];
+                            const hits = data["Data"]["Result"]["HITTypes"];
+                            console.log(hits);
+                            this.hitTypes = [];
+                            for(var i in hits){
+                                this.hitTypes.push({
+                                    id: i,
+                                    title: hits[i]["Props"]["Title"],
+                                    reward: hits[i]["Props"]["Reward"],
+                                    creation_time: this.unixTimeToLocaleString(hits[i]["CreationTime"]),
+                                    num_hits: hits[i]["Count"],
+                                    detail: hits[i]["Props"]
+                                });
+                            }
+                            break;
+                        }
+                    }
+                }
+            });
+
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.MTURK_HIT,
+                data: { "Command": "List" }
+            });
         });
     }
 }

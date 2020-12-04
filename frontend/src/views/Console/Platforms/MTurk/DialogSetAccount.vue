@@ -5,7 +5,7 @@
         <v-form @submit.prevent="setAccount">
             <v-card-text>
                 <v-text-field autofocus v-model="accessKeyId" filled label="Access Key Id"></v-text-field>
-                <v-text-field v-model="secretAccessKey" filled label="Access Key Id"></v-text-field>
+                <v-text-field v-model="secretAccessKey" filled label="Secret Access Key"></v-text-field>
             </v-card-text>
             <v-card-actions>
               <v-spacer></v-spacer>
