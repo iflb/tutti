@@ -38,8 +38,12 @@ export default {
         setAccount() {
             this.duct.sendMsg({
                 tag: this.name,
-                eid: this.duct.EVENT.MTURK_ACCOUNT,
-                data: `set ${this.accessKeyId} ${this.secretAccessKey}`
+                eid: this.duct.EVENT.AMT,
+                data: {
+                    "Command": "SetCredentials",
+                    "AccessKeyId": this.accessKeyId,
+                    "SecretAccessKey": this.secretAccessKey
+                }
             });
             this.shown = false;
         }

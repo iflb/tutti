@@ -374,27 +374,6 @@ export default {
                 }
             });
 
-            this.$set(this.sharedProps, "mTurkAccount", {});
-
-            this.duct.setEventHandler(this.duct.EVENT.AMT, (rid, eid, data) => {
-                console.log(data);
-                if(data["Status"]=="Error") return;
-
-                const command = data["Data"]["Command"];
-                switch(command){
-                    case "GetCredentials": {
-                        this.$set(this.sharedProps.mTurkAccount, "accessKeyId", data["Data"]["AccessKeyId"]);
-                        this.$set(this.sharedProps.mTurkAccount, "secretAccessKey", data["Data"]["SecretAccessKey"]);
-                        this.$set(this.sharedProps.mTurkAccount, "isSandbox", data["Data"]["IsSandbox"]);
-                        this.$set(this.sharedProps.mTurkAccount, "availableBalance", data["Data"]["AccountBalance"]["AvailableBalance"]);
-                        if("OnHoldBalance" in data["Data"]["AccountBalance"]){
-                            this.$set(this.sharedProps.mTurkAccount, "onHoldBalance", data["Data"]["AccountBalance"]["OnHoldBalance"]);
-                        }
-                        break;
-                    }
-                }
-            });
-
             this.duct.setEventHandler(this.duct.EVENT.MTURK_QUALIFICATION, (rid, eid, data) => {
                 const command = data["Data"]["Command"];
                 if(data["Status"]=="error") return;

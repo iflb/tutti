@@ -13,19 +13,23 @@
                 </v-row>
             </v-col>
         </v-row>
-        <v-card v-if="!isAccountSet">
+        <v-card v-if="!isAccountSet" :loading="credentialRequested">
             <v-card-text>
                 MTurk account is not set. 
                 <v-btn text color="indigo" @click="$refs.dlgSetAccount.shown=true">Set account</v-btn>
             </v-card-text>
         </v-card>
-        <v-card v-if="isAccountSet">
+        <v-card v-if="isAccountSet" :loading="credentialRequested">
+            <v-alert v-if="sharedProps.mTurkAccount.isSandbox==0" dense text type="warning">You are in the <b>production mode</b>; real payments can happen</v-alert>
             <v-card-text>
                 Access Key ID: {{ accessKeyId }}<br>
                 Secret Access Key: {{ secretAccessKey }}<br>
                 Balance: ${{ sharedProps.mTurkAccount.availableBalance }} <span v-if="'onHoldBalance' in sharedProps.mTurkAccount">(on hold: {{ sharedProps.mTurkAccount.onHoldBalance }})</span>
             </v-card-text>
-                <v-alert dense v-if="sharedProps.mTurkAccount.isSandbox==0" text type="warning">You are in the <b>production mode</b>; real payments can happen <v-btn text color="indigo" @click="toSandbox()">Change to Sandbox</v-btn></v-alert>
+            <v-card-text class="pt-0">
+            <v-btn outlined color="indigo" v-text="sharedProps.mTurkAccount.isSandbox==0 ? 'Change to sandbox' : 'Change to production'" @click="setSandboxMode(!sharedProps.mTurkAccount.isSandbox)"></v-btn>
+            <v-btn class="ml-3" color="grey" outlined @click="clearCredentials()">Clear credentials</v-btn>
+            </v-card-text>
         </v-card>
         <dialog-set-account ref="dlgSetAccount" />
         <v-row>
@@ -64,6 +68,9 @@ import { mapGetters, mapActions } from 'vuex'
 export default {
     props: ["sharedProps","name"],
     components: { DialogSetAccount },
+    data: () => ({
+        credentialRequested: true
+    }),
     computed: {
         ...mapGetters("ductsModule", [ "duct" ]),
         accessKeyId() {
@@ -83,13 +90,63 @@ export default {
         windowOpen(url, target){
             window.open(url, target);
         },
-        toSandbox() {
-            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.AMT, data: { "Command": "SetSandboxMode", "Enabled": 1 } });
+        getCredentials() {
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.AMT,
+                data: { "Command": "GetCredentials" }
+            });
+        },
+        setSandboxMode() {
+            this.credentialRequested = true;
+            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.AMT, data: { "Command": "SetSandboxMode", "Enabled": this.sharedProps.mTurkAccount.isSandbox==1 ? 0 : 1 } });
+        },
+        clearCredentials() {
+            this.credentialRequested = true;
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.AMT,
+                data: {
+                    "Command": "ResetAuthorization"
+                }
+            });
         }
     },
     mounted() {
         this.onDuctOpen(() => {
-            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.AMT, data: { "Command": "GetCredentials" } });
+            this.$set(this.sharedProps, "mTurkAccount", {});
+            this.duct.addEvtHandler({
+                tag: "/console/platform/mturk/", eid: this.duct.EVENT.AMT,
+                handler: (rid, eid, data) => {
+    
+                    if(data["Status"]=="Error") return;
+    
+                    const command = data["Data"]["Command"];
+                    switch(command){
+                        case "GetCredentials": {
+                            this.$set(this.sharedProps.mTurkAccount, "accessKeyId", data["Data"]["AccessKeyId"]);
+                            this.$set(this.sharedProps.mTurkAccount, "secretAccessKey", data["Data"]["SecretAccessKey"]);
+                            this.$set(this.sharedProps.mTurkAccount, "isSandbox", data["Data"]["IsSandbox"]);
+
+                            if(data["Data"]["AccountBalance"]) {
+                                this.$set(this.sharedProps.mTurkAccount, "availableBalance", data["Data"]["AccountBalance"]["AvailableBalance"]);
+                                if("OnHoldBalance" in data["Data"]["AccountBalance"]){
+                                    this.$set(this.sharedProps.mTurkAccount, "onHoldBalance", data["Data"]["AccountBalance"]["OnHoldBalance"]);
+                                }
+                            }
+                            this.credentialRequested = false;
+                            break;
+                        }
+                        case "SetSandboxMode":
+                        case "SetCredentials":
+                        case "ResetAuthorization": {
+                            this.getCredentials();
+                            break;
+                        }
+                    }
+                }
+            });
+            this.getCredentials();
         });
     }
 }

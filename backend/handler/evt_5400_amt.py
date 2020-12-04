@@ -1,6 +1,8 @@
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
 
+from botocore.exceptions import NoCredentialsError
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -30,7 +32,7 @@ class Handler(EventHandler):
         if command=="SetCredentials":
             access_key_id = event.data["AccessKeyId"]
             secret_access_key = event.data["SecretAccessKey"]
-            if not (is_sandbox := event.data["IsSandbox"]):
+            if "IsSandbox" not in event.data:
                 is_sandbox = 1
 
             async with await self.mturk.get_client_async(event.session.redis, access_key_id=access_key_id, secret_access_key=secret_access_key, sandbox=is_sandbox) as client:
@@ -48,8 +50,11 @@ class Handler(EventHandler):
             output.set("SecretAccessKey", await event.session.redis.execute("GET", key_mturk_secret_access_key()))
             output.set("IsSandbox", await event.session.redis.execute("GET", key_mturk_is_sandbox()))
             async with await self.mturk.get_client_async(event.session.redis) as client:
-                ret = await client.get_account_balance()
-                output.set("AccountBalance", ret)
+                try:
+                    ret = await client.get_account_balance()
+                    output.set("AccountBalance", ret)
+                except NoCredentialsError:
+                    return
 
         elif command=="SetSandboxMode":
             is_sandbox = event.data["Enabled"]
