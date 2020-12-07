@@ -1,3 +1,4 @@
+import os
 import json
 from pprint import pprint
 from datetime import datetime
@@ -116,15 +117,25 @@ class Handler(EventHandler):
             elif command=="CreateHITType":
                 params = event.data["Params"]
                 ret = await client.create_hit_type(**params)
-                print(params)
                 htid = ret["HITTypeId"]
                 await self.r_mt.set_hit_type_params_for_htid(htid, params)
                 output.set("HITTypeId", htid)
 
-            elif command=="create":
-                params = json.loads(event.data[1])
-                res = await self.client.create_hit(**params)
-                output.set("QualificationType", self.mturk.datetime_to_unixtime(res["QualificationType"]))
+            elif command=="CreateHITWithHITType":
+                params = event.data["Params"]
+                pn = event.data["ProjectName"]
+                url = f"https://{os.environ['DOMAIN_NAME']}/vue/private-prod/{pn}"
+                frame_height = 800
+                params["Question"] = f'''
+                    <ExternalQuestion
+                        xmlns="http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2006-07-14/ExternalQuestion.xsd">
+                        <ExternalURL>{url}</ExternalURL>
+                        <FrameHeight>{frame_height}</FrameHeight>
+                    </ExternalQuestion>'''
+                num = event.data["NumHITs"]
+                print(params)
+                for i in range(num):
+                    res = await client.create_hit_with_hit_type(**params)
 
             elif command=="update":
                 params = json.loads(event.data[1])

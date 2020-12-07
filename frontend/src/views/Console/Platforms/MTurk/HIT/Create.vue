@@ -133,7 +133,7 @@
                 <v-card-text>
                     <v-row>
                         <v-col cols="2"> <b># of HITs to post:</b> </v-col>
-                        <v-col cols="2"> <v-text-field outlined dense hide-details type="number" min=0 step=1 v-model="numCreateHITs"></v-text-field> </v-col>
+                        <v-col cols="2"> <v-text-field outlined dense hide-details type="number" min=0 step=1 v-model.number="numCreateHITs"></v-text-field> </v-col>
                     </v-row>
                 </v-card-text>
                 <v-card-subtitle><b>HIT Params</b> <v-btn icon @click="openNewWindow('https://docs.aws.amazon.com/AWSMechTurk/latest/AWSMturkAPI/ApiReference_CreateHITWithHITTypeOperation.html');"><v-icon>mdi-help-circle-outline</v-icon></v-btn></v-card-subtitle>
@@ -267,11 +267,6 @@ export default {
                 const name = this.qualIds[i].name;
                 ret.push({ text: `${name} - ${id}`, value: id });
             }
-            //for(const i in this.exstHITTypes){
-            //    const id = this.exstHITTypes[i].id;
-            //    const name = this.exstHITTypes[i].name;
-            //    ret.push({ text: `${name} - ${id}`, value: id });
-            //}
             return ret;
         }
     },
@@ -280,31 +275,47 @@ export default {
         openNewWindow(url) {
             window.open(url, "_blank");
         },
-        pushQualRequirements() { this.attributes.QualificationRequirements.push(Object.assign({}, this.defaultQualRequirements)); },
-        popQualRequirements() { this.attributes.QualificationRequirements.pop(); },
-        numLocaleValues(item) {
-            if(item && item.LocaleValues) return item.LocaleValues.length;
-            else return 0;
-        },
-        pushLocaleValues(item) { item.LocaleValues.push({ "Country": "", "Subdivision": "" }); },
-        popLocaleValues(item) { item.LocaleValues.pop(); },
-        postHITs() {
-            if(this.createNew){
-                var qrs = this.attributes.QualificationRequirements;
-                for(const i in qrs)
-                    for(const j in qrs[i]["IntegerValues"])
-                        qrs[i]["IntegerValues"][j] = parseInt(qrs[i]["IntegerValues"][j]);
-                qrs.Reward = qrs.Reward.toString();
 
-                this.duct.sendMsg({
-                    tag: "/console/platform/mturk/hit/create/",
-                    eid: this.duct.EVENT.MTURK_HIT,
-                    data: {
-                        "Command": "CreateHITType",
-                        "Params": this.attributes
-                    }
-                });
-            }
+        pushQualRequirements() { this.attributes.QualificationRequirements.push(Object.assign({}, this.defaultQualRequirements)); },
+        popQualRequirements()  { this.attributes.QualificationRequirements.pop(); },
+
+        numLocaleValues(item)  { return (item && item.LocaleValues) ? item.LocaleValues.length : 0; },
+        pushLocaleValues(item) { item.LocaleValues.push({ "Country": "", "Subdivision": "" }); },
+        popLocaleValues(item)  { item.LocaleValues.pop(); },
+
+        _evtMTurkHIT(data) {
+            this.duct.sendMsg({
+                tag: "/console/platform/mturk/hit/create/",
+                eid: this.duct.EVENT.MTURK_HIT,
+                data: data
+            });
+        },
+
+        createHITType() {
+            var qrs = this.attributes.QualificationRequirements;
+            for(const i in qrs) for(const j in qrs[i]["IntegerValues"]) qrs[i]["IntegerValues"][j] = parseInt(qrs[i]["IntegerValues"][j]);
+            qrs.Reward = qrs.Reward.toString();
+
+            this._evtMTurkHIT({ "Command": "CreateHITType", "Params": this.attributes });
+        },
+
+        createHITsForHITTypeId(htid) {
+            //console.log({
+            //    "Command": "CreateHIT",
+            //    "Params": { "HITTypeId": htid, ...this.createHITParams },
+            //    "NumHITs": this.numCreateHITs
+            //});
+            this._evtMTurkHIT({
+                "Command": "CreateHITWithHITType",
+                "ProjectName": this.sharedProps.project.name,
+                "Params": { "HITTypeId": htid, ...this.createHITParams },
+                "NumHITs": this.numCreateHITs
+            });
+        },
+
+        postHITs() {
+            if(this.createNew){ this.createHITType(); }
+            else { this.createHITsForHITTypeId(this.chosenExstHITTypeId); }
         }
     },
     watch: {
@@ -331,17 +342,15 @@ export default {
                             this.exstHITTypes = data["Data"]["HITTypes"];
                             break;
                         }
+                        case "CreateHITType": {
+                            const htid = data["Data"]["HITTypeId"];
+                            this.createHITsForHITTypeId(htid);
+                        }
                     }
                 }
             });
 
-            this.duct.sendMsg({
-                tag: "/console/platform/mturk/hit/create/",
-                eid: this.duct.EVENT.MTURK_HIT,
-                data: {
-                    "Command": "ListHITTypes"
-                }
-            });
+            this._evtMTurkHIT({ "Command": "ListHITTypes" });
         });
     }
 };
