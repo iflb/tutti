@@ -23,11 +23,11 @@
                                 <th>Action</th>
                             </tr></thead>
                             <tbody>
-                                <tr v-for="hitType in exstHITTypes" :key="hitType.HITTypeId">
-                                    <td><v-radio-group class="ma-0 pa-0" dense hide-details v-model="chosenExstHITTypeId"><v-radio :value="hitType.HITTypeId"></v-radio></v-radio-group></td>
-                                    <td>{{ hitType.name }}</td>
-                                    <td>{{ hitType.HITTypeId }}</td>
-                                    <td><v-btn small>Copy to new</v-btn></td>
+                                <tr v-for="(params,htid) in exstHITTypes" :key="htid">
+                                    <td><v-radio-group class="ma-0 pa-0" dense hide-details v-model="chosenExstHITTypeId"><v-radio :value="htid"></v-radio></v-radio-group></td>
+                                    <td>{{ params.Title }}</td>
+                                    <td>{{ htid }}</td>
+                                    <td><v-btn small text color="indigo">Copy to new</v-btn></td>
                                 </tr>
                             </tbody>
                         </template>
@@ -57,20 +57,18 @@
                                         <tbody>
                                             <tr>
                                                 <td>QualificationTypeId</td>
-                                                <td>
-                                                    <v-autocomplete v-model="qualItem['QualificationTypeId']" dense hide-details :items="allQualIds">
-                                                    </v-autocomplete>
-                                                </td>
+                                                <td v-if="createNew"><v-autocomplete v-model="qualItem['QualificationTypeId']" dense hide-details :items="allQualIds"></v-autocomplete></td>
+                                                <td v-if="!createNew">{{ qualItem['QualificationTypeId'] }}</td>
                                             </tr>
                                             <tr>
                                                 <td>Comparator</td>
-                                                <td><v-select v-model="qualItem['Comparator']" dense hide-details :items="qualRequirementOptions['Comparator']"></v-select></td>
+                                                <td v-if="createNew"><v-select v-model="qualItem['Comparator']" dense hide-details :items="qualRequirementOptions['Comparator']"></v-select></td>
+                                                <td v-if="!createNew">{{ qualItem['Comparator'] }}</td>
                                             </tr>
                                             <tr>
                                                 <td>IntegerValues</td>
-                                                <td>
-                                                    <v-combobox v-model="qualItem['IntegerValues']" multiple dense small-chips hide-details append-icon :rules="[rules.numbers]"></v-combobox>
-                                                </td>
+                                                <td v-if="createNew"><v-combobox v-model="qualItem['IntegerValues']" multiple dense small-chips hide-details append-icon :rules="[rules.numbers]"></v-combobox></td>
+                                                <td v-if="!createNew">{{ qualItem['IntegerValues'] }}</td>
                                             </tr>
                                             <tr v-for="(localeItem, localeIndex) in qualItem.LocaleValues" :key="'LocaleValues-'+localeIndex">
                                                 <td>LocaleValues - {{ localeIndex+1 }}</td>
@@ -80,11 +78,13 @@
                                                             <tbody>
                                                                 <tr>
                                                                     <td>Country</td>
-                                                                    <td><v-text-field v-model="localeItem.Country" dense hide-details></v-text-field></td>
+                                                                    <td v-if="createNew"><v-text-field v-model="localeItem.Country" dense hide-details></v-text-field></td>
+                                                                    <td v-if="!createNew">{{ localeItem.Country }}</td>
                                                                 </tr>
                                                                 <tr>
                                                                     <td>Subdivision</td>
-                                                                    <td><v-text-field v-model="localeItem.Subdivision" dense hide-details></v-text-field></td>
+                                                                    <td v-if="createNew"><v-text-field v-model="localeItem.Subdivision" dense hide-details></v-text-field></td>
+                                                                    <td v-if="!createNew">{{ localeItem.Subdivision }}</td>
                                                                 </tr>
                                                             </tbody>
                                                         </template>
@@ -101,7 +101,8 @@
                                             </tr>
                                             <tr>
                                                 <td>ActionsGuarded</td>
-                                                <td><v-select v-model="qualItem['ActionsGuarded']" dense hide-details :items="qualRequirementOptions['ActionsGuarded']"></v-select></td>
+                                                <td v-if="createNew"><v-select v-model="qualItem['ActionsGuarded']" dense hide-details :items="qualRequirementOptions['ActionsGuarded']"></v-select></td>
+                                                <td v-if="!createNew">{{ qualItem["ActionsGuarded"] }}</td>
                                             </tr>
                                         </tbody>
                                     </v-simple-table>
@@ -161,7 +162,7 @@
             </v-card>
             <v-row class="mb-8">
                 <v-col class="text-right">
-                    <v-btn dark color="indigo">Post HITs</v-btn>
+                    <v-btn dark color="indigo" @click="postHITs()">Post HITs</v-btn>
                 </v-col>
             </v-row>
         </div>
@@ -172,6 +173,8 @@ import { mapGetters, mapActions } from 'vuex'
 
 export default {
     data: () => ({
+        hitTypes: [],
+
         attributeOptions: [
             { name: "Reward", attrs: { type: "number", min: 0, step: 0.01 } },
             { name: "Title" },
@@ -210,12 +213,8 @@ export default {
 
 
         createNew: null,
-        chosenExstHITTypeId: "hoge1",
-        exstHITTypes: [
-            { id: "AAAAAAA", name: "my type 1" },
-            { id: "BBBBBB", name: "my type 2" },
-            { id: "CCCCCCCCCC", name: "my type 3" },
-        ],
+        chosenExstHITTypeId: "",
+        exstHITTypes: [],
 
 
         defaultAttributes: {
@@ -248,7 +247,7 @@ export default {
             numbers: value => {
                 const pattern = /^[0-9]*$/;
                 var ret = true;
-                for(var i in value) if(!pattern.test(value[i])) { ret = false; value.splice(i,1); break; }
+                for(const i in value) if(!pattern.test(value[i])) { ret = false; value.splice(i,1); break; }
                 return ret || '';
             }
         }
@@ -268,11 +267,11 @@ export default {
                 const name = this.qualIds[i].name;
                 ret.push({ text: `${name} - ${id}`, value: id });
             }
-            for(const i in this.exstHITTypes){
-                const id = this.exstHITTypes[i].id;
-                const name = this.exstHITTypes[i].name;
-                ret.push({ text: `${name} - ${id}`, value: id });
-            }
+            //for(const i in this.exstHITTypes){
+            //    const id = this.exstHITTypes[i].id;
+            //    const name = this.exstHITTypes[i].name;
+            //    ret.push({ text: `${name} - ${id}`, value: id });
+            //}
             return ret;
         }
     },
@@ -288,21 +287,33 @@ export default {
             else return 0;
         },
         pushLocaleValues(item) { item.LocaleValues.push({ "Country": "", "Subdivision": "" }); },
-        popLocaleValues(item) { item.LocaleValues.pop(); }
-    },
-    watch: {
-        createNew(value) {
-            if(value) this.attributes = Object.assign({}, this.defaultAttributes);
-            else {
+        popLocaleValues(item) { item.LocaleValues.pop(); },
+        postHITs() {
+            if(this.createNew){
+                var qrs = this.attributes.QualificationRequirements;
+                for(const i in qrs)
+                    for(const j in qrs[i]["IntegerValues"])
+                        qrs[i]["IntegerValues"][j] = parseInt(qrs[i]["IntegerValues"][j]);
+                qrs.Reward = qrs.Reward.toString();
+
                 this.duct.sendMsg({
                     tag: "/console/platform/mturk/hit/create/",
                     eid: this.duct.EVENT.MTURK_HIT,
                     data: {
-                        "Command": "LoadHITType",
-                        "HITTypeId": this.chosenExstHITTypeId
+                        "Command": "CreateHITType",
+                        "Params": this.attributes
                     }
                 });
             }
+        }
+    },
+    watch: {
+        chosenExstHITTypeId(value) {
+            if(value!="") this.attributes = this.exstHITTypes[value];
+        },
+        createNew(value) {
+            this.chosenExstHITTypeId = "";
+            if(value) this.attributes = Object.assign({}, this.defaultAttributes);
         }
     },
     created() {
@@ -316,11 +327,19 @@ export default {
 
                     const command = data["Data"]["Command"];
                     switch(command) {
-                        case "LoadHITType": {
-                            this.attributes = data["Data"]["HITTypeAttributes"];
+                        case "ListHITTypes": {
+                            this.exstHITTypes = data["Data"]["HITTypes"];
                             break;
                         }
                     }
+                }
+            });
+
+            this.duct.sendMsg({
+                tag: "/console/platform/mturk/hit/create/",
+                eid: this.duct.EVENT.MTURK_HIT,
+                data: {
+                    "Command": "ListHITTypes"
                 }
             });
         });

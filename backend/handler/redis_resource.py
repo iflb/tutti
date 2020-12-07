@@ -233,8 +233,10 @@ class MTurkResource:
         return f"Platform/AMT/{aki}/{sandbox_str}"
     async def key_hits(self):
         return "{}/HITs".format(await self.key_base())
-    async def key_hit_type_attrs_for_htid(self, htid):
-        return "{}/HITTypeAttributes".format(await self.key_base())
+    async def key_hit_type_ids(self):
+        return "{}/HITTypeIds".format(await self.key_base())
+    async def key_hit_type_params_for_htid(self, htid):
+        return "{}/HITTypeParams/{}".format(await self.key_base(), htid)
 
     async def get_access_key_id(self):
         return await self.redis.execute_str("GET", self.key_access_key_id())
@@ -271,17 +273,21 @@ class MTurkResource:
         await self.remove_secret_access_key()
         await self.remove_is_sandbox()
 
-    async def get_hit_type_attrs_for_htid(self, htid):
-        data = await self.redis.execute("JSON.GET", await self.key_hit_type_attrs_for_htid(htid))
+    async def get_hit_type_ids(self):
+        return await self.redis.execute_str("SMEMBERS", await self.key_hit_type_ids())
+
+    async def get_hit_type_params_for_htid(self, htid):
+        data = await self.redis.execute("JSON.GET", await self.key_hit_type_params_for_htid(htid))
         return json.loads(data) if data else None
 
-    async def set_hit_type_attrs_for_htid(self, htid, attrs):
+    async def set_hit_type_params_for_htid(self, htid, params):
         timestamp = datetime.now().timestamp()
         data = {
             "Timestamp": timestamp,
-            "Attributes": attr
+            "Params": params
         }
-        await self.redis.execute("JSON.SET", await self.key_hit_type_attrs_for_htid(htid), ".", json.dumps(attrs))
+        await self.redis.execute("SADD", await self.key_hit_type_ids(), htid)
+        await self.redis.execute("JSON.SET", await self.key_hit_type_params_for_htid(htid), ".", json.dumps(params))
 
     async def get_hits(self):
         data = await self.redis.execute("JSON.GET", await self.key_hits())

@@ -103,15 +103,23 @@ class Handler(EventHandler):
                     await self.r_mt.set_hits(ret)
                     output.set("Result", ret)
 
+            elif command=="ListHITTypes":
+                htids = await self.r_mt.get_hit_type_ids()
+                hts = {htid:await self.r_mt.get_hit_type_params_for_htid(htid) for htid in htids}
+                output.set("HITTypes", hts)
+
             elif command=="LoadHITType":
                 htid = event.data["HITTypeId"]
-                attrs = await self.r_mt.get_hit_type_attrs_for_htid(htid)
-                output.set("HITTypeAttributes", attrs)
+                params = await self.r_mt.get_hit_type_params_for_htid(htid)
+                output.set("HITTypeParams", params)
 
             elif command=="CreateHITType":
-                htid = event.data["HITTypeId"]
-                attrs = event.data["Attributes"]
-                await self.r_mt.set_hit_type_attrs_for_htid(htid, attrs)
+                params = event.data["Params"]
+                ret = await client.create_hit_type(**params)
+                print(params)
+                htid = ret["HITTypeId"]
+                await self.r_mt.set_hit_type_params_for_htid(htid, params)
+                output.set("HITTypeId", htid)
 
             elif command=="create":
                 params = json.loads(event.data[1])
