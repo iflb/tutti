@@ -294,7 +294,9 @@ export default {
         createHITType() {
             var qrs = this.attributes.QualificationRequirements;
             for(const i in qrs) for(const j in qrs[i]["IntegerValues"]) qrs[i]["IntegerValues"][j] = parseInt(qrs[i]["IntegerValues"][j]);
-            qrs.Reward = qrs.Reward.toString();
+            this.attributes.Reward = this.attributes.Reward.toString();
+            this.attributes.AutoApprovalDelayInSeconds = parseInt(this.attributes.AutoApprovalDelayInSeconds);
+            this.attributes.AssignmentDurationInSeconds = parseInt(this.attributes.AssignmentDurationInSeconds);
 
             this._evtMTurkHIT({ "Command": "CreateHITType", "Params": this.attributes });
         },

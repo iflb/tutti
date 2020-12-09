@@ -49,10 +49,12 @@
                   show-expand
                   class="elevation-1"
                   dense
+                  :loading="loadingHITs"
                 >
                     <template v-slot:top>
                         <v-card-title>
                             HITs
+                            <v-btn icon @click="_evtListHITs(false)"><v-icon>mdi-refresh</v-icon></v-btn>
                             <v-spacer></v-spacer>
                             <v-spacer></v-spacer>
                             <v-text-field v-model="search" append-icon="mdi-magnify" label="Search" single-line hide-details></v-text-field>
@@ -117,7 +119,8 @@ export default {
             theme: 'base16-dark',
             indentWithTabs: true
         },
-        hitTypeParams: ""
+        hitTypeParams: "",
+        loadingHITs: false
     }),
     props: ["sharedProps","name"],
 
@@ -136,6 +139,17 @@ export default {
             var minutes = Math.floor(seconds / 60);
             seconds -= minutes*60;
             return `${hours}:${("00"+minutes).slice(-2)}:${("00"+seconds).slice(-2)}`;
+        },
+        _evtListHITs(cached){
+            this.loadingHITs = true;
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.MTURK_HIT,
+                data: {
+                    "Command": "List",
+                    "Cached": cached
+                }
+            });
         }
     },
     mounted() {
@@ -148,9 +162,9 @@ export default {
                     const command = data["Data"]["Command"];
                     switch(command) {
                         case "List": {
+                            this.loadingHITs = false;
                             this.listLastRetrieved = data["Data"]["Result"]["LastRetrieved"];
                             const hits = data["Data"]["Result"]["HITTypes"];
-                            console.log(hits);
                             this.hitTypes = [];
                             for(var i in hits){
                                 this.hitTypes.push({
@@ -168,11 +182,7 @@ export default {
                 }
             });
 
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.MTURK_HIT,
-                data: { "Command": "List" }
-            });
+            this._evtListHITs(true);
         });
     }
 }
