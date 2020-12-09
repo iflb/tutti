@@ -50,6 +50,7 @@
                   class="elevation-1"
                   dense
                   :loading="loadingHITs"
+                  show-select
                 >
                     <template v-slot:top>
                         <v-card-title>
@@ -63,6 +64,9 @@
                         (Last retrieved: {{ unixTimeToLocaleString(listLastRetrieved) }})
                         </v-card-subtitle>
                     </template>
+                    <template v-slot:item.active="{ item }">
+                        <v-icon v-if="item.detail.HITStatusCount.Assignable>0" color="success">mdi-circle-medium</v-icon>
+                    </template>
                     <template v-slot:expanded-item="{ headers, item }">
                         <td :colspan="headers.length">
                             <div class="my-2">
@@ -70,10 +74,10 @@
                                     <v-btn icon color="grey lighten-1"><v-icon>mdi-pencil</v-icon></v-btn>
                                     <v-btn icon color="grey lighten-1"><v-icon>mdi-account-edit</v-icon></v-btn>
                                 </div>
-                                Keywords: <b>{{ item.detail.Keywords }}</b><br>
-                                Description: <b>{{ item.detail.Description }}</b><br>
-                                Auto-approval delay: <b>{{ secondsToTimeString(item.detail.AutoApprovalDelayInSeconds) }}</b><br>
-                                Assignment duration: <b>{{ secondsToTimeString(item.detail.AssignmentDurationInSeconds) }}</b><br>
+                                Keywords: <b>{{ item.detail.Props.Keywords }}</b><br>
+                                Description: <b>{{ item.detail.Props.Description }}</b><br>
+                                Auto-approval delay: <b>{{ secondsToTimeString(item.detail.Props.AutoApprovalDelayInSeconds) }}</b><br>
+                                Assignment duration: <b>{{ secondsToTimeString(item.detail.Props.AssignmentDurationInSeconds) }}</b><br>
                                 Raw data:
                                 <vue-json-pretty :data="item.detail" :deep="1" style="font-size:0.6em;"></vue-json-pretty>
                             </div>
@@ -101,6 +105,7 @@ export default {
         search: "",
         expanded: [],
         headers: [
+          { text: '', value: 'active' },
           { text: 'HIT Type ID', value: 'id' },
           { text: 'Title', value: 'title' },
           { text: 'Reward', value: 'reward' },
@@ -173,7 +178,7 @@ export default {
                                     reward: hits[i]["Props"]["Reward"],
                                     creation_time: this.unixTimeToLocaleString(hits[i]["CreationTime"]),
                                     num_hits: hits[i]["Count"],
-                                    detail: hits[i]["Props"]
+                                    detail: hits[i]
                                 });
                             }
                             break;
