@@ -10,3 +10,4 @@ projects/*
 .ipynb_checkpoints/
 .DS_Store
 *.swp
+redis/

@@ -58,11 +58,14 @@ services:
         ipv4_address: ${BACKEND_ADDRESS}
 
   redis:
+    restart: always
     image: redislabs/rejson:latest
     container_name: redis
+    volumes: 
+     - ./redis/data:/data
+    command: redis-server --loadmodule /usr/lib/redis/modules/rejson.so --appendonly yes
     ports:
       - "6379:6379"
-    restart: always
     networks:
       default:
         ipv4_address: ${REDIS_ADDRESS}
