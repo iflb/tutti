@@ -44,6 +44,7 @@
 import DialogCreate from './DialogCreate.vue'
 import { mapGetters, mapActions } from 'vuex'
 import VueJsonPretty from 'vue-json-pretty'
+import 'vue-json-pretty/lib/styles.css'
 
 export default {
     components: {
@@ -70,13 +71,14 @@ export default {
             if("mTurkQuals" in this.sharedProps) {
                 for(var qid in this.sharedProps.mTurkQuals){
                     const _q = this.sharedProps.mTurkQuals[qid];
-                    q.push({
+                    const data = {
                         "name": _q["Name"],
                         "status": _q["QualificationTypeStatus"],
                         "qualificationId": _q["QualificationTypeId"],
                         "creationTime": this.unixTimeToLocaleString(_q["CreationTime"]),
                         "detail": _q
-                    });
+                    };
+                    q.push(data);
                 }
             }
             return q
@@ -87,30 +89,45 @@ export default {
         unixTimeToLocaleString(unixTime) {
             var dt = new Date(unixTime*1000);
             return dt.toLocaleDateString() + " " + dt.toLocaleTimeString();
+        },
+        _evtGetQualificationTypeIds() {
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.MTURK_QUALIFICATION,
+                data: { "Command": "List" }
+            });
+        },
+        _evtGetWorkersForQualificationTypeIds(qids){
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.MTURK_QUALIFICATION,
+                data: {
+                    "Command": "GetWorkers",
+                    "QualificationTypeIds": qids
+                }
+            });
         }
     },
     mounted() {
         this.onDuctOpen(() => {
-            if(Object.keys(this.sharedProps.mTurkAccount).length==0) {
-                this.duct.addEvtHandler({ tag: this.name, eid: this.duct.EVENT.MTURK_QUALIFICATION, handler: (rid, eid, data) => {
-                        const command = data["Data"]["Command"];
-                        if(data["Status"]=="error") return;
+            this.duct.addEvtHandler({ tag: this.name, eid: this.duct.EVENT.MTURK_QUALIFICATION, handler: (rid, eid, data) => {
+                    const command = data["Data"]["Command"];
+                    if(data["Status"]=="error") return;
 
-                        if(command=="list"){
-                            var qids = [];
-                            for(var i in data["Data"]["QualificationTypes"]){
-                                qids.push(data["Data"]["QualificationTypes"][i]["QualificationTypeId"]);
-                            }
-                            this.duct.sendMsg({
-                                tag: this.name, eid: this.duct.EVENT.MTURK_QUALIFICATION,
-                                data: "get_workers "+qids.join(" ")
-                            });
+                    if(command=="List"){
+                        var qids = [];
+                        for(var i in data["Data"]["QualificationTypes"]){
+                            qids.push(data["Data"]["QualificationTypes"][i]["QualificationTypeId"]);
                         }
+                        this.$set(this.sharedProps, "mTurkQuals", data["Data"]["QualificationTypes"]);
+
+                        this._evtGetWorkersForQualificationTypeIds(qids);
                     }
-                });
-                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.MTURK_QUALIFICATION, data: "list" });
-                //this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.MTURK_REQUESTER_INFO, data: null });
-            }
+                    //else if(command=="GetWorkers"){
+                    //}
+                }
+            });
+            this._evtGetQualificationTypeIds();
         });
     }
 }

@@ -1,7 +1,3 @@
-import boto3
-import json
-from pprint import pprint
-
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
 
@@ -28,11 +24,11 @@ class Handler(EventHandler):
 
     @handler_output
     async def handle(self, event, output):
-        async with self.mturk.get_client_async(event.session.redis) as client:
-            command = event.data[0]
+        async with await self.mturk.get_client_async(event.session.redis) as client:
+            command = event.data["Command"]
             output.set("Command", command)
 
-            if command=="list":
+            if command=="List":
                 next_token = None
                 quals = []
                 while True:
@@ -50,25 +46,23 @@ class Handler(EventHandler):
                         break
                 output.set("QualificationTypes", quals)
 
-            elif command=="create":
-                data = "".join(event.data[1:])
-                params = json.loads(data)
+            elif command=="Create":
+                params = event.data["Params"]
                 res = await client.create_qualification_type(**params)
                 output.set("QualificationType", self.mturk.datetime_to_unixtime(res["QualificationType"]))
 
-            elif command=="update":
-                data = "".join(event.data[1:])
-                params = json.loads(data)
+            elif command=="Update":
+                params = event.data["Params"]
                 res = await client.update_qualification_type(**params)
                 output.set("QualificationType", self.mturk.datetime_to_unixtime(res["QualificationType"]))
 
-            elif command=="get":
-                qid = event.data[1]
+            elif command=="Get":
+                qid = event.data["QualificationTypeId"]
                 res = await client.get_qualification_type(QualificationTypeId=qid)
                 output.set("QualificationType", self.mturk.datetime_to_unixtime(res["QualificationType"]))
 
-            elif command=="get_workers":
-                qids = event.data[1:]
+            elif command=="GetWorkers":
+                qids = event.data["QualificationTypeIds"]
                 quals = {}
                 for qid in qids:
                     next_token = None

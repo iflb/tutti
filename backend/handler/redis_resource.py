@@ -107,12 +107,15 @@ class WorkSessionResource(RedisResource):
         wid = data["WorkerId"]
         ct = data["ClientToken"]
         await self.set_id_for_pn_wid_ct(pn, wid, ct, id)
+        await self.add_wid_for_pn(pn, wid)
 
     async def set_id_for_pn_wid_ct(self, pn, wid, ct, id):
-        await self.redis.execute("SET", ri.key_wsid_for_pn_wid_ct(pn,wid,ct), id)
-
+        await self.redis.execute("SET", ri.key_wsids_for_pn_wid_ct(pn,wid,ct), id)
     async def get_id_for_pn_wid_ct(self, pn, wid, ct):
-        return await self.redis.execute_str("GET", ri.key_wsid_for_pn_wid_ct(pn,wid,ct))
+        return await self.redis.execute_str("GET", ri.key_wsids_for_pn_wid_ct(pn,wid,ct))
+
+    async def add_wid_for_pn(self, pn, wid):
+        await self.redis.execute("SADD", ri.key_wids_for_pn(pn), wid)
 
 class NodeSessionResource(RedisResource):
     def __init__(self, redis):
@@ -136,13 +139,13 @@ class NodeSessionResource(RedisResource):
         await self.add_id_for_wsid(wsid, id)
 
     async def add_id_for_wsid(self, wsid, id):
-        await self.redis.execute("RPUSH", ri.key_nsid_list_for_wsid(wsid), id)
+        await self.redis.execute("RPUSH", ri.key_nsids_for_wsid(wsid), id)
     async def get_id_for_wsid_by_index(self, wsid, idx):
-        return await self.redis.execute_str("LINDEX", ri.key_nsid_list_for_wsid(wsid), idx)
+        return await self.redis.execute_str("LINDEX", ri.key_nsids_for_wsid(wsid), idx)
     async def get_length_for_wsid(self, wsid):
-        return await self.redis.execute("LLEN", ri.key_nsid_list_for_wsid(wsid))
+        return await self.redis.execute("LLEN", ri.key_nsids_for_wsid(wsid))
     async def get_ids_for_wsid(self, wsid):
-        return await self.redis.execute_str("LRANGE", ri.key_nsid_list_for_wsid(wsid), 0, -1)
+        return await self.redis.execute_str("LRANGE", ri.key_nsids_for_wsid(wsid), 0, -1)
     async def set_next_id(self, id, next_id):
         await self.redis.execute("JSON.SET", self.key(id=id), "NextId", next_id)
 
@@ -295,3 +298,13 @@ class MTurkResource:
         
     async def set_hits(self, hits):
         await self.redis.execute("JSON.SET", await self.key_hits(), ".", json.dumps(hits))
+
+class WorkerHelper:
+    @classmethod
+    async def get_wids_for_pn(cls, redis, pn):
+        return await redis.execute_str("SMEMBERS", ri.key_wids_for_pn(pn))
+
+    @classmethod
+    async def get_amt_wids_for_pn(cls, redis, pn):
+        wids = await redis.execute_str("SMEMBERS", ri.key_wids_for_pn(pn))
+        return [wid for wid in wids if wid.startswith("A") and wid.isupper()]

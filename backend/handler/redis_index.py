@@ -1,13 +1,16 @@
 def key_nids_for_pn_tn(pn,tn):
     return f"NanotaskIds/PRJ:{pn}/TMPL:{tn}"
 
-def key_wsid_for_pn_wid_ct(pn,wid,ct):
+def key_wsids_for_pn_wid_ct(pn,wid,ct):
     return f"WorkSessionIds/PRJ:{pn}/WKR:{wid}/CT:{ct}"
 
-def key_nsid_list_for_wsid(wsid):
+def key_nsids_for_wsid(wsid):
     return f"NodeSessionIds/{wsid}"
 #def key_nsid_set_for_wsid(wsid):
 #    return f"NodeSessionIdsHistory/{wsid}"
+
+def key_wids_for_pn(pn):
+    return f"WorkerIds/PRJ:{pn}"
 
 def key_aids_for_nid(nid):
     return f"AnswerIds/{nid}"
