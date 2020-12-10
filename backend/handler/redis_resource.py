@@ -135,17 +135,35 @@ class NodeSessionResource(RedisResource):
         }
 
     async def _on_add(self, id, data):
-        wsid = data["WorkSessionId"]
-        await self.add_id_for_wsid(wsid, id)
+        await self.add_id_for_wsid(data["WorkSessionId"], id)
+        await self.add_id_for_pn_nn_wid(data["ProjectName"], data["NodeName"], data["WorkerId"], id)
+        await self.add_id_for_pn_nn_wsid(data["ProjectName"], data["NodeName"], data["WorkSessionId"], id)
 
     async def add_id_for_wsid(self, wsid, id):
         await self.redis.execute("RPUSH", ri.key_nsids_for_wsid(wsid), id)
-    async def get_id_for_wsid_by_index(self, wsid, idx):
-        return await self.redis.execute_str("LINDEX", ri.key_nsids_for_wsid(wsid), idx)
-    async def get_length_for_wsid(self, wsid):
-        return await self.redis.execute("LLEN", ri.key_nsids_for_wsid(wsid))
+    async def add_id_for_pn_nn_wid(self, pn, nn, wid, id):
+        await self.redis.execute("RPUSH", ri.key_nsids_for_pn_nn_wid(pn,nn,wid), id)
+    async def add_id_for_pn_nn_wsid(self, pn, nn, wsid, id):
+        await self.redis.execute("RPUSH", ri.key_nsids_for_pn_nn_wsid(pn,nn,wsid), id)
+
     async def get_ids_for_wsid(self, wsid):
         return await self.redis.execute_str("LRANGE", ri.key_nsids_for_wsid(wsid), 0, -1)
+    async def get_ids_for_pn_nn_wid(self, pn, nn, wid):
+        return await self.redis.execute_str("LRANGE", ri.key_nsids_for_pn_nn_wid(pn,nn,wid), 0, -1)
+    async def get_ids_for_pn_nn_wsid(self, pn, nn, wsid):
+        return await self.redis.execute_str("LRANGE", ri.key_nsids_for_pn_nn_wsid(pn,nn,wsid), 0, -1)
+
+    async def get_id_for_wsid_by_index(self, wsid, idx):
+        return await self.redis.execute_str("LINDEX", ri.key_nsids_for_wsid(wsid), idx)
+
+    async def get_length_for_wsid(self, wsid):
+        return await self.redis.execute("LLEN", ri.key_nsids_for_wsid(wsid))
+    async def get_length_for_pn_nn_wid(self, pn, nn, wid):
+        return await self.redis.execute("LLEN", ri.key_nsids_for_pn_nn_wid(pn,nn,wid))
+    async def get_length_for_pn_nn_wsid(self, pn, nn, wsid):
+        return await self.redis.execute("LLEN", ri.key_nsids_for_pn_nn_wsid(pn,nn,wsid))
+
+
     async def set_next_id(self, id, next_id):
         await self.redis.execute("JSON.SET", self.key(id=id), "NextId", next_id)
 
@@ -186,9 +204,10 @@ class AnswerResource(RedisResource):
         wid = ns["WorkerId"]
         pn = ns["ProjectName"]
         tn = ns["NodeName"]
+        wsid = ns["WorkSessionId"]
         nid = ns["NanotaskId"]
-        if nid:  await self.add_id_for_nid(nid, nsid)
-        else:    await self.add_id_for_pn_tn(pn, tn, nsid)
+        if nid: await self.add_id_for_nid(nid, nsid)
+        else:   await self.add_id_for_pn_tn(pn, tn, nsid)
 
         if nid:
             nt = await self.res_nt.get(nid)

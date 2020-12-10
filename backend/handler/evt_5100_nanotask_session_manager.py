@@ -10,6 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from libs.scheme.flow import SessionEndException, UnskippableNodeException
+from libs.scheme.client import WorkerClient, WorkSessionClient
 from handler.redis_resource import (NanotaskResource,
                                    WorkSessionResource,
                                    NodeSessionResource,
@@ -25,6 +26,7 @@ class Handler(EventHandler):
         self.r_ws = WorkSessionResource(manager.redis)
         self.r_ns = NodeSessionResource(manager.redis)
         self.r_ans = AnswerResource(manager.redis)
+        self.redis = manager.redis
 
         handler_spec.set_description('テンプレート一覧を取得します。')
         handler_spec.set_as_responsive()
@@ -70,9 +72,11 @@ class Handler(EventHandler):
                 "children": _info
             }
 
-    async def _get_next_template_node(self, next_node, wid, pn, wsid, nsid):
+    async def _get_next_template_node(self, flow, next_node, wid, pn, wsid, nsid):
         prev_nsid = nsid
-        while (next_node := next_node.forward(None, None, None)):
+        wkr_client = await WorkerClient(self.redis, "Worker", wid, flow.pn)._load_for_read(flow)
+        ws_client = await WorkSessionClient(self.redis, "WorkSession", wsid, flow.pn)._load_for_read(flow)
+        while (next_node := next_node.forward(wkr_client, ws_client)):
             if next_node.is_template():
                 avail_nids = await self.r_nt.get_ids_for_pn_tn(pn, next_node.name)
                 if len(avail_nids)>0:
@@ -81,7 +85,9 @@ class Handler(EventHandler):
                 else:
                     nid = None
             else:
-                continue
+                nid = None
+            #else:
+            #    continue
             ns = NodeSessionResource.create_instance(pn=pn,
                                                      name=next_node.name,
                                                      wid=wid,
@@ -154,47 +160,60 @@ class Handler(EventHandler):
                     out_ans = await self.r_ans.get(nsid)
                 else:
                     try:
-                        out_ns, out_nsid = await self._get_next_template_node(scheme.flow.get_begin_node(), wid, pn, wsid, None)
+                        out_ns, out_nsid = await self._get_next_template_node(scheme.flow, scheme.flow.get_begin_node(), wid, pn, wsid, None)
                         out_ans = None
                     except SessionEndException as e:
-                        output.set("FlowSessionStatus", "Terminated")
+                        output.set("WorkSessionStatus", "Terminated")
                         output.set("TerminateReason", "SessionEnd")
                         return 
                     except UnskippableNodeException as e:
-                        output.set("FlowSessionStatus", "Terminated")
+                        output.set("WorkSessionStatus", "Terminated")
                         output.set("TerminateReason", "UnskippableNode")
                         return
                         
             else:
-                ns = await self.r_ns.get(nsid)
-                if target=="NEXT":
-                    if ns["NextId"]:
-                        out_nsid = ns["NextId"]
-                        out_ns = await self.r_ns.get(ns["NextId"])
-                        out_ans = await self.r_ans.get(ns["NextId"])
-                        # also record this behavior to history?
-                    else:
-                        try:
-                            out_ns, out_nsid = await self._get_next_template_node(scheme.flow.get_node_by_name(ns["NodeName"]), wid, pn, wsid, nsid)
-                            out_ans = None
-                        except SessionEndException as e:
-                            output.set("FlowSessionStatus", "Terminated")
-                            output.set("TerminateReason", "SessionEnd")
-                            return 
-                        except UnskippableNodeException as e:
-                            output.set("FlowSessionStatus", "Terminated")
-                            output.set("TerminateReason", "UnskippableNode")
-                            return
-                elif target=="PREV":
-                    if ns["PrevId"]:
-                        out_nsid = ns["PrevId"]
-                        out_ns = await self.r_ns.get(ns["PrevId"])
-                        out_ans = await self.r_ans.get(ns["PrevId"])
-                        # also record this behavior to history?
-                    else:
-                        raise Exception("Unexpected request for previous node session")
+                while (ns := await self.r_ns.get(nsid)):
+                    if target=="NEXT":
+                        if ns["NextId"]:
+                            out_nsid = ns["NextId"]
+                            out_ns = await self.r_ns.get(ns["NextId"])
+                            if out_ns["IsTemplateNode"]:
+                                out_ans = await self.r_ans.get(ns["NextId"])
+                                break
+                            else:
+                                nsid = out_nsid
+                                continue
+                            # also record this behavior to history?
+                        else:
+                            try:
+                                out_ns, out_nsid = await self._get_next_template_node(scheme.flow, scheme.flow.get_node_by_name(ns["NodeName"]), wid, pn, wsid, nsid)
+                                out_ans = None
+                                break
+                            except SessionEndException as e:
+                                output.set("WorkSessionStatus", "Terminated")
+                                output.set("TerminateReason", "SessionEnd")
+                                return 
+                            except UnskippableNodeException as e:
+                                output.set("WorkSessionStatus", "Terminated")
+                                output.set("TerminateReason", "UnskippableNode")
+                                return
+                    elif target=="PREV":
+                        if ns["PrevId"]:
+                            out_nsid = ns["PrevId"]
+                            out_ns = await self.r_ns.get(ns["PrevId"])
+                            if out_ns["IsTemplateNode"]:
+                                out_ans = await self.r_ans.get(ns["PrevId"])
+                                break
+                            else:
+                                nsid = out_nsid
+                                continue
+                            # also record this behavior to history?
+                        else:
+                            raise Exception("Unexpected request for previous node session")
+                if out_ns is None:
+                    raise Exception("Unexpected error for task retrieval")
 
-            output.set("FlowSessionStatus", "Active")
+            output.set("WorkSessionStatus", "Active")
             output.set("NodeSessionId", out_nsid)
             output.set("Template", out_ns["NodeName"])
             output.set("Answers", out_ans["Answers"] if out_ans else None)
@@ -213,6 +232,29 @@ class Handler(EventHandler):
             #print(nsids)
             #for nsid in nsids:
             #    print(await self.r_ns.get(nsid))
+
+        elif command=="SetAnswer":
+            if not event.data["NodeSessionId"]:  raise Exception(f"node session ID cannot be null")
+
+            wsid = event.data["WorkSessionId"]
+            nsid = event.data["NodeSessionId"]
+
+            ns = await self.r_ns.get(nsid)
+            pn = ns["ProjectName"]
+            wid = ns["WorkerId"]
+            nid = ns["NanotaskId"]
+
+            answer = AnswerResource.create_instance(wsid, wid, nid, event.data["Answer"])
+            await self.r_ans.add(nsid, answer)
+            output.set("SentAnswer", answer)
+
+            scheme = self.schemes[pn]
+            node = scheme.flow.get_node_by_name(ns["NodeName"])
+            nt = await self.r_nt.get(nid)
+            
+            #ws_client = WorkSessionClient(wsid)
+            #node._on_submit(ws_client, answer["Answers"], nt["GroundTruths"])
+            #await ws_client._register_new_members_to_redis()
 
         else:
             raise Exception("unknown command '{}'".format(command))

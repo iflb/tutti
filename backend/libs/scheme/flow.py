@@ -17,7 +17,8 @@ class SessionEndException(Exception):
     pass
 
 class Flow:
-    def __init__(self, root_node):
+    def __init__(self, pn, root_node):
+        self.pn = pn
         self.begin_node = BeginNode()
         self.end_node = EndNode()
 
@@ -41,6 +42,9 @@ class Flow:
     def get_node_by_name(self, name):
         return self.nodes[name]
 
+    def get_all_node_names(self):
+        return self.nodes.keys()
+
 class Node:
     def __init__(self, name, parent=None, prev=None, next=None, **kwargs):
         self.name = name
@@ -55,17 +59,23 @@ class Node:
     def is_template(self):
         return isinstance(self, TemplateNode)
         
-    def eval_cond(self, node, ws, fs, ns):
-        # TODO
-        import random
-        ret = random.choice([True, False])
-        print(f"random choice for '{node.name}': {ret}")
-        return ret
+    def eval_cond(self, wkr_client, ws_client):
+        if callable(self.condition):
+            print("calling self.condition")
+            return self.condition(wkr_client, ws_client)
+        else:
+            print("skipping self.condition", self.condition)
+            return True
+        ## TODO
+        #import random
+        #ret = random.choice([True, False])
+        #print(f"random choice for '{node.name}': {ret}")
+        #return ret
 
-    def forward(self, ws, fs, ns):
+    def forward(self, wkr_client, ws_client):
         def check_node_exec_or_skip(node):
             if node.statement in (Statement.IF, Statement.WHILE):
-                if node.eval_cond(node, ws, fs, ns):
+                if node.eval_cond(wkr_client, ws_client):
                     return node
                 else:
                     if node.is_skippable:  return None
@@ -83,7 +93,7 @@ class Node:
         _parent = self
         while True:
             if _parent.statement==Statement.WHILE:
-                if _parent.eval_cond(_parent, ws, fs, ns):
+                if _parent.eval_cond(wkr_client, ws_client):
                     return _parent
 
             _next = _parent
@@ -110,6 +120,21 @@ class EndNode(TerminalNode):
 
 
 class TemplateNode(Node):
+    #def __init__(self, on_submit=None, **kwargs):
+    #    self.on_submit = on_submit
+
+    #def _on_submit(self, ws_client, ans, gt):
+    #    wkr.cnt[self.name] += 1
+    #    for key,val in ans_gt.items():
+    #        if ans_wkr[key]==ans_gt[key]:  wkr.correct_cnt[self.name][key]
+    #        wkr.acc[self.name][key] = wkr.correct_cnt[self.name][key] / wkr.cnt[self.name]
+
+    #    ws.cnt[self.name] += 1
+    #    for key,val in ans_gt.items():
+    #        if ans_wkr[key]==ans_gt[key]:  ws.correct_cnt[self.name][key]
+    #        ws.acc[self.name][key] = ws.correct_cnt[self.name][key] / ws.cnt[self.name]
+
+    #    self.on_submit(ws_client, ans, gt)
     pass
 
 class BatchNode(Node):
