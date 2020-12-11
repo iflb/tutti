@@ -21,14 +21,25 @@ class ProjectScheme(ProjectSchemeBase):
         return BatchNode("all", children=[t_pre, b_main, TemplateNode("post2")])
 
     def b_main_cond(self, wkr_client, ws_client):
-        print("b_main_cond")
-        return ws_client.cnt("main")<5
+        cc = ws_client.get_member("choice_correct")
+        if ws_client.cnt("main")>=10: return False
+
+        if cc:
+            accuracy = cc.count("1") / len(cc)
+            print("Accuracy:", accuracy)
+            return True if accuracy >= 0.8 else False
+        else:
+            return True
 
     def t_main2_cond(self, wkr_client, ws_client): 
         print("t_main2_cond")
         print(wkr_client.members)
         return ws_client.cnt("main2")<3
 
+
     def t_main4_on_submit(self, wkr_client, ws_client, ans, gt):
         print("t_main4_on_submit")
-        wkr_client.add_member("hoge", 1)
+        if ans["choice"]==gt["choice"]:
+            ws_client.add_member("choice_correct", 1)
+        else:
+            ws_client.add_member("choice_correct", 0)

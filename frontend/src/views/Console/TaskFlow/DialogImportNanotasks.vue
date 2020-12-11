@@ -63,6 +63,9 @@ export default {
             this.show = false;
         },
         importNanotasks() {
+            var dummyGT = [];
+            var choices = ["Same", "Maybe Same", "Maybe Not Same", "Not Same"];
+            for(var i=0; i<15; i++) dummyGT.push({"choice": choices[i%4]});
             this.duct.sendMsg({
                 tag: "recursive",
                 eid: this.duct.EVENT.NANOTASK,
@@ -73,6 +76,7 @@ export default {
                     "Tag":           this.tagName,
                     "NumAssignable": this.numAssignments,
                     "Priority":      this.priority,
+                    "GroundTruths":  dummyGT,
                     "Props":         this.contents
                 }
             });

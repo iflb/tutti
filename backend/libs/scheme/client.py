@@ -39,7 +39,7 @@ class ClientBase:
 
 
     def get_member(self, name):
-        return self.members[name]
+        return self.members[name] if name in self.members else []
 
     def cnt(self, node_name):
         return self._cnt[node_name]

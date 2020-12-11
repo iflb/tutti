@@ -29,13 +29,13 @@ class Handler(EventHandler):
         output.set("TemplateName", tn)
 
         if command=="Upload":
-            for props in event.data["Props"]:
+            for (props,gt) in zip(event.data["Props"],event.data["GroundTruths"]):
                 await self.r_nt.add(NanotaskResource.create_instance(pn=pn,
                                                                      tn=tn,
                                                                      tag=event.data["Tag"],
                                                                      num_assignable=event.data["NumAssignable"],
                                                                      priority=event.data["Priority"],
-                                                                     gt=event.data["GroundTruths"],
+                                                                     gt=gt,
                                                                      props=props))
             output.set("NumInserted", len(event.data["Props"]))
         elif command=="Get":
