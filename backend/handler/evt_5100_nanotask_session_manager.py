@@ -1,5 +1,6 @@
 import importlib.util
 from importlib import reload
+import inspect
 
 from ducts.event import EventHandler
 
@@ -56,7 +57,7 @@ class Handler(EventHandler):
         if child.is_template():
             return {
                 "statement": child.statement.value,
-                "condition": child.condition,
+                "condition": inspect.getsource(child.condition) if child.condition else None,
                 "is_skippable": child.is_skippable,
                 "name": child.name
             }
@@ -67,7 +68,7 @@ class Handler(EventHandler):
             return {
                 "name": child.name,
                 "statement": child.statement.value,
-                "condition": child.condition,
+                "condition": inspect.getsource(child.condition) if child.condition else None,
                 "is_skippable": child.is_skippable,
                 "children": _info
             }

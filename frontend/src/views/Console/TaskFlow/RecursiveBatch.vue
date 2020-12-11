@@ -35,11 +35,13 @@
             <v-row class="text-caption">
                 <v-col cols="12" class="pb-0" v-if="node.statement==duct.APP_WSD.enums.Statement.IF">
                     <v-icon>mdi-comment-question-outline</v-icon>
-                    IF condition = <b>{{ node.cond }}</b>
+                    IF condition
+                    <v-card height=100><codemirror v-model="node.condition" :options="cmOptions" /></v-card>
                 </v-col>
                 <v-col cols="12" class="pb-0" v-if="node.statement==duct.APP_WSD.enums.Statement.WHILE">
                     <v-icon>mdi-repeat</v-icon>
-                    LOOP condition = <b>{{ node.cond }}</b>
+                    LOOP condition
+                    <v-card height=100><codemirror v-model="node.condition" :options="cmOptions" /></v-card>
                 </v-col>
                 <v-col cols="12" class="pb-0" v-if="node.skippable">
                     <v-icon>mdi-transit-skip</v-icon>
@@ -79,6 +81,10 @@ import RecursiveBatch from './RecursiveBatch.vue'
 import Arrow from './Arrow.vue'
 import DialogImport from './DialogImportNanotasks.vue'
 import DialogList from './DialogListNanotasks.vue'
+import { codemirror } from 'vue-codemirror'
+import 'codemirror/lib/codemirror.css'
+import 'codemirror/mode/python/python'
+import 'codemirror/theme/base16-light.css'
 
 import store from '@/store.js'
 import { mapGetters } from 'vuex'
@@ -87,9 +93,18 @@ export default {
     store,
     name: "RecursiveBatch",
     props: ["name", "node", "isLast", "depth", "templateColor", "project"],
-    components: { RecursiveBatch, Arrow, DialogImport, DialogList },
+    components: { RecursiveBatch, Arrow, DialogImport, DialogList, codemirror },
     data: () => ({
         color: "grey",
+        cmOptions: {
+            tabSize: 4,
+            mode: 'text/x-python',
+            //theme: 'base16-light',
+            lineNumbers: true,
+            line: true,
+            readOnly: true
+            // more CodeMirror options...
+        }
     }),
     computed: {
         ...mapGetters("ductsModule", [ "duct" ]),
@@ -115,3 +130,8 @@ export default {
     },
 }
 </script>
+<style>
+.CodeMirror {
+    height: 100px;
+}
+</style>
