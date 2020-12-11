@@ -120,22 +120,9 @@ class EndNode(TerminalNode):
 
 
 class TemplateNode(Node):
-    #def __init__(self, on_submit=None, **kwargs):
-    #    self.on_submit = on_submit
-
-    #def _on_submit(self, ws_client, ans, gt):
-    #    wkr.cnt[self.name] += 1
-    #    for key,val in ans_gt.items():
-    #        if ans_wkr[key]==ans_gt[key]:  wkr.correct_cnt[self.name][key]
-    #        wkr.acc[self.name][key] = wkr.correct_cnt[self.name][key] / wkr.cnt[self.name]
-
-    #    ws.cnt[self.name] += 1
-    #    for key,val in ans_gt.items():
-    #        if ans_wkr[key]==ans_gt[key]:  ws.correct_cnt[self.name][key]
-    #        ws.acc[self.name][key] = ws.correct_cnt[self.name][key] / ws.cnt[self.name]
-
-    #    self.on_submit(ws_client, ans, gt)
-    pass
+    def __init__(self, name, parent=None, prev=None, next=None, on_submit=None, **kwargs):
+        super().__init__(name,parent,prev,next,**kwargs)
+        self.on_submit = on_submit
 
 class BatchNode(Node):
     def __init__(self, name, children=None, **kwargs):

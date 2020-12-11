@@ -75,8 +75,8 @@ class Handler(EventHandler):
 
     async def _get_next_template_node(self, flow, next_node, wid, pn, wsid, nsid):
         prev_nsid = nsid
-        wkr_client = await WorkerClient(self.redis, "Worker", wid, flow.pn)._load_for_read(flow)
-        ws_client = await WorkSessionClient(self.redis, "WorkSession", wsid, flow.pn)._load_for_read(flow)
+        wkr_client = await WorkerClient(self.redis, wid, flow.pn)._load_for_read(flow)
+        ws_client = await WorkSessionClient(self.redis, wsid, flow.pn)._load_for_read(flow)
         while (next_node := next_node.forward(wkr_client, ws_client)):
             if next_node.is_template():
                 avail_nids = await self.r_nt.get_ids_for_pn_tn(pn, next_node.name)
@@ -122,18 +122,20 @@ class Handler(EventHandler):
                 
     @handler_output
     async def handle(self, event, output):
-        command = event.data[0]
+        command = event.data["Command"]
         output.set("Command", command)
 
-        if command=="LOAD_FLOW":
-            pn = event.data[1]
+        if command=="LoadFlow":
+            pn = event.data["ProjectName"]
 
             scheme = self.load_project_scheme(pn)
             self.schemes[pn] = scheme
             output.set("Flow", self.get_batch_info_dict(scheme.flow.root_node))
 
-        elif command=="CREATE_SESSION":
-            [pn, wid, ct] = event.data[1:]
+        elif command=="Create":
+            pn = event.data["ProjectName"]
+            wid = event.data["WorkerId"]
+            ct = event.data["ClientToken"]
 
             if not (pn and wid and ct):
                 raise Exception("ProjectName, WorkerId, and ClientToken are required")
@@ -144,8 +146,11 @@ class Handler(EventHandler):
 
             output.set("WorkSessionId", wsid)
 
-        elif command=="GET":
-            [target, wsid, nsid] = event.data[1:]
+        elif command=="Get":
+            target = event.data["Target"]
+            wsid = event.data["WorkSessionId"]
+            nsid = event.data["NodeSessionId"]
+
             ws = await self.r_ws.get(wsid)
             if not ws:  raise Exception("No session found")
 
@@ -229,11 +234,6 @@ class Handler(EventHandler):
             output.set("HasPrevTemplate", (await self._get_neighboring_template_node_session(out_ns, "prev") is not None))
             output.set("HasNextTemplate", (await self._get_neighboring_template_node_session(out_ns, "next") is not None))
 
-            #nsids = await self.r_ns.get_ids_for_wsid(wsid)
-            #print(nsids)
-            #for nsid in nsids:
-            #    print(await self.r_ns.get(nsid))
-
         elif command=="SetAnswer":
             if not event.data["NodeSessionId"]:  raise Exception(f"node session ID cannot be null")
 
@@ -251,11 +251,18 @@ class Handler(EventHandler):
 
             scheme = self.schemes[pn]
             node = scheme.flow.get_node_by_name(ns["NodeName"])
-            nt = await self.r_nt.get(nid)
+            if nid:
+                nt = await self.r_nt.get(nid)
+                gt = nt["GroundTruths"]
+            else:
+                gt = None
             
-            #ws_client = WorkSessionClient(wsid)
-            #node._on_submit(ws_client, answer["Answers"], nt["GroundTruths"])
-            #await ws_client._register_new_members_to_redis()
+            wkr_client = WorkerClient(event.session.redis, wid, pn)
+            ws_client = WorkSessionClient(event.session.redis, wsid, pn)
+            if callable(node.on_submit):
+                node.on_submit(wkr_client, ws_client, answer["Answers"], gt)
+            await wkr_client._register_new_members_to_redis()
+            await ws_client._register_new_members_to_redis()
 
         else:
             raise Exception("unknown command '{}'".format(command))

@@ -54,13 +54,14 @@ class NanotaskResource(RedisResource):
         super().__init__(redis, "Nanotask", "NT")
 
     @classmethod
-    def create_instance(cls, pn, tn, tag, num_assignable, priority, props):
+    def create_instance(cls, pn, tn, tag, num_assignable, priority, gt, props):
         return {
             "ProjectName": pn,
             "TemplateName": tn,
             "Tag": tag,
             "NumAssignable": num_assignable,
             "Priority": priority,
+            "GroundTruths": gt,
             "Props": props
         }
 

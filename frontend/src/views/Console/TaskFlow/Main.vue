@@ -87,9 +87,12 @@ export default {
         refreshFlow(){
             this.duct.sendMsg({
                 tag: this.name,
-                eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
-                data: `LOAD_FLOW ${this.project.name}`
-            })
+                eid: this.duct.EVENT.SESSION,
+                data: {
+                    "Command": "LoadFlow",
+                    "ProjectName": this.project.name
+                }
+            });
         }
     },
 }

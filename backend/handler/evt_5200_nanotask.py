@@ -35,6 +35,7 @@ class Handler(EventHandler):
                                                                      tag=event.data["Tag"],
                                                                      num_assignable=event.data["NumAssignable"],
                                                                      priority=event.data["Priority"],
+                                                                     gt=event.data["GroundTruths"],
                                                                      props=props))
             output.set("NumInserted", len(event.data["Props"]))
         elif command=="Get":

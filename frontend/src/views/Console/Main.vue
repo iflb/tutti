@@ -188,7 +188,7 @@ export default {
                 localStorage.setItem("tuttiProject", name);
                 this.project = this.projects[name];
                 this.listTemplates(name);
-                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER, data: `LOAD_FLOW ${name}` })
+                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.SESSION, data: { "Command": "LoadFlow", "ProjectName": name } })
             } 
         },
         project: {
@@ -396,16 +396,10 @@ export default {
             });
 
             this.duct.addEvtHandler({
-                tag: "/console/flow/", eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
+                tag: "/console/flow/", eid: this.duct.EVENT.SESSION,
                 handler: (rid, eid, data) => {
                     const command = data["Data"]["Command"];
-                    if(command=="REGISTER_SM"){
-                        this.$refs.child.showSnackbar({
-                            color: "success",
-                            text: "Successfully registered a state machine"
-                        })
-                    }
-                    else if(command=="LOAD_FLOW"){
+                    if(command=="LoadFlow"){
                         if(data["Status"]=="Error"){
                             this.project.profile = null
                             this.$refs.child.showSnackbar({

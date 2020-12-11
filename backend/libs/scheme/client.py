@@ -8,6 +8,7 @@ class ClientBase:
         self.new_members = {}
         self.resource = resource
         self.pn = pn
+        self.members = {}
         self._cnt = {}
         self._path_member_names = f"{self.resource}/{self.id}/ClientMeta/MemberNames"
         self.r_ns = NodeSessionResource(redis)
@@ -24,14 +25,15 @@ class ClientBase:
 
     async def _load_members(self):
         member_names = await self.redis.execute_str("SMEMBERS", self._path_member_names)
-        self.members = {name: await self.redis.execute_str("LRANGE", self._path_member(name), 0, 1) for name in member_names}
+        self.members = {name: await self.redis.execute_str("LRANGE", self._path_member(name), 0, -1) for name in member_names}
 
     def _get_new_members(self):
         return self.new_members
 
     async def _register_new_members_to_redis(self):
-        await self.redis.execute("SADD", *self.new_members.keys())
-        for name,values in self.new_members.items():  await self.redis.execute("RPUSH", self._path_member(name), *values)
+        if self.new_members.keys():
+            await self.redis.execute("SADD", self._path_member_names, *self.new_members.keys())
+            for name,values in self.new_members.items():  await self.redis.execute("RPUSH", self._path_member(name), *values)
 
 
 
@@ -47,8 +49,8 @@ class ClientBase:
         self.new_members[name].append(value)
 
 class WorkerClient(ClientBase):
-    def __init__(self, redis, resource, id, pn):
-        super().__init__(redis, resource, id, pn)
+    def __init__(self, redis, id, pn):
+        super().__init__(redis, "Worker", id, pn)
         self._path_member_names = f"{self.resource}/WKR:{self.id}/ClientMeta/MemberNames"
 
     async def _load_cnt(self, flow):
@@ -56,6 +58,10 @@ class WorkerClient(ClientBase):
         self._cnt = {nn: await self.r_ns.get_length_for_pn_nn_wid(self.pn, nn, self.id) for nn in nns}
 
 class WorkSessionClient(ClientBase):
+    def __init__(self, redis, id, pn):
+        super().__init__(redis, "WorkSession", id, pn)
+        self._path_member_names = f"{self.resource}/{self.id}/ClientMeta/MemberNames"
+
     async def _load_cnt(self, flow):
         nns = flow.get_all_node_names()
         self._cnt = {nn: await self.r_ns.get_length_for_pn_nn_wsid(self.pn, nn, self.id) for nn in nns}

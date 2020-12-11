@@ -102,23 +102,22 @@ export default {
         ]),
         getTemplate(direction) {
             if(this.wsid) {
-                this.duct.sendMsg({
-                    tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
-                    data: `GET ${direction} ${this.wsid} ${this.nsid}`
-                })
+                this._evtSession({
+                    "Command": "Get",
+                    "Target": direction,
+                    "WorkSessionId": this.wsid,
+                    "NodeSessionId": this.nsid
+                });
             }
         },
         submit($event) {
             Object.assign(this.answer, $event);
-            this.duct.sendMsg({
-                tag: this.name, eid: this.duct.EVENT.ANSWER,
-                data: {
-                    "Command": "Set",
-                    "WorkSessionId": this.wsid,
-                    "NodeSessionId": this.nsid,
-                    "Answer": this.answer
-                }
-            })
+            this._evtSession({
+                "Command": "SetAnswer",
+                "WorkSessionId": this.wsid,
+                "NodeSessionId": this.nsid,
+                "Answer": this.answer
+            });
         },
         logout() {
             localStorage.removeItem("workerId");
@@ -131,6 +130,13 @@ export default {
                 if(this.clientToken) resolve();
                 else reject();
             });
+        },
+        _evtSession(data) {
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.SESSION,
+                data: data
+            });
         }
     },
     created: function(){
@@ -138,19 +144,17 @@ export default {
             console.log("clientToken:", this.clientToken);
 
             this.initDuct( window.ducts = window.ducts || {}).then(() => {
-                this.duct.setEventHandler(this.duct.EVENT.NANOTASK_SESSION_MANAGER, (rid, eid, data) => {
+                this.duct.setEventHandler(this.duct.EVENT.SESSION, (rid, eid, data) => {
                     console.log(data);
                     const command = data["Data"]["Command"];
-                    if(command=="CREATE_SESSION"){
-                        console.log("create_session");
+                    if(command=="Create"){
                         if(data["Status"]=="Error") { console.error(`failed to create session ID: ${data["Reason"]}`); return; }
 
                         const wsid = data["Data"]["WorkSessionId"];
-                        console.log(`created work-session: ${wsid}`);
                         this.wsid = wsid;
                         this.getTemplate("NEXT");
                     }
-                    else if(command=="GET"){
+                    else if(command=="Get"){
                         if(data["Status"]=="Error") { console.error(`failed to get from state machine: ${data["Reason"]}`); return; }
 
                         const d = data["Data"];
@@ -182,27 +186,21 @@ export default {
                             platformConfig.onSubmitWorkSession(this);
                         }
                     }
-                })
-                this.duct.setEventHandler(this.duct.EVENT.ANSWER, (rid, eid, data) => {
-                    console.log(data);
-                    const d = data["Data"];
-                    const command = d["Command"];
-                    const status = d["Status"];
-                    if(command=="Set"){
-                        if(status=="Error") { console.error(`failed to send answer: ${data["Reason"]}`); return; }
+                    else if(command=="SetAnswer"){
+                        if(data["Status"]=="Error") { console.error(`failed to send answer: ${data["Reason"]}`); return; }
 
-                        console.log(`successfully sent answer: ${d["SentAnswer"]}`);
                         this.answer = {}
                         this.getTemplate("NEXT");
                     }
                 });
 
                 this.openDuct().then(() => {
-                    this.duct.sendMsg({
-                        tag: this.name, eid: this.duct.EVENT.NANOTASK_SESSION_MANAGER,
-                        data: `CREATE_SESSION ${this.projectName} ${this.workerId} ${this.clientToken}`
-                    })
-                    console.log(this.duct.EVENT.NANOTASK_SESSION_MANAGER);
+                    this._evtSession({
+                        "Command": "Create",
+                        "ProjectName": this.projectName,
+                        "WorkerId": this.workerId,
+                        "ClientToken": this.clientToken
+                    });
                 })
             })
 
