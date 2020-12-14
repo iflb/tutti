@@ -76,26 +76,67 @@ class NanotaskResource(RedisResource):
     async def add_id_for_pn_tn(self, pn, tn, priority, id):
         await self.redis.execute("ZADD", ri.key_nids_for_pn_tn(pn,tn), priority, id)
 
+    async def check_id_exists_for_pn_tn(self, pn, tn):
+        return (await self.redis.execute("EXISTS", ri.key_nids_for_pn_tn(pn,tn)))==1
+
     async def get_ids_for_pn_tn(self, pn, tn):
         return await self.redis.execute_str("ZRANGE", ri.key_nids_for_pn_tn(pn,tn), 0, -1)
 
-    async def get_first_id_for_pn_tn_wid(self, pn, tn, wid):
+    async def get_first_id_for_pn_tn_wid(self, pn, tn, wid, assignment_order="bfs", sort_order="natural"):
         while True:
-            await self.redis.execute("WATCH", ri.key_completed_nids_for_pn_tn(pn,tn))
-            await self.redis.execute("MULTI")
-            await self.redis.execute("ZUNIONSTORE",
+            await redis.execute("WATCH", ri.key_completed_nids_for_pn_tn(pn,tn))
+            await redis.execute("MULTI")
+            await redis.execute("ZUNIONSTORE",
                                      ri.key_assignable_nids_for_pn_tn_wid(pn,tn,wid), 3,
                                      ri.key_nids_for_pn_tn(pn,tn),
                                      ri.key_completed_nids_for_pn_tn(pn,tn),
                                      ri.key_completed_nids_for_pn_tn_wid(pn,tn,wid),
                                      "WEIGHTS", 1, 0, 0, "AGGREGATE", "MIN")
-            await self.redis.execute_str("ZRANGEBYSCORE",
-                                           ri.key_assignable_nids_for_pn_tn_wid(pn,tn,wid),
-                                           1, "+inf", "LIMIT", 0, 1)
-            ret = await self.redis.execute("EXEC")
-            if type(ret[1])==aioredis.WatchVariableError:  continue
+            get_first_bfs = '''
+                local ret = redis.call('ZRANGEBYSCORE', KEYS[1], 1, '+inf', 'WITHSCORES', 'LIMIT', 0, 1)
+                local item = ret[1]
+                local score = ret[2]
+
+            '''
+            
+            get_first_dfs = '''
+                local ret = redis.call('ZRANGEBYSCORE', KEYS[1], 1, '+inf', 'WITHSCORES', 'LIMIT', 0, 1)
+                local _item = ret[1]
+                local _score = ret[2]
+                _score = math.floor(_score)
+                
+                local ret = redis.call('ZREVRANGEBYSCORE', KEYS[1], '('..(_score+1), _score, 'WITHSCORES', 'LIMIT', 0, 1)
+                local item = ret[1]
+                local score = ret[2]
+
+            '''
+            
+            get_first_common = '''
+                local num = redis.call('ZCOUNT', KEYS[1], score, score)
+                if num == 1 then
+                    return item
+                else
+                    local offset = 0
+                    if ARGV[2] == 'random' then
+                        math.randomseed(ARGV[1])
+                        offset = math.random(0, num-1)
+                    end
+                    local ret = redis.call('ZRANGEBYSCORE', KEYS[1], score, score, 'LIMIT', offset, 1)
+                    return ret[1]
+                end
+            '''
+            
+            if assignment_order=="bfs":
+                get_first = get_first_bfs+get_first_common
+            elif assignment_order=="dfs":
+                get_first = get_first_dfs+get_first_common
+            
+            await redis.execute("EVAL", get_first, 1, ri.key_assignable_nids_for_pn_tn_wid(pn,tn,wid), datetime.now().timestamp()+random.randint(0, random.randint(1, 100)), sort_order)
+            ret = await redis.execute_str("EXEC")
+
+            if type(ret[-1])==aioredis.WatchVariableError:  continue
             else:  break
-        return ret[1] if ret else None
+        return ret[-1].decode() if ret[-1] else None
 
 
 class WorkSessionResource(RedisResource):

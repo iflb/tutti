@@ -79,8 +79,8 @@ class Handler(EventHandler):
         ws_client = await WorkSessionClient(self.redis, wsid, flow.pn)._load_for_read(flow)
         while (next_node := next_node.forward(wkr_client, ws_client)):
             if next_node.is_template():
-                avail_nids = await self.r_nt.get_ids_for_pn_tn(pn, next_node.name)
-                if len(avail_nids)>0:
+                has_nanotasks = await self.r_nt.check_id_exists_for_pn_tn(pn, next_node.name)
+                if has_nanotasks:
                     nid = await self.r_nt.get_first_id_for_pn_tn_wid(pn, next_node.name, wid)
                     if not nid:  continue
                 else:
