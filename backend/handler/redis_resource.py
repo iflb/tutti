@@ -1,6 +1,7 @@
 import json
 import handler.redis_index as ri
 from datetime import datetime
+import aioredis
 
 class RedisResource:
     def __init__(self, redis, base_path, id_prefix):
@@ -79,16 +80,22 @@ class NanotaskResource(RedisResource):
         return await self.redis.execute_str("ZRANGE", ri.key_nids_for_pn_tn(pn,tn), 0, -1)
 
     async def get_first_id_for_pn_tn_wid(self, pn, tn, wid):
-        await self.redis.execute("ZUNIONSTORE",
-                                 ri.key_assignable_nids_for_pn_tn_wid(pn,tn,wid), 3,
-                                 ri.key_nids_for_pn_tn(pn,tn),
-                                 ri.key_completed_nids_for_pn_tn(pn,tn),
-                                 ri.key_completed_nids_for_pn_tn_wid(pn,tn,wid),
-                                 "WEIGHTS", 1, 0, 0, "AGGREGATE", "MIN")
-        ret = await self.redis.execute_str("ZRANGEBYSCORE",
-                                       ri.key_assignable_nids_for_pn_tn_wid(pn,tn,wid),
-                                       1, "+inf", "LIMIT", 0, 1)
-        return ret[0] if ret else None
+        while True:
+            await self.redis.execute("WATCH", ri.key_completed_nids_for_pn_tn(pn,tn))
+            await self.redis.execute("MULTI")
+            await self.redis.execute("ZUNIONSTORE",
+                                     ri.key_assignable_nids_for_pn_tn_wid(pn,tn,wid), 3,
+                                     ri.key_nids_for_pn_tn(pn,tn),
+                                     ri.key_completed_nids_for_pn_tn(pn,tn),
+                                     ri.key_completed_nids_for_pn_tn_wid(pn,tn,wid),
+                                     "WEIGHTS", 1, 0, 0, "AGGREGATE", "MIN")
+            await self.redis.execute_str("ZRANGEBYSCORE",
+                                           ri.key_assignable_nids_for_pn_tn_wid(pn,tn,wid),
+                                           1, "+inf", "LIMIT", 0, 1)
+            ret = await self.redis.execute("EXEC")
+            if type(ret[1])==aioredis.WatchVariableError:  continue
+            else:  break
+        return ret[1] if ret else None
 
 
 class WorkSessionResource(RedisResource):
