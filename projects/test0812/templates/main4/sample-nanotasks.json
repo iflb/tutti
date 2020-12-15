@@ -1,12 +1,12 @@
 {
     "Settings": {
         "TagName": "mysample",
-        "NumAssignments": 1,
+        "NumAssignable": 1,
         "Priority": 1
     },
     "Nanotasks": [
         {
-            "NumAssignments": 2,
+            "NumAssignable": 2,
             "Priority": 3,
             "Props": {
                 "img_url0": "https://m.media-amazon.com/images/I/31-cLVpL20L.jpg",

@@ -40,6 +40,19 @@ class RedisResource:
         data = await self.redis.execute("JSON.GET", self.key(id=id))
         return json.loads(data) if data else None
 
+    async def _delete(self, id):
+        data = await self.get(id)
+        await self.redis.execute("JSON.DEL", self.key(id=id))
+        return data
+
+    async def delete(self, id):
+        data = await self._delete(id)
+        await self._on_delete(id, data)
+
+    async def delete_multi(self, ids):
+        data = [await self._delete(id) for id in ids]
+        await self._on_delete_multi(ids, data)
+
     async def _get_by_json_path(self, id, path):
         data = await self.redis.execute("JSON.GET", self.key(id=id), path)
         return json.loads(data) if data else None
@@ -48,6 +61,12 @@ class RedisResource:
         pass
 
     async def _on_update(self, id, data):
+        pass
+
+    async def _on_delete(self, id, data):
+        pass
+
+    async def _on_delete_multi(self, ids, data):
         pass
 
 class NanotaskResource(RedisResource):
@@ -72,9 +91,24 @@ class NanotaskResource(RedisResource):
         priority = data["Priority"]
 
         await self.add_id_for_pn_tn(pn, tn, priority, id)
+
+    async def _on_delete(self, id, data):
+        pn = data["ProjectName"]
+        tn = data["TemplateName"]
+
+        await self.delete_ids_for_pn_tn(pn, tn, id)
+
+    async def _on_delete_multi(self, ids, data):
+        pn = data[0]["ProjectName"]
+        tn = data[0]["TemplateName"]
+
+        await self.delete_ids_for_pn_tn(pn, tn, *ids)
         
     async def add_id_for_pn_tn(self, pn, tn, priority, id):
         await self.redis.execute("ZADD", ri.key_nids_for_pn_tn(pn,tn), priority, id)
+
+    async def delete_ids_for_pn_tn(self, pn, tn, *ids):
+        await self.redis.execute("ZREM", ri.key_nids_for_pn_tn(pn,tn), *ids)
 
     async def check_id_exists_for_pn_tn(self, pn, tn):
         return (await self.redis.execute("EXISTS", ri.key_nids_for_pn_tn(pn,tn)))==1

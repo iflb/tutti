@@ -29,10 +29,10 @@ class Handler(EventHandler):
         output.set("TemplateName", tn)
 
         if command=="Upload":
-            tag = event.data["Data"]["Settings"]["Tag"]
+            tag = event.data["Data"]["Settings"]["TagName"]
             num_assignable = event.data["Data"]["Settings"]["NumAssignable"]
+            priority = event.data["Data"]["Settings"]["Priority"]
             nanotasks = event.data["Data"]["Nanotasks"]
-            priority = event.data["Data"]["Priority"]
             for nt in nanotasks:
                 _num_assignable = nt["NumAssignable"] if "NumAssignable" in nt else num_assignable
                 _priority = nt["Priority"] if "Priority" in nt else priority
@@ -49,6 +49,10 @@ class Handler(EventHandler):
 
         elif command=="Get":
             nids = await self.r_nt.get_ids_for_pn_tn(pn, tn)
-            data = [await self.r_nt.get(nid) for nid in nids]
+            data = [dict(NanotaskId=nid, **(await self.r_nt.get(nid))) for nid in nids]
             output.set("Nanotasks", data)
             output.set("Count", len(nids))
+
+        elif command=="Delete":
+            nids = event.data["NanotaskIds"]
+            await self.r_nt.delete_multi(nids)
