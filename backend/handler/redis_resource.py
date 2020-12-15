@@ -84,9 +84,9 @@ class NanotaskResource(RedisResource):
 
     async def get_first_id_for_pn_tn_wid(self, pn, tn, wid, assignment_order="bfs", sort_order="natural"):
         while True:
-            await redis.execute("WATCH", ri.key_completed_nids_for_pn_tn(pn,tn))
-            await redis.execute("MULTI")
-            await redis.execute("ZUNIONSTORE",
+            await self.redis.execute("WATCH", ri.key_completed_nids_for_pn_tn(pn,tn))
+            await self.redis.execute("MULTI")
+            await self.redis.execute("ZUNIONSTORE",
                                      ri.key_assignable_nids_for_pn_tn_wid(pn,tn,wid), 3,
                                      ri.key_nids_for_pn_tn(pn,tn),
                                      ri.key_completed_nids_for_pn_tn(pn,tn),
@@ -113,17 +113,18 @@ class NanotaskResource(RedisResource):
             
             get_first_common = '''
                 local num = redis.call('ZCOUNT', KEYS[1], score, score)
-                if num == 1 then
-                    return item
-                else
+                if num > 1 then
                     local offset = 0
                     if ARGV[2] == 'random' then
                         math.randomseed(ARGV[1])
                         offset = math.random(0, num-1)
                     end
                     local ret = redis.call('ZRANGEBYSCORE', KEYS[1], score, score, 'LIMIT', offset, 1)
-                    return ret[1]
+                    item = ret[1]
                 end
+
+                redis.call('ZINCRBY', KEYS[2], 0.000001, item)
+                return item
             '''
             
             if assignment_order=="bfs":
@@ -131,12 +132,13 @@ class NanotaskResource(RedisResource):
             elif assignment_order=="dfs":
                 get_first = get_first_dfs+get_first_common
             
-            await redis.execute("EVAL", get_first, 1, ri.key_assignable_nids_for_pn_tn_wid(pn,tn,wid), datetime.now().timestamp()+random.randint(0, random.randint(1, 100)), sort_order)
-            ret = await redis.execute_str("EXEC")
+            await self.redis.execute("EVAL", get_first, 2, ri.key_assignable_nids_for_pn_tn_wid(pn,tn,wid), ri.key_nids_for_pn_tn(pn,tn), datetime.now().timestamp()+random.randint(0, random.randint(1, 100)), sort_order)
 
-            if type(ret[-1])==aioredis.WatchVariableError:  continue
+            ret = await self.redis.execute_str("EXEC")
+
+            if type(ret[1])==aioredis.WatchVariableError:  continue
             else:  break
-        return ret[-1].decode() if ret[-1] else None
+        return ret[1].decode() if ret[1] else None
 
 
 class WorkSessionResource(RedisResource):
