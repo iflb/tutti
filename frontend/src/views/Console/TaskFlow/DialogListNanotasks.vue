@@ -20,7 +20,35 @@
               prevIcon: 'mdi-chevron-left',
               nextIcon: 'mdi-chevron-right'
             }"
-            />
+            >
+            <template v-slot:item.GroundTruths="{ item }">
+                <v-simple-table dense>
+                    <template v-slot:default>
+                        <tbody>
+                            <tr v-for="(value, key) in item.GroundTruths" :key="key">
+                                <td style="width:100px"><b>{{ key }}</b></td>
+                                <td style="word-break:break-all">{{ value }}</td>
+                            </tr>
+                        </tbody>
+                    </template>
+                </v-simple-table>
+            </template>
+            <template v-slot:item.Props="{ item }">
+                <v-simple-table dense>
+                    <template v-slot:default>
+                        <tbody>
+                            <tr v-for="(value, key) in item.Props" :key="key">
+                                <td style="width:100px"><b>{{ key }}</b></td>
+                                <td style="word-break:break-all">{{ value }}</td>
+                            </tr>
+                        </tbody>
+                    </template>
+                </v-simple-table>
+            </template>
+            <template v-slot:item.Timestamp="{ item }">
+                {{ unixTimeToDatetimeString(item.Timestamp) }}
+            </template>
+        </v-data-table>
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn text @click="closeDialog" >Close</v-btn>
@@ -45,8 +73,16 @@ export default {
     computed: {
         ...mapGetters("ductsModule", [ "duct" ]),
         headers() {
-            const keys = Object.keys(this.nanotasksFlat.reduce((result, obj) => Object.assign(result, obj), {}));
-            return keys.map((x) => ({ text: x, value: x }));
+            return [
+                { text: "Tag",           value: "Tag",           width: "10%" },
+                { text: "NumAssignable", value: "NumAssignable", width: "2%" },
+                { text: "Priority",      value: "Priority",      width: "3%" },
+                { text: "GroundTruths",  value: "GroundTruths",  width: "25%" },
+                { text: "Props",         value: "Props",         width: "45%" },
+                { text: "Timestamp",     value: "Timestamp",     width: "15%" }
+            ];
+            //const keys = Object.keys(this.nanotasksFlat.reduce((result, obj) => Object.assign(result, obj), {}));
+            //return keys.map((x) => ({ text: x, value: x }));
         },
         nanotasksFlat() {
             return this.nanotasks.map((x) => {
@@ -59,6 +95,16 @@ export default {
         closeDialog() {
             this.show = false;
         },
+        unixTimeToDatetimeString(d) {
+            d = new Date(d*1000);
+            var years = d.getFullYear();
+            var month = ("0"+(d.getMonth() + 1)).slice(-2);
+            var day =  ("0"+d.getDate()).slice(-2);
+            var hours = ("0"+d.getHours()).slice(-2);
+            var minutes = ("0"+d.getMinutes()).slice(-2);
+            var seconds = ("0"+d.getSeconds()).slice(-2);
+            return `${years}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
     },
     watch: {
         show() {

@@ -6,7 +6,7 @@
             Import Nanotasks for '{{ template }}'
         </v-card-title>
         <v-card-text>
-            <v-file-input accept=".csv,.CSV" show-size label=".csv file to upload" @change="getFileContent"></v-file-input>
+            <v-file-input accept=".csv,.CSV,.json,.JSON" show-size label=".csv file to upload" @change="getFileContent"></v-file-input>
         </v-card-text>
         <v-card v-if="contents.length>0" class="mx-6">
             <v-card-title>
@@ -63,9 +63,6 @@ export default {
             this.show = false;
         },
         importNanotasks() {
-            var dummyGT = [];
-            var choices = ["Same", "Maybe Same", "Maybe Not Same", "Not Same"];
-            for(var i=0; i<15; i++) dummyGT.push({"choice": choices[i%4]});
             this.duct.sendMsg({
                 tag: "recursive",
                 eid: this.duct.EVENT.NANOTASK,
@@ -73,27 +70,31 @@ export default {
                     "Command":       "Upload",
                     "ProjectName":   this.project.name,
                     "TemplateName":  this.template,
-                    "Tag":           this.tagName,
-                    "NumAssignable": this.numAssignments,
-                    "Priority":      this.priority,
-                    "GroundTruths":  dummyGT,
-                    "Props":         this.contents
+                    "Data": this.contents
                 }
             });
             this.closeDialog();
         },
         async getFileContent (file) {
-          try {
-            const content = await this.readFileAsync(file)
-            const firstline = content.split("\n").shift();
+            try {
+                const content = await this.readFileAsync(file)
+                switch(file.type){
+                    case "text/csv": {
+                        const firstline = content.split("\n").shift();
 
-            this.headerNames = Papa.parse(firstline).data[0];
-            this.headers = [];
-            for(const i in this.headerNames) this.headers.push({ text: this.headerNames[i], value: this.headerNames[i] });
-            this.contents = Papa.parse(content, { header: true, skipEmptyLines: true }).data;
-          } catch (e) {
-            console.log(e)
-          }
+                        this.headerNames = Papa.parse(firstline).data[0];
+                        this.headers = [];
+                        for(const i in this.headerNames) this.headers.push({ text: this.headerNames[i], value: this.headerNames[i] });
+                        this.contents = Papa.parse(content, { header: true, skipEmptyLines: true }).data;
+                        break;
+                    }
+                    case "application/json": {
+                        this.contents = JSON.parse(content);
+                    }
+                }
+            } catch (e) {
+                console.log(e)
+            }
         },
         async readFileAsync (file) {
           return new Promise((resolve, reject) => {

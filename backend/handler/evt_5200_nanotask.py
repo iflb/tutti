@@ -29,15 +29,24 @@ class Handler(EventHandler):
         output.set("TemplateName", tn)
 
         if command=="Upload":
-            for (props,gt) in zip(event.data["Props"],event.data["GroundTruths"]):
+            tag = event.data["Data"]["Settings"]["Tag"]
+            num_assignable = event.data["Data"]["Settings"]["NumAssignable"]
+            nanotasks = event.data["Data"]["Nanotasks"]
+            priority = event.data["Data"]["Priority"]
+            for nt in nanotasks:
+                _num_assignable = nt["NumAssignable"] if "NumAssignable" in nt else num_assignable
+                _priority = nt["Priority"] if "Priority" in nt else priority
+                _props = nt["Props"] if "Props" in nt else None
+                _gt = nt["GroundTruths"] if "GroundTruths" in nt else None
                 await self.r_nt.add(NanotaskResource.create_instance(pn=pn,
                                                                      tn=tn,
-                                                                     tag=event.data["Tag"],
-                                                                     num_assignable=event.data["NumAssignable"],
-                                                                     priority=event.data["Priority"],
-                                                                     gt=gt,
-                                                                     props=props))
-            output.set("NumInserted", len(event.data["Props"]))
+                                                                     tag=tag,
+                                                                     num_assignable=_num_assignable,
+                                                                     priority=_priority,
+                                                                     gt=_gt,
+                                                                     props=_props))
+            output.set("NumInserted", len(nanotasks))
+
         elif command=="Get":
             nids = await self.r_nt.get_ids_for_pn_tn(pn, tn)
             data = [await self.r_nt.get(nid) for nid in nids]

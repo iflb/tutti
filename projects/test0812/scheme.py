@@ -5,41 +5,28 @@ class ProjectScheme(ProjectSchemeBase):
     def config_params(self):
         self.title = "My test project"
         self.pagination = False
+        self.assignment_order = "breadth-first"
+        self.sort_order = "random"
         
     def define_flow(self):
         t_pre = TemplateNode("pre1")
 
         t_main4 = TemplateNode("main4", on_submit=self.t_main4_on_submit)
-        #t_main1 = TemplateNode("main4")
         t_main2 = TemplateNode("main2", statement=Statement.IF, condition=self.t_main2_cond, is_skippable=True)
-        b_main = BatchNode("main",
-                           [t_main4, t_main2],
-                           statement=Statement.WHILE,
-                           condition=self.b_main_cond
-                           )
+        b_main = BatchNode("main", [t_main4, t_main2],
+                           statement=Statement.WHILE, condition=self.b_main_cond)
 
         return BatchNode("all", children=[t_pre, b_main, TemplateNode("post2")])
 
-    def b_main_cond(self, wkr_client, ws_client):
-        cc = ws_client.get_member("choice_correct")
-        if ws_client.cnt("main")>=10: return False
-
-        if cc:
-            accuracy = cc.count("1") / len(cc)
-            print("Accuracy:", accuracy)
-            return True if accuracy >= 0.8 else False
-        else:
-            return True
+    def t_main4_on_submit(self, wkr_client, ws_client, ans, gt):
+        choice_correct = 1 if ans["choice"]==gt["choice"] else 0
+        ws_client.add_member("choice_correct", choice_correct)
 
     def t_main2_cond(self, wkr_client, ws_client): 
-        print("t_main2_cond")
-        print(wkr_client.members)
         return ws_client.cnt("main2")<3
 
+    def b_main_cond(self, wkr_client, ws_client):
+        if ws_client.cnt("main")>=10: return False
 
-    def t_main4_on_submit(self, wkr_client, ws_client, ans, gt):
-        print("t_main4_on_submit")
-        if ans["choice"]==gt["choice"]:
-            ws_client.add_member("choice_correct", 1)
-        else:
-            ws_client.add_member("choice_correct", 0)
+        if (cc := ws_client.get_member("choice_correct")): accuracy = cc.count("1") / len(cc)
+        return (cc is False) or accuracy >= 0.8
