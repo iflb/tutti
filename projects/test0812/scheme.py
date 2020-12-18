@@ -29,4 +29,4 @@ class ProjectScheme(ProjectSchemeBase):
         if ws_client.cnt("main")>=10: return False
 
         if (cc := ws_client.get_member("choice_correct")): accuracy = cc.count("1") / len(cc)
-        return (cc is False) or accuracy >= 0.8
+        return (not cc) or accuracy >= 0.8

@@ -2,6 +2,7 @@ import json
 import handler.redis_index as ri
 from datetime import datetime
 import aioredis
+import random
 
 class RedisResource:
     def __init__(self, redis, base_path, id_prefix):
@@ -226,6 +227,8 @@ class NodeSessionResource(RedisResource):
 
     async def add_id_for_wsid(self, wsid, id):
         await self.redis.execute("RPUSH", ri.key_nsids_for_wsid(wsid), id)
+    async def add_id_to_history_for_wsid(self, wsid, id):
+        await self.redis.execute("XADD", ri.key_nsids_history_for_wsid(wsid), "*", "NodeSessionId", id)
     async def add_id_for_pn_nn_wid(self, pn, nn, wid, id):
         await self.redis.execute("RPUSH", ri.key_nsids_for_pn_nn_wid(pn,nn,wid), id)
     async def add_id_for_pn_nn_wsid(self, pn, nn, wsid, id):

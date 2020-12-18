@@ -6,6 +6,8 @@ def key_wsids_for_pn_wid_ct(pn,wid,ct):
 
 def key_nsids_for_wsid(wsid):
     return f"NodeSessionIds/{wsid}"
+def key_nsids_history_for_wsid(wsid):
+    return f"NodeSessionIdsHistory/{wsid}"
 def key_nsids_for_pn_nn_wid(pn,nn,wid):
     return f"NodeSessionIds/PRJ:{pn}/NODE:{nn}/WKR:{wid}"
 def key_nsids_for_pn_nn_wsid(pn,nn,wsid):

@@ -97,6 +97,7 @@ class Handler(EventHandler):
                                                      prev_id=prev_nsid,
                                                      is_template=next_node.is_template())
             nsid = await self.r_ns.add(ns)
+            await self.r_ns.add_id_to_history_for_wsid(wsid, nsid)
 
             if prev_nsid:
                 prev_ns = await self.r_ns.get(prev_nsid)
@@ -144,6 +145,8 @@ class Handler(EventHandler):
             if not wsid:
                 wsid = await self.r_ws.add(WorkSessionResource.create_instance(pn,wid,ct))
 
+            await event.session.set_session_attribute("WorkSessionId", wsid)
+
             output.set("WorkSessionId", wsid)
 
         elif command=="Get":
@@ -183,13 +186,13 @@ class Handler(EventHandler):
                         if ns["NextId"]:
                             out_nsid = ns["NextId"]
                             out_ns = await self.r_ns.get(ns["NextId"])
+                            await self.r_ns.add_id_to_history_for_wsid(wsid, out_nsid)
                             if out_ns["IsTemplateNode"]:
                                 out_ans = await self.r_ans.get(ns["NextId"])
                                 break
                             else:
                                 nsid = out_nsid
                                 continue
-                            # also record this behavior to history?
                         else:
                             try:
                                 out_ns, out_nsid = await self._get_next_template_node(scheme.flow, scheme.flow.get_node_by_name(ns["NodeName"]), wid, pn, wsid, nsid)
@@ -207,13 +210,13 @@ class Handler(EventHandler):
                         if ns["PrevId"]:
                             out_nsid = ns["PrevId"]
                             out_ns = await self.r_ns.get(ns["PrevId"])
+                            await self.r_ns.add_id_to_history_for_wsid(wsid, out_nsid)
                             if out_ns["IsTemplateNode"]:
                                 out_ans = await self.r_ans.get(ns["PrevId"])
                                 break
                             else:
                                 nsid = out_nsid
                                 continue
-                            # also record this behavior to history?
                         else:
                             raise Exception("Unexpected request for previous node session")
                 if out_ns is None:
@@ -266,3 +269,9 @@ class Handler(EventHandler):
 
         else:
             raise Exception("unknown command '{}'".format(command))
+
+    async def handle_closed(self, session):
+        print("")
+        wsid = await session.get_session_attribute('WorkSessionId')
+        print(f"closed session for wsid={wsid}")
+        print("")

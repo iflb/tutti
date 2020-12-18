@@ -26,14 +26,13 @@ class Handler(EventHandler):
     @handler_output
     async def handle(self, event, output):
         command = event.data["Command"]
-        params = event.data["Params"] if "Params" in event.data else {}
         output.set("Command", command)
 
         if command=="Create":
-            project_name = params["ProjectName"]
-            template_names = params["TemplateNames"]
-            preset_env_name = params["PresetEnvName"]
-            preset_tmpl_name = params["PresetTemplateName"]
+            project_name = event.data["ProjectName"]
+            template_names = event.data["TemplateNames"]
+            preset_env_name = event.data["PresetEnvName"]
+            preset_tmpl_name = event.data["PresetTemplateName"]
                 
             preset = self.path.preset_template(preset_env_name, preset_tmpl_name, project_name)
 
@@ -57,8 +56,8 @@ class Handler(EventHandler):
             output.set("Templates", templates_success)
 
         elif command=="Delete":
-            project_name = params["ProjectName"]
-            template_names = params["TemplateNames"]
+            project_name = event.data["ProjectName"]
+            template_names = event.data["TemplateNames"]
 
             for tn in template_names:
                 if not os.path.exists(self.path.template(project_name, tn)):
@@ -73,7 +72,7 @@ class Handler(EventHandler):
             output.set("Templates", template_names)
 
         elif command=="List":
-            project_name = params["ProjectName"]
+            project_name = event.data["ProjectName"]
 
             output.set("Templates", common.get_templates(project_name))
             output.set("Project", project_name)
