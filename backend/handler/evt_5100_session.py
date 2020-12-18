@@ -167,6 +167,13 @@ class Handler(EventHandler):
                     out_nsid = nsid
                     out_ns = await self.r_ns.get(nsid)
                     out_ans = await self.r_ans.get(nsid)
+                    if (nid := out_ns["NanotaskId"]) and (nid not in await self.r_nt.get_assigned_id_for_pn_tn_wid(pn,out_ns["NodeName"],wid)):
+                        # mark current node session Expired=True
+                        await self.r_ns.set_expired(out_nsid)
+                        # assign another available nanotask
+                        out_ns, out_nsid = await self._get_next_template_node(scheme.flow, scheme.flow.get_node_by_name(out_ns["NodeName"]).prev, wid, pn, wsid, None)
+                        out_ans = None
+
                 else:
                     try:
                         out_ns, out_nsid = await self._get_next_template_node(scheme.flow, scheme.flow.get_begin_node(), wid, pn, wsid, None)
@@ -187,7 +194,7 @@ class Handler(EventHandler):
                             out_nsid = ns["NextId"]
                             out_ns = await self.r_ns.get(ns["NextId"])
                             await self.r_ns.add_id_to_history_for_wsid(wsid, out_nsid)
-                            if out_ns["IsTemplateNode"]:
+                            if out_ns["IsTemplateNode"] and out_ns["Expired"] is False:
                                 out_ans = await self.r_ans.get(ns["NextId"])
                                 break
                             else:
@@ -211,7 +218,7 @@ class Handler(EventHandler):
                             out_nsid = ns["PrevId"]
                             out_ns = await self.r_ns.get(ns["PrevId"])
                             await self.r_ns.add_id_to_history_for_wsid(wsid, out_nsid)
-                            if out_ns["IsTemplateNode"]:
+                            if out_ns["IsTemplateNode"] and out_ns["Expired"] is False:
                                 out_ans = await self.r_ans.get(ns["PrevId"])
                                 break
                             else:
@@ -271,6 +278,8 @@ class Handler(EventHandler):
             raise Exception("unknown command '{}'".format(command))
 
     async def handle_closed(self, session):
+        # TODO: release active nanotask assigned for this work session
+        raise Exception("Do this TODO!!!!!!") aaa
         print("")
         wsid = await session.get_session_attribute('WorkSessionId')
         print(f"closed session for wsid={wsid}")

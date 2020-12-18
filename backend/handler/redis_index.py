@@ -3,6 +3,10 @@ def key_nids_for_pn_tn(pn,tn):
 
 def key_wsids_for_pn_wid_ct(pn,wid,ct):
     return f"WorkSessionIds/PRJ:{pn}/WKR:{wid}/CT:{ct}"
+#def key_assigned_wsids_for_pn_tn(pn,tn):
+#    return f"AssignedWorkSessionIds/PRJ:{pn}/TMPL:{tn}"
+#def key_assigned_wsids_for_nid(nid):
+#    return f"AssignedWorkSessionIds/{nid}"
 
 def key_nsids_for_wsid(wsid):
     return f"NodeSessionIds/{wsid}"
@@ -21,6 +25,10 @@ def key_aids_for_nid(nid):
 def key_aids_for_pn_tn(pn,tn):
     return f"AnswerIds/PRJ:{pn}/TMPL:{tn}"
 
+def key_assigned_nids_for_pn_tn_wid(pn,tn,wid):
+    return f"AssignedNanotaskIds/PRJ:{pn}/TMPL:{tn}/WKR:{wid}"
+def key_occupied_nids_for_pn_tn(pn,tn):
+    return f"OccupiedNanotaskIds/PRJ:{pn}/TMPL:{tn}"
 def key_completed_nids_for_pn_tn_wid(pn,tn,wid):
     return f"CompletedNanotaskIds/PRJ:{pn}/TMPL:{tn}/WKR:{wid}"
 def key_completed_nids_for_pn_tn(pn,tn):
