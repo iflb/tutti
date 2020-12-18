@@ -217,7 +217,7 @@ export default {
                 eid: this.duct.EVENT.TEMPLATE,
                 data: {
                     "Command": "List",
-                    "Params": { "ProjectName": pn }
+                    "ProjectName": pn
                 }
             });
         },

@@ -59,12 +59,10 @@ export default {
                 eid: this.duct.EVENT.TEMPLATE,
                 data: {
                     "Command": "Create",
-                    "Params": {
-                        "ProjectName": this.project,
-                        "TemplateNames": [this.newTemplateName],
-                        "PresetEnvName": this.newTemplatePreset[0],
-                        "PresetTemplateName": this.newTemplatePreset[1]
-                    }
+                    "ProjectName": this.project,
+                    "TemplateNames": [this.newTemplateName],
+                    "PresetEnvName": this.newTemplatePreset[0],
+                    "PresetTemplateName": this.newTemplatePreset[1]
                 }
             });
             this.newTemplateName = "";
