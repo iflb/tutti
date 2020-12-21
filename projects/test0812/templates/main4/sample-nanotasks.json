@@ -1,7 +1,7 @@
 {
     "Settings": {
         "TagName": "mysample",
-        "NumAssignable": 1,
+        "NumAssignable": 3,
         "Priority": 1
     },
     "Nanotasks": [
@@ -10,7 +10,7 @@
             "Priority": 3,
             "Props": {
                 "img_url0": "https://m.media-amazon.com/images/I/31-cLVpL20L.jpg",
-                "img_url": "https://assets.bwbx.io/images/users/iqjWHBFdfxIU/i6t9SMUwKRHk/v0/800x-1.jpg"
+                "img_url1": "https://assets.bwbx.io/images/users/iqjWHBFdfxIU/i6t9SMUwKRHk/v0/800x-1.jpg"
             },
             "GroundTruths": {
                 "choice": "Same"
@@ -20,7 +20,7 @@
             "Priority": 3,
             "Props": {
                 "img_url0": "https://m.media-amazon.com/images/I/31-cLVpL20L.jpg",
-                "img_url": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS4mHfYHQutrU7_37FoayDt__u-PxbqkboKcjaW6-sPVU10soFCqw"
+                "img_url1": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS4mHfYHQutrU7_37FoayDt__u-PxbqkboKcjaW6-sPVU10soFCqw"
             },
             "GroundTruths": {
                 "choice": "Same"
@@ -30,7 +30,7 @@
             "Priority": 3,
             "Props": {
                 "img_url0": "https://m.media-amazon.com/images/I/31-cLVpL20L.jpg",
-                "img_url": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSyjxmaAPZL2EiQ-2rFPBg4UvCCD9YVMUVepP9jX8NPM0WUPZ4Jiw"
+                "img_url1": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSyjxmaAPZL2EiQ-2rFPBg4UvCCD9YVMUVepP9jX8NPM0WUPZ4Jiw"
             },
             "GroundTruths": {
                 "choice": "Same"
@@ -40,7 +40,7 @@
             "Priority": 3,
             "Props": {
                 "img_url0": "https://m.media-amazon.com/images/I/31-cLVpL20L.jpg",
-                "img_url": "http://www.sponichi.co.jp/entertainment/news/2017/01/22/jpeg/20170121s00041000310000p_view.jpg"
+                "img_url1": "http://www.sponichi.co.jp/entertainment/news/2017/01/22/jpeg/20170121s00041000310000p_view.jpg"
             },
             "GroundTruths": {
                 "choice": "Not Same"
@@ -50,7 +50,7 @@
             "Priority": 3,
             "Props": {
                 "img_url0": "https://m.media-amazon.com/images/I/31-cLVpL20L.jpg",
-                "img_url": "https://item-shopping.c.yimg.jp/i/j/arune_j-5401"
+                "img_url1": "https://item-shopping.c.yimg.jp/i/j/arune_j-5401"
             },
             "GroundTruths": {
                 "choice": "Not Same"
@@ -59,7 +59,7 @@
         {
             "Props": {
                 "img_url0": "https://trendsettermarketing.net/wp-content/uploads/2016/11/ppap.png",
-                "img_url": "http://1noce.com/wp-content/uploads/2016/11/pikotarou1-678x381.jpg"
+                "img_url1": "http://1noce.com/wp-content/uploads/2016/11/pikotarou1-678x381.jpg"
             },
             "GroundTruths": {
                 "choice": "Not Same"
@@ -68,7 +68,7 @@
         {
             "Props": {
                 "img_url0": "https://trendsettermarketing.net/wp-content/uploads/2016/11/ppap.png",
-                "img_url": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSRyD7nol_g5gbjs0RsalDp6tvcbT1qb94RKWfTLSEJ0BlvypJm"
+                "img_url1": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSRyD7nol_g5gbjs0RsalDp6tvcbT1qb94RKWfTLSEJ0BlvypJm"
             },
             "GroundTruths": {
                 "choice": "Same"
@@ -77,7 +77,7 @@
         {
             "Props": {
                 "img_url0": "https://trendsettermarketing.net/wp-content/uploads/2016/11/ppap.png",
-                "img_url": "https://pbs.twimg.com/profile_images/1045061657293139968/__9ZeUaP.jpg"
+                "img_url1": "https://pbs.twimg.com/profile_images/1045061657293139968/__9ZeUaP.jpg"
             },
             "GroundTruths": {
                 "choice": "Same"
@@ -86,7 +86,7 @@
         {
             "Props": {
                 "img_url0": "https://trendsettermarketing.net/wp-content/uploads/2016/11/ppap.png",
-                "img_url": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT19q2pAQEQB7PBI7r1Kp1YRj0fMHvI0fWPWwszuBVJNjIZzeP_"
+                "img_url1": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT19q2pAQEQB7PBI7r1Kp1YRj0fMHvI0fWPWwszuBVJNjIZzeP_"
             },
             "GroundTruths": {
                 "choice": "Same"
@@ -95,7 +95,7 @@
         {
             "Props": {
                 "img_url0": "https://trendsettermarketing.net/wp-content/uploads/2016/11/ppap.png",
-                "img_url": "http://dews365.com/wp-content/uploads/2016/10/8545500dd352d74f881560582e47e316.jpg"
+                "img_url1": "http://dews365.com/wp-content/uploads/2016/10/8545500dd352d74f881560582e47e316.jpg"
             },
             "GroundTruths": {
                 "choice": "Same"
@@ -104,7 +104,7 @@
         {
             "Props": {
                 "img_url0": "http://anime-tosidensetu.com/wp-content/uploads/2014/12/SnapCrab_NoName_2014-12-3_22-45-20_No-00.jpg",
-                "img_url": "https://www.plazastyle.com/images/charapla-wally/main_img03.png"
+                "img_url1": "https://www.plazastyle.com/images/charapla-wally/main_img03.png"
             },
             "GroundTruths": {
                 "choice": "Same"
@@ -113,7 +113,7 @@
         {
             "Props": {
                 "img_url0": "http://anime-tosidensetu.com/wp-content/uploads/2014/12/SnapCrab_NoName_2014-12-3_22-45-20_No-00.jpg",
-                "img_url": "https://obs.line-scdn.net/0h8KIxRVq0Z2R0AUi2TEwYMzlcYQsNYn1sHnlwXgFXbUoBbXBkHHtwQAhZYQwBLSRnThB3STF-ailaSH9NFQ9Mazl-MQo5SXtVCQNhRCFqJVRdMCQzTWEhAFQBMQFYMSczTCIpBQYBPQZYYQ/small"
+                "img_url1": "https://obs.line-scdn.net/0h8KIxRVq0Z2R0AUi2TEwYMzlcYQsNYn1sHnlwXgFXbUoBbXBkHHtwQAhZYQwBLSRnThB3STF-ailaSH9NFQ9Mazl-MQo5SXtVCQNhRCFqJVRdMCQzTWEhAFQBMQFYMSczTCIpBQYBPQZYYQ/small"
             },
             "GroundTruths": {
                 "choice": "Same"
@@ -122,7 +122,7 @@
         {
             "Props": {
                 "img_url0": "http://anime-tosidensetu.com/wp-content/uploads/2014/12/SnapCrab_NoName_2014-12-3_22-45-20_No-00.jpg",
-                "img_url": "https://rr.img.naver.jp/mig?src=http%3A%2F%2Fimgcc.naver.jp%2Fkaze%2Fmission%2FUSER%2F20121013%2F10%2F1183800%2F160%2F640x960x639501ba53d47e1b682ce7f7.jpg%2F300%2F600&twidth=300&theight=600&qlt=80&res_format=jpg&op=r"
+                "img_url1": "https://rr.img.naver.jp/mig?src=http%3A%2F%2Fimgcc.naver.jp%2Fkaze%2Fmission%2FUSER%2F20121013%2F10%2F1183800%2F160%2F640x960x639501ba53d47e1b682ce7f7.jpg%2F300%2F600&twidth=300&theight=600&qlt=80&res_format=jpg&op=r"
             },
             "GroundTruths": {
                 "choice": "Same"
@@ -131,7 +131,7 @@
         {
             "Props": {
                 "img_url0": "http://anime-tosidensetu.com/wp-content/uploads/2014/12/SnapCrab_NoName_2014-12-3_22-45-20_No-00.jpg",
-                "img_url": "http://img01.miyachan.cc/usr/piace/20110712_001.jpg"
+                "img_url1": "http://img01.miyachan.cc/usr/piace/20110712_001.jpg"
             },
             "GroundTruths": {
                 "choice": "Same"
@@ -140,7 +140,7 @@
         {
             "Props": {
                 "img_url0": "http://anime-tosidensetu.com/wp-content/uploads/2014/12/SnapCrab_NoName_2014-12-3_22-45-20_No-00.jpg",
-                "img_url": "https://obs.line-scdn.net/0h4vWukrPZa1lqDESDQ1kUDidRbTYTb3FRAHR8Yx9aYXcfYHxZAnZ8fRZUbTEfIH9yPmkgWBxTUG4HYVtaEyl6VDANbi5HQE8OMBdlSgx8KWlDPSgLUWwiOk8MPTxGPC8JUy8lOBgEMDkQPw/small"
+                "img_url1": "https://obs.line-scdn.net/0h4vWukrPZa1lqDESDQ1kUDidRbTYTb3FRAHR8Yx9aYXcfYHxZAnZ8fRZUbTEfIH9yPmkgWBxTUG4HYVtaEyl6VDANbi5HQE8OMBdlSgx8KWlDPSgLUWwiOk8MPTxGPC8JUy8lOBgEMDkQPw/small"
             },
             "GroundTruths": {
                 "choice": "Same"

@@ -25,6 +25,8 @@ def key_aids_for_nid(nid):
 def key_aids_for_pn_tn(pn,tn):
     return f"AnswerIds/PRJ:{pn}/TMPL:{tn}"
 
+def key_assigned_wids_for_nid(nid):
+    return f"AssignedWorkerIds/{nid}"
 def key_assigned_nids_for_pn_tn_wid(pn,tn,wid):
     return f"AssignedNanotaskIds/PRJ:{pn}/TMPL:{tn}/WKR:{wid}"
 def key_occupied_nids_for_pn_tn(pn,tn):

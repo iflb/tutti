@@ -81,7 +81,9 @@ class Handler(EventHandler):
             if next_node.is_template():
                 has_nanotasks = await self.r_nt.check_id_exists_for_pn_tn(pn, next_node.name)
                 if has_nanotasks:
-                    nid = await self.r_nt.get_first_id_for_pn_tn_wid(pn, next_node.name, wid)
+                    asmt_order = self.schemes[pn].assignment_order
+                    sort_order = self.schemes[pn].sort_order
+                    nid = await self.r_nt.get_first_id_for_pn_tn_wid(pn, next_node.name, wid, assignment_order=asmt_order, sort_order=sort_order)
                     if not nid:  continue
                 else:
                     nid = None
@@ -194,7 +196,7 @@ class Handler(EventHandler):
                             out_nsid = ns["NextId"]
                             out_ns = await self.r_ns.get(ns["NextId"])
                             await self.r_ns.add_id_to_history_for_wsid(wsid, out_nsid)
-                            if out_ns["IsTemplateNode"] and out_ns["Expired"] is False:
+                            if out_ns["IsTemplateNode"] and out_ns["Expired"]==1:
                                 out_ans = await self.r_ans.get(ns["NextId"])
                                 break
                             else:
@@ -218,7 +220,7 @@ class Handler(EventHandler):
                             out_nsid = ns["PrevId"]
                             out_ns = await self.r_ns.get(ns["PrevId"])
                             await self.r_ns.add_id_to_history_for_wsid(wsid, out_nsid)
-                            if out_ns["IsTemplateNode"] and out_ns["Expired"] is False:
+                            if out_ns["IsTemplateNode"] and out_ns["Expired"]==1:
                                 out_ans = await self.r_ans.get(ns["PrevId"])
                                 break
                             else:
@@ -278,9 +280,10 @@ class Handler(EventHandler):
             raise Exception("unknown command '{}'".format(command))
 
     async def handle_closed(self, session):
-        # TODO: release active nanotask assigned for this work session
-        raise Exception("Do this TODO!!!!!!") aaa
-        print("")
         wsid = await session.get_session_attribute('WorkSessionId')
-        print(f"closed session for wsid={wsid}")
-        print("")
+        nsid = await self.r_ns.get_id_for_wsid_by_index(wsid, -1)
+        ns = await self.r_ns.get(nsid)
+        pn = ns["ProjectName"]
+        wid = ns["WorkerId"]
+        if (nid := ns["NanotaskId"]):
+            await self.r_nt.unassign(pn,ns["NodeName"],wid,nid)

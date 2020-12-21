@@ -106,21 +106,50 @@ class NanotaskResource(RedisResource):
         await self.delete_ids_for_pn_tn(pn, tn, *ids)
         
 
+    async def assign_wid(self, id, wid):
+        return await self.redis.execute("SADD", ri.key_assigned_wids_for_nid(id), wid)
+
+    async def unassign_wid(self, id, wid):
+        return await self.redis.execute("SREM", ri.key_assigned_wids_for_nid(id), wid)
+
+    async def get_assigned_wids(self, id):
+        return await self.redis.execute_str("SMEMBERS", ri.key_assigned_wids_for_nid(id))
+
+
     async def add_assigned_id_for_pn_tn_wid(self, pn, tn, wid, id):
-        await self.redis.execute("SADD", ri.key_assigned_nids_for_pn_tn_wid(pn,tn,wid), id)
+        return await self.redis.execute("SADD", ri.key_assigned_nids_for_pn_tn_wid(pn,tn,wid), id)
 
     async def add_occupied_id_for_pn_tn(self, pn, tn, id):
-        await self.redis.execute("SADD", ri.key_occupied_nids_for_pn_tn(pn,tn), id)
+        return await self.redis.execute("SADD", ri.key_occupied_nids_for_pn_tn(pn,tn), id)
 
     async def get_assigned_id_for_pn_tn_wid(self, pn, tn, wid):
         return await self.redis.execute_str("SMEMBERS", ri.key_assigned_nids_for_pn_tn_wid(pn,tn,wid))
 
     async def delete_assigned_id_for_pn_tn_wid(self, pn, tn, wid, id):
-        await self.redis.execute("SREM", ri.key_assigned_nids_for_pn_tn_wid(pn,tn,wid), id)
+        return await self.redis.execute("SREM", ri.key_assigned_nids_for_pn_tn_wid(pn,tn,wid), id)
 
     async def delete_occupied_id_for_pn_tn(self, pn, tn, id):
-        await self.redis.execute("SREM", ri.key_occupied_nids_for_pn_tn(pn,tn), id)
+        return await self.redis.execute("SREM", ri.key_occupied_nids_for_pn_tn(pn,tn), id)
 
+    async def assign(self, pn, tn, wid, id):
+        ret1 = await self.add_assigned_id_for_pn_tn_wid(pn, tn, wid, id)
+        ret2 = await self.assign_wid(id, wid)
+
+        nt = await self.get(id)
+        num_assignable = nt["NumAssignable"]
+        num_assigned = len(await self.get_assigned_wids(id))
+        if num_assignable<=num_assigned:
+            await self.add_completed_id_for_pn_tn(pn, tn, id)
+            ret3 = await self.add_occupied_id_for_pn_tn(pn, tn, id)
+        else:
+            ret3 = None
+        print("assigning", pn, tn, wid, id, ret1, ret2, ret3)
+
+    async def unassign(self, pn, tn, wid, id):
+        ret1 = await self.delete_assigned_id_for_pn_tn_wid(pn,tn,wid,id)
+        ret2 = await self.unassign_wid(id, wid)
+        ret3 = await self.delete_occupied_id_for_pn_tn(pn,tn,id)
+        print("unassigning", pn, tn, wid, id, ret1, ret2, ret3)
 
     async def add_completed_id_for_pn_tn_wid(self, pn, tn, wid, id):
         await self.redis.execute("SADD", ri.key_completed_nids_for_pn_tn_wid(pn,tn,wid), id)
@@ -243,7 +272,7 @@ class NodeSessionResource(RedisResource):
             "NanotaskId": nid,
             "PrevId": prev_id,
             "NextId": None,
-            "Expired": False
+            "Expired": 0
         }
 
     async def _on_add(self, id, data):
@@ -256,8 +285,7 @@ class NodeSessionResource(RedisResource):
         await self.add_id_for_pn_nn_wsid(pn, nn, wsid, id)
 
         if (nid := data["NanotaskId"]):
-            await self.r_nt.add_assigned_id_for_pn_tn_wid(pn, tn, wid, nid)
-            await self.r_nt.add_occupied_id_for_pn_tn(pn, tn, nid)
+            await self.r_nt.assign(pn, nn, wid, nid)
 
     async def add_id_for_wsid(self, wsid, id):
         await self.redis.execute("RPUSH", ri.key_nsids_for_wsid(wsid), id)
@@ -295,13 +323,13 @@ class NodeSessionResource(RedisResource):
         return await self._get_by_json_path(id, "NextId")
 
     async def set_expired(self, id):
-        await self.redis.execute("JSON.SET", self.key(id=id), "Expired", True)
+        await self.redis.execute("JSON.SET", self.key(id=id), "Expired", 1)
 
 class AnswerResource(RedisResource):
     def __init__(self, redis):
         super().__init__(redis, "Answer", "NS")
         self.key_counter = None
-        self.res_nt = NanotaskResource(redis)
+        self.r_nt = NanotaskResource(redis)
         self.res_ns = NodeSessionResource(redis)
 
     @classmethod
@@ -331,16 +359,11 @@ class AnswerResource(RedisResource):
         tn = ns["NodeName"]
         wsid = ns["WorkSessionId"]
         nid = ns["NanotaskId"]
-        if nid: await self.add_id_for_nid(nid, nsid)
-        else:   await self.add_id_for_pn_tn(pn, tn, nsid)
-
         if nid:
-            nt = await self.res_nt.get(nid)
-            num_assignable = nt["NumAssignable"]
-            answers = await self.get_ids_for_nid(nid)
+            await self.add_id_for_nid(nid, nsid)
             await self.r_nt.add_completed_id_for_pn_tn_wid(pn, tn, wid, nid)
-            if num_assignable<=len(answers):
-                await self.res_nt.add_completed_id_for_pn_tn(pn, tn, nid)
+        else:
+            await self.add_id_for_pn_tn(pn, tn, nsid)
         
     async def add_id_for_nid(self, nid, id):
         await self.redis.execute("SADD", ri.key_aids_for_nid(nid), id)

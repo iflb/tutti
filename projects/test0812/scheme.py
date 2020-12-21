@@ -5,7 +5,7 @@ class ProjectScheme(ProjectSchemeBase):
     def config_params(self):
         self.title = "My test project"
         self.pagination = False
-        self.assignment_order = "breadth-first"
+        self.assignment_order = "bfs"
         self.sort_order = "random"
         
     def define_flow(self):
