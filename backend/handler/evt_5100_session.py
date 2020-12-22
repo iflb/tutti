@@ -280,10 +280,15 @@ class Handler(EventHandler):
             raise Exception("unknown command '{}'".format(command))
 
     async def handle_closed(self, session):
-        wsid = await session.get_session_attribute('WorkSessionId')
-        nsid = await self.r_ns.get_id_for_wsid_by_index(wsid, -1)
-        ns = await self.r_ns.get(nsid)
-        pn = ns["ProjectName"]
-        wid = ns["WorkerId"]
-        if (nid := ns["NanotaskId"]):
-            await self.r_nt.unassign(pn,ns["NodeName"],wid,nid)
+        try:
+            wsid = await session.get_session_attribute('WorkSessionId')
+        except KeyError:
+            pass
+
+        if wsid:
+            nsid = await self.r_ns.get_id_for_wsid_by_index(wsid, -1)
+            ns = await self.r_ns.get(nsid)
+            pn = ns["ProjectName"]
+            wid = ns["WorkerId"]
+            if (nid := ns["NanotaskId"]):
+                await self.r_nt.unassign(pn,ns["NodeName"],wid,nid)
