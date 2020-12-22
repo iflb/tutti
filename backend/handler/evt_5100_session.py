@@ -150,7 +150,7 @@ class Handler(EventHandler):
                 wid = await self.r_wkr.add(WorkerResource.create_instance(platform_wid, platform))
 
             if not (wsid := await self.r_ws.get_id_for_pn_wid_ct(pn,wid,ct)):
-                wsid = await self.r_ws.add(WorkSessionResource.create_instance(pn,wid,platform,ct))
+                wsid = await self.r_ws.add(WorkSessionResource.create_instance(pn,wid,ct,platform))
             await event.session.set_session_attribute("WorkSessionId", wsid)
 
             output.set("WorkSessionId", wsid)

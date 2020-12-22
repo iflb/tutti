@@ -113,10 +113,10 @@ class NanotaskResource(RedisResource):
 
     def key_ids_for_pn_tn(self,pn,tn):                     return f"NanotaskIds/PRJ:{pn}/TMPL:{tn}"
     def key_ids_occupied_for_pn_tn(self,pn,tn):            return f"NanotaskIdsOccupied/PRJ:{pn}/TMPL:{tn}"
-    def key_ids_assigned_for_pn_tn_wid(self,pn,tn,wid):    return f"NanotaskIdsAssigned/PRJ:{pn}/TMPL:{tn}/WKR:{wid}"
+    def key_ids_assigned_for_pn_tn_wid(self,pn,tn,wid):    return f"NanotaskIdsAssigned/PRJ:{pn}/TMPL:{tn}/{wid}"
     def key_ids_completed_for_pn_tn(self,pn,tn):           return f"NanotaskIdsCompleted/PRJ:{pn}/TMPL:{tn}"
-    def key_ids_completed_for_pn_tn_wid(self,pn,tn,wid):   return f"NanotaskIdsCompleted/PRJ:{pn}/TMPL:{tn}/WKR:{wid}"
-    def key_ids_assignable_for_pn_tn_wid(self,pn,tn,wid):  return f"NanotaskIdsAssignable/PRJ:{pn}/TMPL:{tn}/WKR:{wid}"
+    def key_ids_completed_for_pn_tn_wid(self,pn,tn,wid):   return f"NanotaskIdsCompleted/PRJ:{pn}/TMPL:{tn}/{wid}"
+    def key_ids_assignable_for_pn_tn_wid(self,pn,tn,wid):  return f"NanotaskIdsAssignable/PRJ:{pn}/TMPL:{tn}/{wid}"
 
     @classmethod
     def create_instance(cls, pn, tn, tag, num_assignable, priority, gt, props):
@@ -270,13 +270,10 @@ class NanotaskResource(RedisResource):
                                          key_nids_occupied_for_pn_tn=self.key_ids_occupied_for_pn_tn(pn,tn),
                                          random_seed=datetime.now().timestamp()+random.randint(0, random.randint(1, 100)),
                                          sort_order=sort_order)
-            print(get_first)
 
             await self.redis.execute("EVAL", get_first, 0)
 
             ret = await self.redis.execute_str("EXEC")
-
-            print(ret)
 
             if type(ret[1])==aioredis.WatchVariableError:  continue
             else:  break
@@ -293,7 +290,7 @@ class WorkSessionResource(RedisResource):
         super().__init__(redis, "WorkSession", "WS")
         self.r_wkr = WorkerResource(redis)
 
-    def key_id_for_pn_wid_ct(self,pn,wid,ct):  return f"WorkSessionId/PRJ:{pn}/WKR:{wid}/CT:{ct}"
+    def key_id_for_pn_wid_ct(self,pn,wid,ct):  return f"WorkSessionId/PRJ:{pn}/{wid}/CT:{ct}"
 
     @classmethod
     def create_instance(cls, pn, wid, ct, platform):
@@ -324,7 +321,7 @@ class NodeSessionResource(RedisResource):
         self.r_nt = NanotaskResource(redis)
 
     def key_ids_for_wsid(self,wsid):              return f"NodeSessionIds/{wsid}"
-    def key_ids_for_pn_nn_wid(self,pn,nn,wid):    return f"NodeSessionIds/PRJ:{pn}/NODE:{nn}/WKR:{wid}"
+    def key_ids_for_pn_nn_wid(self,pn,nn,wid):    return f"NodeSessionIds/PRJ:{pn}/NODE:{nn}/{wid}"
     def key_ids_for_pn_nn_wsid(self,pn,nn,wsid):  return f"NodeSessionIds/PRJ:{pn}/NODE:{nn}/{wsid}"
     def key_ids_history_for_wsid(self,wsid):      return f"NodeSessionIdsHistory/{wsid}"
 
