@@ -5,6 +5,8 @@ function generateRandomString(){
 }
 
 export default {
+    platformName: "Private",
+
     workerId: function() {
         return localStorage.getItem("workerId");
     },

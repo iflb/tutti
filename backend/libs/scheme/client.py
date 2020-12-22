@@ -10,10 +10,10 @@ class ClientBase:
         self.pn = pn
         self.members = {}
         self._cnt = {}
-        self._path_member_names = f"{self.resource}/{self.id}/ClientMeta/MemberNames"
+        self._path_member_names = f"{self.resource}Client/{self.id}/ClientMeta/MemberNames"
         self.r_ns = NodeSessionResource(redis)
 
-    def _path_member(self, name):  return f"{self.resource}/{self.id}/ClientMeta/Members/{name}"
+    def _path_member(self, name):  return f"{self.resource}Client/{self.id}/ClientMeta/Members/{name}"
 
     async def _load_for_read(self, flow):
         await self._load_cnt(flow)
@@ -51,7 +51,6 @@ class ClientBase:
 class WorkerClient(ClientBase):
     def __init__(self, redis, id, pn):
         super().__init__(redis, "Worker", id, pn)
-        self._path_member_names = f"{self.resource}/WKR:{self.id}/ClientMeta/MemberNames"
 
     async def _load_cnt(self, flow):
         nns = flow.get_all_node_names()
@@ -60,7 +59,6 @@ class WorkerClient(ClientBase):
 class WorkSessionClient(ClientBase):
     def __init__(self, redis, id, pn):
         super().__init__(redis, "WorkSession", id, pn)
-        self._path_member_names = f"{self.resource}/{self.id}/ClientMeta/MemberNames"
 
     async def _load_cnt(self, flow):
         nns = flow.get_all_node_names()

@@ -1,10 +1,9 @@
-<template>
-    <v-app>
+<template> <v-app>
         <div class="text-right ma-3">
         <v-menu offset-y v-if="showWorkerMenu">
             <template v-slot:activator="{ on, attrs }">
             <v-btn text color="primary" class="text-none" v-bind="attrs" v-on="on">
-                Your worker ID: {{ workerId }}
+                Your worker ID: {{ platformWorkerId }}
             </v-btn>
             </template>
             <v-list>
@@ -55,9 +54,9 @@ export default {
     store,
     beforeRouteEnter: (to, from, next) => {
         next(vm => {
-            var workerId = platformConfig.workerId(vm);
-            if(workerId) {
-                vm.workerId = workerId;
+            var platformWorkerId = platformConfig.workerId(vm);
+            if(platformWorkerId) {
+                vm.platformWorkerId = platformWorkerId;
                 next();
             } else {
                 platformConfig.onWorkerIdNotFound(next, vm.projectName);
@@ -75,6 +74,7 @@ export default {
         name: "/private-prod/",
         nanoProps: null,
         workerId: "",
+        platformWorkerId: "",
         dialogLogout: false,
         prevAnswer: null,
 
@@ -150,8 +150,8 @@ export default {
                     if(command=="Create"){
                         if(data["Status"]=="Error") { console.error(`failed to create session ID: ${data["Reason"]}`); return; }
 
-                        const wsid = data["Data"]["WorkSessionId"];
-                        this.wsid = wsid;
+                        this.wsid = data["Data"]["WorkSessionId"];
+                        this.workerId = data["Data"]["WorkerId"];
                         this.getTemplate("NEXT");
                     }
                     else if(command=="Get"){
@@ -198,8 +198,9 @@ export default {
                     this._evtSession({
                         "Command": "Create",
                         "ProjectName": this.projectName,
-                        "WorkerId": this.workerId,
-                        "ClientToken": this.clientToken
+                        "PlatformWorkerId": this.platformWorkerId,
+                        "ClientToken": this.clientToken,
+                        "Platform": platformConfig.platformName
                     });
                 })
             })

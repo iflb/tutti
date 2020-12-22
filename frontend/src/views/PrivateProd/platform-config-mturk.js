@@ -26,6 +26,8 @@ function generateSubmitForm(self, data) {
 }
 
 export default {
+    platformName: "MTurk",
+
     workerId: function(vm) {
         return vm.$route.query.workerId;
     },

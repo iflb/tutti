@@ -70,15 +70,27 @@ class WorkerResource(RedisResource):
     def __init__(self, redis):
         super().__init__(redis, "Worker", "WKR")
 
-    def key_ids_for_pn(self,pn):             return f"WorkerIds/PRJ:{pn}"
-    def key_ids_assigned_for_nid(self,nid):  return f"WorkerIdsAssigned/{nid}"
+    def key_ids_for_pn(self,pn):                   return f"WorkerIds/PRJ:{pn}"
+    def key_ids_assigned_for_nid(self,nid):        return f"WorkerIdsAssigned/{nid}"
+    def key_ids_map_for_platform(self, platform):  return f"WorkerIdsMap/{platform}"
         
     @classmethod
-    def create_instance(cls, raw_wid, platform):
+    def create_instance(cls, platform_wid, platform):
         return {
-            "RawWorkerId": RawWorkerId,
+            "PlatformWorkerId": platform_wid,
             "Platform": platform
         }
+
+    async def _on_add(self, id, data):
+        platform_wid = data["PlatformWorkerId"]
+        platform = data["Platform"]
+        await self.add_id_map_for_platform(platform, platform_wid, id)
+
+    async def add_id_map_for_platform(self, platform, platform_wid, id):
+        await self.redis.execute("HSET", self.key_ids_map_for_platform(platform), platform_wid, id)
+
+    async def get_id_for_platform(self, platform, platform_wid):
+        return await self.redis.execute_str("HGET", self.key_ids_map_for_platform(platform), platform_wid)
 
     async def add_id_for_pn(self, pn, id):
         await self.redis.execute("SADD", self.key_ids_for_pn(pn), id)
@@ -237,7 +249,7 @@ class NanotaskResource(RedisResource):
                 -- self.add_id_assigned_for_pn_tn_wid
                 redis.call('SADD', '{key_nids_assigned_for_pn_tn_wid}', nid)
                 -- self.r_wkr.add_id_assigned_for_nid
-                redis.call('SADD', key_wids_assigned_for_nid, nid)
+                redis.call('SADD', key_wids_assigned_for_nid, '{wid}')
                 if num_assignable <= num_assigned then
                     -- self.add_id_occupied_for_pn_tn
                     redis.call('SADD', '{key_nids_occupied_for_pn_tn}', nid)
@@ -249,7 +261,8 @@ class NanotaskResource(RedisResource):
             if assignment_order=="bfs":    get_first = get_first_bfs+get_first_common
             elif assignment_order=="dfs":  get_first = get_first_dfs+get_first_common
 
-            get_first = get_first.format(key_nids_assignable_for_pn_tn_wid=self.key_ids_assignable_for_pn_tn_wid(pn,tn,wid),
+            get_first = get_first.format(wid=wid,
+                                         key_nids_assignable_for_pn_tn_wid=self.key_ids_assignable_for_pn_tn_wid(pn,tn,wid),
                                          key_nids_for_pn_tn=self.key_ids_for_pn_tn(pn,tn),
                                          key_nids_assigned_for_pn_tn_wid=self.key_ids_assigned_for_pn_tn_wid(pn,tn,wid),
                                          key_nt=self.key(id="[[nid]]"),
@@ -283,11 +296,12 @@ class WorkSessionResource(RedisResource):
     def key_id_for_pn_wid_ct(self,pn,wid,ct):  return f"WorkSessionId/PRJ:{pn}/WKR:{wid}/CT:{ct}"
 
     @classmethod
-    def create_instance(cls, pn, wid, ct):
+    def create_instance(cls, pn, wid, ct, platform):
         return {
             "ProjectName": pn,
             "WorkerId": wid,
-            "ClientToken": ct
+            "ClientToken": ct,
+            "Platform": platform
         }
 
     async def _on_add(self, id, data):

@@ -12,10 +12,11 @@ logger = logging.getLogger(__name__)
 
 from libs.scheme.flow import SessionEndException, UnskippableNodeException
 from libs.scheme.client import WorkerClient, WorkSessionClient
-from handler.redis_resource import (NanotaskResource,
-                                   WorkSessionResource,
-                                   NodeSessionResource,
-                                   AnswerResource)
+from handler.redis_resource import (WorkerResource,
+                                    NanotaskResource,
+                                    WorkSessionResource,
+                                    NodeSessionResource,
+                                    AnswerResource)
 
 class Handler(EventHandler):
     def __init__(self):
@@ -23,6 +24,7 @@ class Handler(EventHandler):
         self.schemes = self.load_all_project_schemes()
 
     async def setup(self, handler_spec, manager):
+        self.r_wkr = WorkerResource(manager.redis)
         self.r_nt = NanotaskResource(manager.redis)
         self.r_ws = WorkSessionResource(manager.redis)
         self.r_ns = NodeSessionResource(manager.redis)
@@ -136,18 +138,23 @@ class Handler(EventHandler):
             output.set("Flow", self.get_batch_info_dict(scheme.flow.root_node))
 
         elif command=="Create":
-            pn = event.data["ProjectName"]
-            wid = event.data["WorkerId"]
-            ct = event.data["ClientToken"]
+            if not (
+                    (pn := event.data["ProjectName"]) and
+                    (platform := event.data["Platform"]) and
+                    (platform_wid := event.data["PlatformWorkerId"]) and
+                    (ct := event.data["ClientToken"])
+                ):
+                raise Exception("ProjectName, Platform, PlatformWorkerId, and ClientToken are required")
 
-            if not (pn and wid and ct):
-                raise Exception("ProjectName, WorkerId, and ClientToken are required")
+            if not (wid := await self.r_wkr.get_id_for_platform(platform, platform_wid)):
+                wid = await self.r_wkr.add(WorkerResource.create_instance(platform_wid, platform))
 
             if not (wsid := await self.r_ws.get_id_for_pn_wid_ct(pn,wid,ct)):
-                wsid = await self.r_ws.add(WorkSessionResource.create_instance(pn,wid,ct))
+                wsid = await self.r_ws.add(WorkSessionResource.create_instance(pn,wid,platform,ct))
             await event.session.set_session_attribute("WorkSessionId", wsid)
 
             output.set("WorkSessionId", wsid)
+            output.set("WorkerId", wid)
 
         elif command=="Get":
             target = event.data["Target"]
