@@ -1,5 +1,4 @@
 import json
-import handler.redis_index as ri
 from datetime import datetime
 import aioredis
 import random
@@ -29,21 +28,21 @@ class RedisResource:
         cnt = await self.next_count()
         id = self.id(cnt=cnt)
         data["Timestamp"] = datetime.now().timestamp()
-        res = await self.redis.execute("JSON.SET", self.key(id=id), ".", json.dumps(data))
+        res = await self.redis.execute("SET", self.key(id=id), json.dumps(data))
         await self._on_add(id, data)
         return id
 
     async def update(self, id, data):
-        await self.redis.execute("JSON.SET", self.key(id=id), ".", json.dumps(data))
+        await self.redis.execute("SET", self.key(id=id), json.dumps(data))
         await self._on_update(id, data)
 
     async def get(self, id):
-        data = await self.redis.execute("JSON.GET", self.key(id=id))
+        data = await self.redis.execute("GET", self.key(id=id))
         return json.loads(data) if data else None
 
     async def _delete(self, id):
         data = await self.get(id)
-        await self.redis.execute("JSON.DEL", self.key(id=id))
+        await self.redis.execute("DEL", self.key(id=id))
         return data
 
     async def delete(self, id):
@@ -53,10 +52,6 @@ class RedisResource:
     async def delete_multi(self, ids):
         data = [await self._delete(id) for id in ids]
         await self._on_delete_multi(ids, data)
-
-    async def _get_by_json_path(self, id, path):
-        data = await self.redis.execute("JSON.GET", self.key(id=id), path)
-        return json.loads(data) if data else None
 
     async def _on_add(self, id, data):
         pass
@@ -70,9 +65,46 @@ class RedisResource:
     async def _on_delete_multi(self, ids, data):
         pass
 
+
+class WorkerResource(RedisResource):
+    def __init__(self, redis):
+        super().__init__(redis, "Worker", "WKR")
+
+    def key_ids_for_pn(self,pn):             return f"WorkerIds/PRJ:{pn}"
+    def key_ids_assigned_for_nid(self,nid):  return f"WorkerIdsAssigned/{nid}"
+        
+    @classmethod
+    def create_instance(cls, raw_wid, platform):
+        return {
+            "RawWorkerId": RawWorkerId,
+            "Platform": platform
+        }
+
+    async def add_id_for_pn(self, pn, id):
+        await self.redis.execute("SADD", self.key_ids_for_pn(pn), id)
+
+    async def add_id_assigned_for_nid(self, nid, id):
+        return await self.redis.execute("SADD", self.key_ids_assigned_for_nid(nid), id)
+
+    async def delete_id_assigned_for_nid(self, nid, id):
+        return await self.redis.execute("SREM", self.key_ids_assigned_for_nid(nid), id)
+
+    async def get_ids_assigned_for_nid(self, nid):
+        return await self.redis.execute_str("SMEMBERS", self.key_ids_assigned_for_nid(nid))
+
+
 class NanotaskResource(RedisResource):
     def __init__(self, redis):
         super().__init__(redis, "Nanotask", "NT")
+        self.r_wkr = WorkerResource(redis)
+        self.weight_for_assignment = 100000
+
+    def key_ids_for_pn_tn(self,pn,tn):                     return f"NanotaskIds/PRJ:{pn}/TMPL:{tn}"
+    def key_ids_occupied_for_pn_tn(self,pn,tn):            return f"NanotaskIdsOccupied/PRJ:{pn}/TMPL:{tn}"
+    def key_ids_assigned_for_pn_tn_wid(self,pn,tn,wid):    return f"NanotaskIdsAssigned/PRJ:{pn}/TMPL:{tn}/WKR:{wid}"
+    def key_ids_completed_for_pn_tn(self,pn,tn):           return f"NanotaskIdsCompleted/PRJ:{pn}/TMPL:{tn}"
+    def key_ids_completed_for_pn_tn_wid(self,pn,tn,wid):   return f"NanotaskIdsCompleted/PRJ:{pn}/TMPL:{tn}/WKR:{wid}"
+    def key_ids_assignable_for_pn_tn_wid(self,pn,tn,wid):  return f"NanotaskIdsAssignable/PRJ:{pn}/TMPL:{tn}/WKR:{wid}"
 
     @classmethod
     def create_instance(cls, pn, tn, tag, num_assignable, priority, gt, props):
@@ -91,7 +123,7 @@ class NanotaskResource(RedisResource):
         tn = data["TemplateName"]
         priority = data["Priority"]
 
-        await self.add_id_for_pn_tn(pn, tn, priority, id)
+        await self.add_id_for_pn_tn(pn, tn, priority*self.weight_for_assignment, id)
 
     async def _on_delete(self, id, data):
         pn = data["ProjectName"]
@@ -106,132 +138,149 @@ class NanotaskResource(RedisResource):
         await self.delete_ids_for_pn_tn(pn, tn, *ids)
         
 
-    async def assign_wid(self, id, wid):
-        return await self.redis.execute("SADD", ri.key_assigned_wids_for_nid(id), wid)
-
-    async def unassign_wid(self, id, wid):
-        return await self.redis.execute("SREM", ri.key_assigned_wids_for_nid(id), wid)
-
-    async def get_assigned_wids(self, id):
-        return await self.redis.execute_str("SMEMBERS", ri.key_assigned_wids_for_nid(id))
-
-
-    async def add_assigned_id_for_pn_tn_wid(self, pn, tn, wid, id):
-        return await self.redis.execute("SADD", ri.key_assigned_nids_for_pn_tn_wid(pn,tn,wid), id)
-
-    async def add_occupied_id_for_pn_tn(self, pn, tn, id):
-        return await self.redis.execute("SADD", ri.key_occupied_nids_for_pn_tn(pn,tn), id)
-
-    async def get_assigned_id_for_pn_tn_wid(self, pn, tn, wid):
-        return await self.redis.execute_str("SMEMBERS", ri.key_assigned_nids_for_pn_tn_wid(pn,tn,wid))
-
-    async def delete_assigned_id_for_pn_tn_wid(self, pn, tn, wid, id):
-        return await self.redis.execute("SREM", ri.key_assigned_nids_for_pn_tn_wid(pn,tn,wid), id)
-
-    async def delete_occupied_id_for_pn_tn(self, pn, tn, id):
-        return await self.redis.execute("SREM", ri.key_occupied_nids_for_pn_tn(pn,tn), id)
-
     async def assign(self, pn, tn, wid, id):
-        ret1 = await self.add_assigned_id_for_pn_tn_wid(pn, tn, wid, id)
-        ret2 = await self.assign_wid(id, wid)
-
         nt = await self.get(id)
         num_assignable = nt["NumAssignable"]
-        num_assigned = len(await self.get_assigned_wids(id))
-        if num_assignable<=num_assigned:
-            await self.add_completed_id_for_pn_tn(pn, tn, id)
-            ret3 = await self.add_occupied_id_for_pn_tn(pn, tn, id)
-        else:
-            ret3 = None
-        print("assigning", pn, tn, wid, id, ret1, ret2, ret3)
+        num_assigned = len(await self.r_wkr.get_ids_assigned_for_nid(id))
+
+        await self.add_id_assigned_for_pn_tn_wid(pn, tn, wid, id)
+        await self.r_wkr.add_id_assigned_for_nid(id, wid)
+        await self.add_id_occupied_for_pn_tn(pn, tn, id) if num_assignable<=num_assigned else None
 
     async def unassign(self, pn, tn, wid, id):
-        ret1 = await self.delete_assigned_id_for_pn_tn_wid(pn,tn,wid,id)
-        ret2 = await self.unassign_wid(id, wid)
-        ret3 = await self.delete_occupied_id_for_pn_tn(pn,tn,id)
-        print("unassigning", pn, tn, wid, id, ret1, ret2, ret3)
+        await self.delete_id_occupied_for_pn_tn(pn,tn,id)
+        await self.delete_id_assigned_for_pn_tn_wid(pn,tn,wid,id)
+        await self.r_wkr.delete_id_assigned_for_nid(id,wid)
+        await self.decrement_assignment_weight_for_pn_tn(pn,tn,id)
 
-    async def add_completed_id_for_pn_tn_wid(self, pn, tn, wid, id):
-        await self.redis.execute("SADD", ri.key_completed_nids_for_pn_tn_wid(pn,tn,wid), id)
-
-    async def add_completed_id_for_pn_tn(self, pn, tn, id):
-        await self.redis.execute("SADD", ri.key_completed_nids_for_pn_tn(pn,tn), id)
-
+    async def decrement_assignment_weight_for_pn_tn(self, pn, tn, id):
+        await self.redis.execute("ZINCRBY", self.key_ids_for_pn_tn(pn,tn), -1, id)
 
     async def add_id_for_pn_tn(self, pn, tn, priority, id):
-        await self.redis.execute("ZADD", ri.key_nids_for_pn_tn(pn,tn), priority, id)
+        await self.redis.execute("ZADD", self.key_ids_for_pn_tn(pn,tn), priority, id)
+
+    async def add_id_occupied_for_pn_tn(self, pn, tn, id):
+        return await self.redis.execute("SADD", self.key_ids_occupied_for_pn_tn(pn,tn), id)
+
+    async def add_id_assigned_for_pn_tn_wid(self, pn, tn, wid, id):
+        return await self.redis.execute("SADD", self.key_ids_assigned_for_pn_tn_wid(pn,tn,wid), id)
+
+    async def add_id_completed_for_pn_tn(self, pn, tn, id):
+        await self.redis.execute("SADD", self.key_ids_completed_for_pn_tn(pn,tn), id)
+
+    async def add_id_completed_for_pn_tn_wid(self, pn, tn, wid, id):
+        await self.redis.execute("SADD", self.key_ids_completed_for_pn_tn_wid(pn,tn,wid), id)
+
 
     async def delete_ids_for_pn_tn(self, pn, tn, *ids):
-        await self.redis.execute("ZREM", ri.key_nids_for_pn_tn(pn,tn), *ids)
+        await self.redis.execute("ZREM", self.key_ids_for_pn_tn(pn,tn), *ids)
 
-    async def check_id_exists_for_pn_tn(self, pn, tn):
-        return (await self.redis.execute("EXISTS", ri.key_nids_for_pn_tn(pn,tn)))==1
+    async def delete_id_assigned_for_pn_tn_wid(self, pn, tn, wid, id):
+        return await self.redis.execute("SREM", self.key_ids_assigned_for_pn_tn_wid(pn,tn,wid), id)
+
+    async def delete_id_occupied_for_pn_tn(self, pn, tn, id):
+        return await self.redis.execute("SREM", self.key_ids_occupied_for_pn_tn(pn,tn), id)
+
 
     async def get_ids_for_pn_tn(self, pn, tn):
-        return await self.redis.execute_str("ZRANGE", ri.key_nids_for_pn_tn(pn,tn), 0, -1)
+        return await self.redis.execute_str("ZRANGE", self.key_ids_for_pn_tn(pn,tn), 0, -1)
+
+    async def get_ids_assigned_for_pn_tn_wid(self, pn, tn, wid):
+        return await self.redis.execute_str("SMEMBERS", self.key_ids_assigned_for_pn_tn_wid(pn,tn,wid))
 
     async def get_first_id_for_pn_tn_wid(self, pn, tn, wid, assignment_order="bfs", sort_order="natural"):
         while True:
-            await self.redis.execute("WATCH", ri.key_completed_nids_for_pn_tn(pn,tn))
+            await self.redis.execute("WATCH", self.key_ids_occupied_for_pn_tn(pn,tn))
             await self.redis.execute("MULTI")
             await self.redis.execute("ZUNIONSTORE",
-                                     ri.key_assignable_nids_for_pn_tn_wid(pn,tn,wid), 3,
-                                     ri.key_nids_for_pn_tn(pn,tn),
-                                     ri.key_occupied_nids_for_pn_tn(pn,tn),
-                                     ri.key_assigned_nids_for_pn_tn_wid(pn,tn,wid),
+                                     self.key_ids_assignable_for_pn_tn_wid(pn,tn,wid), 3,
+                                     self.key_ids_for_pn_tn(pn,tn),
+                                     self.key_ids_occupied_for_pn_tn(pn,tn),
+                                     self.key_ids_assigned_for_pn_tn_wid(pn,tn,wid),
                                      "WEIGHTS", 1, 0, 0, "AGGREGATE", "MIN")
             get_first_bfs = '''
-                local ret = redis.call('ZRANGEBYSCORE', KEYS[1], 1, '+inf', 'WITHSCORES', 'LIMIT', 0, 1)
-                local item = ret[1]
-                local score = ret[2]
+                local ret = redis.call('ZRANGEBYSCORE', '{key_nids_assignable_for_pn_tn_wid}', 1, '+inf', 'WITHSCORES', 'LIMIT', 0, 1)
+                local nid = ret[1]
+                local priority = ret[2]
 
             '''
-            
             get_first_dfs = '''
-                local ret = redis.call('ZRANGEBYSCORE', KEYS[1], 1, '+inf', 'WITHSCORES', 'LIMIT', 0, 1)
-                local _item = ret[1]
-                local _score = ret[2]
-                _score = math.floor(_score)
+                local ret = redis.call('ZRANGEBYSCORE', '{key_nids_assignable_for_pn_tn_wid}', 1, '+inf', 'WITHSCORES', 'LIMIT', 0, 1)
+                local _priority = ret[2]
+                _priority = math.floor(_priority)
                 
-                local ret = redis.call('ZREVRANGEBYSCORE', KEYS[1], '('..(_score+1), _score, 'WITHSCORES', 'LIMIT', 0, 1)
-                local item = ret[1]
-                local score = ret[2]
+                local ret = redis.call('ZREVRANGEBYSCORE', '{key_nids_assignable_for_pn_tn_wid}', '('..(_priority+1), _priority, 'WITHSCORES', 'LIMIT', 0, 1)
+                local nid = ret[1]
+                local priority = ret[2]
 
             '''
-            
             get_first_common = '''
-                local num = redis.call('ZCOUNT', KEYS[1], score, score)
-                if num > 1 then
-                    local offset = 0
-                    if ARGV[2] == 'random' then
-                        math.randomseed(ARGV[1])
-                        offset = math.random(0, num-1)
+                local num_nids = redis.call('ZCOUNT', '{key_nids_assignable_for_pn_tn_wid}', priority, priority)
+                if num_nids > 1 then
+                    local idx = 0
+                    if '{sort_order}' == 'random' then
+                        math.randomseed({random_seed})
+                        idx = math.random(0, num_nids-1)
                     end
-                    local ret = redis.call('ZRANGEBYSCORE', KEYS[1], score, score, 'LIMIT', offset, 1)
-                    item = ret[1]
+                    local ret = redis.call('ZRANGEBYSCORE', '{key_nids_assignable_for_pn_tn_wid}', priority, priority, 'LIMIT', idx, 1)
+                    nid = ret[1]
                 end
 
-                redis.call('ZINCRBY', KEYS[2], 0.000001, item)
-                return item
+                redis.call('ZINCRBY', '{key_nids_for_pn_tn}', 1, nid)
+
+                local key_nt = string.gsub('{key_nt}', '%[%[nid%]%]', nid)
+                local key_wids_assigned_for_nid = string.gsub('{key_wids_assigned_for_nid}', '%[%[nid%]%]', nid)
+                local nt = redis.call('GET', key_nt)
+                local num_assignable = cjson.decode(nt)['NumAssignable']
+                local num_assigned = redis.call('SCARD', key_wids_assigned_for_nid)
+
+                -- self.add_id_assigned_for_pn_tn_wid
+                redis.call('SADD', '{key_nids_assigned_for_pn_tn_wid}', nid)
+                -- self.r_wkr.add_id_assigned_for_nid
+                redis.call('SADD', key_wids_assigned_for_nid, nid)
+                if num_assignable <= num_assigned then
+                    -- self.add_id_occupied_for_pn_tn
+                    redis.call('SADD', '{key_nids_occupied_for_pn_tn}', nid)
+                end
+                
+                return nid
             '''
             
-            if assignment_order=="bfs":
-                get_first = get_first_bfs+get_first_common
-            elif assignment_order=="dfs":
-                get_first = get_first_dfs+get_first_common
-            
-            await self.redis.execute("EVAL", get_first, 2, ri.key_assignable_nids_for_pn_tn_wid(pn,tn,wid), ri.key_nids_for_pn_tn(pn,tn), datetime.now().timestamp()+random.randint(0, random.randint(1, 100)), sort_order)
+            if assignment_order=="bfs":    get_first = get_first_bfs+get_first_common
+            elif assignment_order=="dfs":  get_first = get_first_dfs+get_first_common
+
+            get_first = get_first.format(key_nids_assignable_for_pn_tn_wid=self.key_ids_assignable_for_pn_tn_wid(pn,tn,wid),
+                                         key_nids_for_pn_tn=self.key_ids_for_pn_tn(pn,tn),
+                                         key_nids_assigned_for_pn_tn_wid=self.key_ids_assigned_for_pn_tn_wid(pn,tn,wid),
+                                         key_nt=self.key(id="[[nid]]"),
+                                         key_wids_assigned_for_nid=self.r_wkr.key_ids_assigned_for_nid("[[nid]]"),
+                                         key_nids_occupied_for_pn_tn=self.key_ids_occupied_for_pn_tn(pn,tn),
+                                         random_seed=datetime.now().timestamp()+random.randint(0, random.randint(1, 100)),
+                                         sort_order=sort_order)
+            print(get_first)
+
+            await self.redis.execute("EVAL", get_first, 0)
 
             ret = await self.redis.execute_str("EXEC")
 
+            print(ret)
+
             if type(ret[1])==aioredis.WatchVariableError:  continue
             else:  break
+
         return ret[1].decode() if ret[1] else None
+
+
+    async def check_id_exists_for_pn_tn(self, pn, tn):
+        return (await self.redis.execute("EXISTS", self.key_ids_for_pn_tn(pn,tn)))==1
 
 
 class WorkSessionResource(RedisResource):
     def __init__(self, redis):
         super().__init__(redis, "WorkSession", "WS")
+        self.r_wkr = WorkerResource(redis)
+
+    def key_id_for_pn_wid_ct(self,pn,wid,ct):  return f"WorkSessionId/PRJ:{pn}/WKR:{wid}/CT:{ct}"
 
     @classmethod
     def create_instance(cls, pn, wid, ct):
@@ -246,20 +295,24 @@ class WorkSessionResource(RedisResource):
         wid = data["WorkerId"]
         ct = data["ClientToken"]
         await self.set_id_for_pn_wid_ct(pn, wid, ct, id)
-        await self.add_wid_for_pn(pn, wid)
+        await self.r_wkr.add_id_for_pn(pn, wid)
 
     async def set_id_for_pn_wid_ct(self, pn, wid, ct, id):
-        await self.redis.execute("SET", ri.key_wsids_for_pn_wid_ct(pn,wid,ct), id)
-    async def get_id_for_pn_wid_ct(self, pn, wid, ct):
-        return await self.redis.execute_str("GET", ri.key_wsids_for_pn_wid_ct(pn,wid,ct))
+        await self.redis.execute("SET", self.key_id_for_pn_wid_ct(pn,wid,ct), id)
 
-    async def add_wid_for_pn(self, pn, wid):
-        await self.redis.execute("SADD", ri.key_wids_for_pn(pn), wid)
+    async def get_id_for_pn_wid_ct(self, pn, wid, ct):
+        return await self.redis.execute_str("GET", self.key_id_for_pn_wid_ct(pn,wid,ct))
+
 
 class NodeSessionResource(RedisResource):
     def __init__(self, redis):
         super().__init__(redis, "NodeSession", "NS")
         self.r_nt = NanotaskResource(redis)
+
+    def key_ids_for_wsid(self,wsid):              return f"NodeSessionIds/{wsid}"
+    def key_ids_for_pn_nn_wid(self,pn,nn,wid):    return f"NodeSessionIds/PRJ:{pn}/NODE:{nn}/WKR:{wid}"
+    def key_ids_for_pn_nn_wsid(self,pn,nn,wsid):  return f"NodeSessionIds/PRJ:{pn}/NODE:{nn}/{wsid}"
+    def key_ids_history_for_wsid(self,wsid):      return f"NodeSessionIdsHistory/{wsid}"
 
     @classmethod
     def create_instance(cls, pn, name, wid, wsid, prev_id, is_template, nid):
@@ -284,46 +337,51 @@ class NodeSessionResource(RedisResource):
         await self.add_id_for_pn_nn_wid(pn, nn, wid, id)
         await self.add_id_for_pn_nn_wsid(pn, nn, wsid, id)
 
-        if (nid := data["NanotaskId"]):
-            await self.r_nt.assign(pn, nn, wid, nid)
+        #if (nid := data["NanotaskId"]):  await self.r_nt.assign(pn, nn, wid, nid)
 
     async def add_id_for_wsid(self, wsid, id):
-        await self.redis.execute("RPUSH", ri.key_nsids_for_wsid(wsid), id)
+        await self.redis.execute("RPUSH", self.key_ids_for_wsid(wsid), id)
     async def add_id_to_history_for_wsid(self, wsid, id):
-        await self.redis.execute("XADD", ri.key_nsids_history_for_wsid(wsid), "*", "NodeSessionId", id)
+        await self.redis.execute("XADD", self.key_ids_history_for_wsid(wsid), "*", "NodeSessionId", id)
     async def add_id_for_pn_nn_wid(self, pn, nn, wid, id):
-        await self.redis.execute("RPUSH", ri.key_nsids_for_pn_nn_wid(pn,nn,wid), id)
+        await self.redis.execute("RPUSH", self.key_ids_for_pn_nn_wid(pn,nn,wid), id)
     async def add_id_for_pn_nn_wsid(self, pn, nn, wsid, id):
-        await self.redis.execute("RPUSH", ri.key_nsids_for_pn_nn_wsid(pn,nn,wsid), id)
+        await self.redis.execute("RPUSH", self.key_ids_for_pn_nn_wsid(pn,nn,wsid), id)
 
     async def get_ids_for_wsid(self, wsid):
-        return await self.redis.execute_str("LRANGE", ri.key_nsids_for_wsid(wsid), 0, -1)
+        return await self.redis.execute_str("LRANGE", self.key_ids_for_wsid(wsid), 0, -1)
     async def get_ids_for_pn_nn_wid(self, pn, nn, wid):
-        return await self.redis.execute_str("LRANGE", ri.key_nsids_for_pn_nn_wid(pn,nn,wid), 0, -1)
+        return await self.redis.execute_str("LRANGE", self.key_ids_for_pn_nn_wid(pn,nn,wid), 0, -1)
     async def get_ids_for_pn_nn_wsid(self, pn, nn, wsid):
-        return await self.redis.execute_str("LRANGE", ri.key_nsids_for_pn_nn_wsid(pn,nn,wsid), 0, -1)
+        return await self.redis.execute_str("LRANGE", self.key_ids_for_pn_nn_wsid(pn,nn,wsid), 0, -1)
 
     async def get_id_for_wsid_by_index(self, wsid, idx):
-        return await self.redis.execute_str("LINDEX", ri.key_nsids_for_wsid(wsid), idx)
+        return await self.redis.execute_str("LINDEX", self.key_ids_for_wsid(wsid), idx)
 
     async def get_length_for_wsid(self, wsid):
-        return await self.redis.execute("LLEN", ri.key_nsids_for_wsid(wsid))
+        return await self.redis.execute("LLEN", self.key_ids_for_wsid(wsid))
     async def get_length_for_pn_nn_wid(self, pn, nn, wid):
-        return await self.redis.execute("LLEN", ri.key_nsids_for_pn_nn_wid(pn,nn,wid))
+        return await self.redis.execute("LLEN", self.key_ids_for_pn_nn_wid(pn,nn,wid))
     async def get_length_for_pn_nn_wsid(self, pn, nn, wsid):
-        return await self.redis.execute("LLEN", ri.key_nsids_for_pn_nn_wsid(pn,nn,wsid))
+        return await self.redis.execute("LLEN", self.key_ids_for_pn_nn_wsid(pn,nn,wsid))
 
 
     async def set_next_id(self, id, next_id):
-        await self.redis.execute("JSON.SET", self.key(id=id), "NextId", next_id)
+        ns = await self.get(id)
+        ns["NextId"] = next_id
+        await self.update(id, ns)
 
     async def get_prev_id(self, id):
-        return await self._get_by_json_path(id, "PrevId")
+        ns = await self.get(id)
+        return ns["PrevId"] if ns["PrevId"] else None
     async def get_next_id(self, id):
-        return await self._get_by_json_path(id, "NextId")
+        ns = await self.get(id)
+        return ns["NextId"] if ns["NextId"] else None
 
     async def set_expired(self, id):
-        await self.redis.execute("JSON.SET", self.key(id=id), "Expired", 1)
+        ns = await self.get(id)
+        ns["Expired"] = 1
+        await self.update(id, ns)
 
 class AnswerResource(RedisResource):
     def __init__(self, redis):
@@ -331,6 +389,9 @@ class AnswerResource(RedisResource):
         self.key_counter = None
         self.r_nt = NanotaskResource(redis)
         self.res_ns = NodeSessionResource(redis)
+
+    def key_ids_for_nid(self,nid):      return f"AnswerIds/{nid}"
+    def key_ids_for_pn_tn(self,pn,tn):  return f"AnswerIds/PRJ:{pn}/TMPL:{tn}"
 
     @classmethod
     def create_instance(cls, wsid, wid, nid, answer):
@@ -349,7 +410,7 @@ class AnswerResource(RedisResource):
 
     async def add(self, nsid, data):
         data["Timestamp"] = datetime.now().timestamp()
-        res = await self.redis.execute("JSON.SET", self.key(nsid), ".", json.dumps(data))
+        res = await self.redis.execute("SET", self.key(nsid), json.dumps(data))
         await self._on_add(nsid, data)
 
     async def _on_add(self, nsid, data):
@@ -361,35 +422,29 @@ class AnswerResource(RedisResource):
         nid = ns["NanotaskId"]
         if nid:
             await self.add_id_for_nid(nid, nsid)
-            await self.r_nt.add_completed_id_for_pn_tn_wid(pn, tn, wid, nid)
+            await self.r_nt.add_id_completed_for_pn_tn_wid(pn, tn, wid, nid)
         else:
             await self.add_id_for_pn_tn(pn, tn, nsid)
         
     async def add_id_for_nid(self, nid, id):
-        await self.redis.execute("SADD", ri.key_aids_for_nid(nid), id)
+        await self.redis.execute("SADD", self.key_ids_for_nid(nid), id)
 
     async def add_id_for_pn_tn(self, pn, tn, id):
-        await self.redis.execute("SADD", ri.key_aids_for_pn_tn(pn,tn), id)
+        await self.redis.execute("SADD", self.key_ids_for_pn_tn(pn,tn), id)
 
     async def get_ids_for_nid(self, nid):
-        return await self.redis.execute_str("SMEMBERS", ri.key_aids_for_nid(nid))
+        return await self.redis.execute_str("SMEMBERS", self.key_ids_for_nid(nid))
 
     async def get_ids_for_pn_tn(self, pn, tn):
-        return await self.redis.execute_str("SMEMBERS", ri.key_aids_for_pn_tn(pn,tn))
+        return await self.redis.execute_str("SMEMBERS", self.key_ids_for_pn_tn(pn,tn))
 
 class MTurkResource:
     def __init__(self, redis):
         self.redis = redis
 
-    @classmethod
-    def key_access_key_id(cls):
-        return f"Platform/AMT/AccessKeyId"
-    @classmethod
-    def key_secret_access_key(cls):
-        return f"Platform/AMT/SecretAccessKey"
-    @classmethod
-    def key_is_sandbox(cls):
-        return f"Platform/AMT/IsSandbox"
+    def key_access_key_id(cls):      return "Platform/AMT/AccessKeyId"
+    def key_secret_access_key(cls):  return "Platform/AMT/SecretAccessKey"
+    def key_is_sandbox(cls):         return "Platform/AMT/IsSandbox"
 
     async def key_base(self):
         [aki, sak, sandbox] = await self.get_credentials()
@@ -441,7 +496,7 @@ class MTurkResource:
         return await self.redis.execute_str("SMEMBERS", await self.key_hit_type_ids())
 
     async def get_hit_type_params_for_htid(self, htid):
-        data = await self.redis.execute("JSON.GET", await self.key_hit_type_params_for_htid(htid))
+        data = await self.redis.execute("GET", await self.key_hit_type_params_for_htid(htid))
         return json.loads(data) if data else None
 
     async def set_hit_type_params_for_htid(self, htid, params):
@@ -451,21 +506,13 @@ class MTurkResource:
             "Params": params
         }
         await self.redis.execute("SADD", await self.key_hit_type_ids(), htid)
-        await self.redis.execute("JSON.SET", await self.key_hit_type_params_for_htid(htid), ".", json.dumps(params))
+        await self.redis.execute("SET", await self.key_hit_type_params_for_htid(htid), json.dumps(params))
 
     async def get_hits(self):
-        data = await self.redis.execute("JSON.GET", await self.key_hits())
+        data = await self.redis.execute("GET", await self.key_hits())
         return json.loads(data) if data else None
         
     async def set_hits(self, hits):
-        await self.redis.execute("JSON.SET", await self.key_hits(), ".", json.dumps(hits))
+        await self.redis.execute("SET", await self.key_hits(), json.dumps(hits))
 
-class WorkerHelper:
-    @classmethod
-    async def get_wids_for_pn(cls, redis, pn):
-        return await redis.execute_str("SMEMBERS", ri.key_wids_for_pn(pn))
 
-    @classmethod
-    async def get_amt_wids_for_pn(cls, redis, pn):
-        wids = await redis.execute_str("SMEMBERS", ri.key_wids_for_pn(pn))
-        return [wid for wid in wids if wid.startswith("A") and wid.isupper()]

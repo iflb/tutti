@@ -143,10 +143,8 @@ class Handler(EventHandler):
             if not (pn and wid and ct):
                 raise Exception("ProjectName, WorkerId, and ClientToken are required")
 
-            wsid = await self.r_ws.get_id_for_pn_wid_ct(pn,wid,ct)
-            if not wsid:
+            if not (wsid := await self.r_ws.get_id_for_pn_wid_ct(pn,wid,ct)):
                 wsid = await self.r_ws.add(WorkSessionResource.create_instance(pn,wid,ct))
-
             await event.session.set_session_attribute("WorkSessionId", wsid)
 
             output.set("WorkSessionId", wsid)
@@ -169,7 +167,7 @@ class Handler(EventHandler):
                     out_nsid = nsid
                     out_ns = await self.r_ns.get(nsid)
                     out_ans = await self.r_ans.get(nsid)
-                    if (nid := out_ns["NanotaskId"]) and (nid not in await self.r_nt.get_assigned_id_for_pn_tn_wid(pn,out_ns["NodeName"],wid)):
+                    if (nid := out_ns["NanotaskId"]) and (nid not in await self.r_nt.get_ids_assigned_for_pn_tn_wid(pn,out_ns["NodeName"],wid)):
                         # mark current node session Expired=True
                         await self.r_ns.set_expired(out_nsid)
                         # assign another available nanotask
@@ -283,7 +281,7 @@ class Handler(EventHandler):
         try:
             wsid = await session.get_session_attribute('WorkSessionId')
         except KeyError:
-            pass
+            wsid = None
 
         if wsid:
             nsid = await self.r_ns.get_id_for_wsid_by_index(wsid, -1)

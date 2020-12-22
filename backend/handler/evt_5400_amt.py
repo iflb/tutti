@@ -11,7 +11,6 @@ logging.getLogger('botocore').setLevel(logging.CRITICAL)
 logging.getLogger('nose').setLevel(logging.CRITICAL)
 
 from handler.handler_output import handler_output
-from handler.redis_index import *
 from handler.redis_resource import MTurkResource
 
 class Handler(EventHandler):

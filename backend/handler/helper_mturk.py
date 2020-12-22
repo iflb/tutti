@@ -4,7 +4,6 @@ import json
 
 import aiobotocore
 
-from handler.redis_index import *
 from handler.redis_resource import MTurkResource
 
 import logging

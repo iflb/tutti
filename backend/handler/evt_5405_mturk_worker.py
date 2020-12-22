@@ -10,7 +10,7 @@ logging.getLogger('nose').setLevel(logging.CRITICAL)
 
 from handler import paths, common
 from handler.handler_output import handler_output, CommandError
-from handler.redis_resource import WorkerHelper
+#from handler.redis_resource import WorkerHelper
 
 class Handler(EventHandler):
     def __init__(self):
@@ -24,12 +24,13 @@ class Handler(EventHandler):
 
     @handler_output
     async def handle(self, event, output):
-        async with await self.mturk.get_client_async(event.session.redis) as client:
-            command = event.data["Command"]
-            output.set("Command", command)
+        #async with await self.mturk.get_client_async(event.session.redis) as client:
+        #    command = event.data["Command"]
+        #    output.set("Command", command)
 
-            if command=="List":
-                pn = event.data["ProjectName"]
-                wids = await WorkerHelper.get_amt_wids_for_pn(event.session.redis, pn)
-                output.set("ProjectName", pn)
-                output.set("WorkerIds", wids)
+        #    if command=="List":
+        #        pn = event.data["ProjectName"]
+        #        wids = await WorkerHelper.get_amt_wids_for_pn(event.session.redis, pn)
+        #        output.set("ProjectName", pn)
+        #        output.set("WorkerIds", wids)
+        pass
