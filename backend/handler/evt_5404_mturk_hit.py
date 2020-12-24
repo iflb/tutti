@@ -61,6 +61,7 @@ class Handler(EventHandler):
                                 hits[htid] = {
                                     "Count": 0,
                                     "HITIds": [],
+                                    "HITGroupId": h["HITGroupId"],
                                     "Props": {
                                         k: h[k] for k in (
                                             "AutoApprovalDelayInSeconds",

@@ -39,6 +39,10 @@
                     <template v-slot:item.active="{ item }">
                         <v-icon v-if="item.detail.HITStatusCount.Assignable>0" color="success">mdi-circle-medium</v-icon>
                     </template>
+                    <template v-slot:item.id="{ item }">
+                        {{ item.id }}
+                        <v-icon small @click="openNewWindow('https://workersandbox.mturk.com/projects/'+item.groupId+'/tasks');">mdi-open-in-new</v-icon>
+                    </template>
                     <template v-slot:expanded-item="{ headers, item }">
                         <td :colspan="headers.length">
                             <div class="my-2">
@@ -163,6 +167,9 @@ export default {
     },
     methods: {
         ...mapActions("ductsModule", [ "onDuctOpen" ]),
+        openNewWindow(url) {
+            window.open(url, "_blank");
+        },
         unixTimeToLocaleString(unixTime) {
             var dt = new Date(unixTime*1000);
             return dt.toLocaleDateString() + " " + dt.toLocaleTimeString();
@@ -221,6 +228,7 @@ export default {
                             for(var i in hits){
                                 this.hitTypes.push({
                                     id: i,
+                                    groupId: hits[i]["HITGroupId"],
                                     title: hits[i]["Props"]["Title"],
                                     reward: hits[i]["Props"]["Reward"],
                                     creation_time: this.unixTimeToLocaleString(hits[i]["CreationTime"]),

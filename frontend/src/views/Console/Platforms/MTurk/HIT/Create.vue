@@ -111,6 +111,7 @@
                             <tr v-if="createNew">
                                 <td>
                                     <b>{{ numQualRequirements }} QualificationRequirements</b>
+                                    <v-btn x-small icon @click="openNewWindow('https://docs.aws.amazon.com/AWSMechTurk/latest/AWSMturkAPI/ApiReference_QualificationRequirementDataStructureArticle.html#ApiReference_QualificationType-IDs');"><v-icon>mdi-help-circle-outline</v-icon></v-btn>
                                     <v-btn x-small icon @click="pushQualRequirements()"><v-icon>mdi-plus</v-icon></v-btn>
                                     <v-btn x-small icon @click="popQualRequirements()" v-if="numQualRequirements"><v-icon>mdi-minus</v-icon></v-btn>
                                 </td>
