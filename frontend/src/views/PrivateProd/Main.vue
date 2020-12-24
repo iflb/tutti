@@ -1,4 +1,5 @@
-<template> <v-app>
+<template>
+    <v-app>
         <div class="text-right ma-3">
         <v-menu offset-y v-if="showWorkerMenu">
             <template v-slot:activator="{ on, attrs }">
@@ -28,20 +29,45 @@
         </v-dialog>
         <div class="d-flex flex-column">
         <v-row>
-            <v-col cols="12" height="100">
-                {{ count }}
-                <v-col class="text-center">
-                    <v-btn color="white" class="mx-4 pa-2" @click="getTemplate('PREV')" :disabled="!hasPrevTemplate"><v-icon>mdi-chevron-left</v-icon></v-btn>
-                    <v-btn color="white" class="mx-4 pa-2" @click="getTemplate('NEXT')" :disabled="!hasNextTemplate"><v-icon>mdi-chevron-right</v-icon></v-btn>
-                </v-col>
+            <v-col cols="12" class="text-center">
+                <v-btn v-if="instruction.enabled" @click="instruction.shown=true">Show Instruction</v-btn>
             </v-col>
-            <v-col cols="12">
-                <v-slide-x-reverse-transition hide-on-leave>
-                    <component v-if="showTemplate" :is="template" :nano-props="nanoProps" :prev-answer="prevAnswer" @submit="submit" />
-                </v-slide-x-reverse-transition>
+            <v-col cols="12" height="100" class="text-center">
+                {{ count }}
             </v-col>
         </v-row>
+        <v-card flat>
+            <v-overlay color="white" :opacity="0.6" absolute :value="loadingNextTemplate">
+                <v-progress-circular color="grey" indeterminate size="64"></v-progress-circular>
+            </v-overlay>
+            <v-row>
+                <v-col cols="12" height="100">
+                    <v-col class="text-center">
+                        <v-btn v-if="pagination" color="white" class="mx-4 pa-2" @click="getTemplate('PREV')" :disabled="!hasPrevTemplate"><v-icon>mdi-chevron-left</v-icon></v-btn>
+                        <v-btn v-if="pagination" color="white" class="mx-4 pa-2" @click="getTemplate('NEXT')" :disabled="!hasNextTemplate"><v-icon>mdi-chevron-right</v-icon></v-btn>
+                    </v-col>
+                </v-col>
+                <v-col cols="12">
+                    <v-slide-x-reverse-transition hide-on-leave>
+                        <component v-if="showTemplate" :is="template" :nano-props="nanoProps" :prev-answer="prevAnswer" @submit="submit" />
+                    </v-slide-x-reverse-transition>
+                </v-col>
+            </v-row>
+        </v-card>
         </div>
+        <v-dialog v-model="instruction.shown" max-width="1000">
+            <v-card>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn icon text @click="instruction.shown = false"><v-icon>mdi-close</v-icon></v-btn>
+                </v-card-actions>
+                <component :is="instructionTemplate" />
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="green darken-1" text @click="instruction.shown = false" >Close</v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
     </v-app>
 </template>
 
@@ -65,6 +91,7 @@ export default {
     },
     data: () => ({
         showTemplate: true,
+        loadingNextTemplate: false,
         templateName: "",
         count: 0,
         wsid: null,
@@ -77,6 +104,11 @@ export default {
         platformWorkerId: "",
         dialogLogout: false,
         prevAnswer: null,
+        pagination: false,
+        instruction: {
+            enabled: true,
+            shown: false
+        },
 
         hasPrevTemplate: false,
         hasNextTemplate: false,
@@ -91,6 +123,11 @@ export default {
         },
         showWorkerMenu() {
             return platformConfig && platformConfig.showWorkerMenu;
+        },
+        instructionTemplate() {
+            console.log(`@/projects/${this.projectName}/templates/Instruction.vue`);
+            try { return require(`@/projects/${this.projectName}/templates/Instruction.vue`).default }
+            catch { return null }
         }
     },
     props: ["projectName"],
@@ -102,6 +139,7 @@ export default {
         ]),
         getTemplate(direction) {
             if(this.wsid) {
+                this.loadingNextTemplate = true;
                 this._evtSession({
                     "Command": "Get",
                     "Target": direction,
@@ -152,6 +190,7 @@ export default {
 
                         this.wsid = data["Data"]["WorkSessionId"];
                         this.workerId = data["Data"]["WorkerId"];
+                        this.pagination = data["Data"]["Pagination"];
                         this.getTemplate("NEXT");
                     }
                     else if(command=="Get"){
@@ -181,6 +220,7 @@ export default {
                                     this.$set(this, "prevAnswer", d["Answers"]);
                                 }
                             });
+                            this.loadingNextTemplate = false;
                         } else {
                             alert(d["TerminateReason"]);
                             platformConfig.onSubmitWorkSession(this);

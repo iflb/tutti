@@ -4,7 +4,7 @@ from libs.scheme.flow import BatchNode, TemplateNode, Statement
 class ProjectScheme(ProjectSchemeBase):
     def config_params(self):
         self.title = "My test project"
-        self.pagination = False
+        self.pagination = True
         self.assignment_order = "bfs"
         self.sort_order = "random"
         
