@@ -28,13 +28,16 @@
           </v-card>
         </v-dialog>
         <div class="d-flex flex-column">
+        <p class="text-h3 text-center">
+            {{ projectTitle }}
+        </p>
         <v-row>
             <v-col cols="12" class="text-center">
                 <v-btn v-if="instruction.enabled" @click="instruction.shown=true">Show Instruction</v-btn>
             </v-col>
-            <v-col cols="12" height="100" class="text-center">
+            <!--<v-col cols="12" height="100" class="text-center">
                 {{ count }}
-            </v-col>
+            </v-col>-->
         </v-row>
         <v-card flat>
             <v-overlay color="white" :opacity="0.6" absolute :value="loadingNextTemplate">
@@ -90,6 +93,7 @@ export default {
         });
     },
     data: () => ({
+        projectTitle: "",
         showTemplate: true,
         loadingNextTemplate: false,
         templateName: "",
@@ -106,7 +110,7 @@ export default {
         prevAnswer: null,
         pagination: false,
         instruction: {
-            enabled: true,
+            enabled: false,
             shown: false
         },
 
@@ -188,9 +192,12 @@ export default {
                     if(command=="Create"){
                         if(data["Status"]=="Error") { console.error(`failed to create session ID: ${data["Reason"]}`); return; }
 
+                        console.log(data["Data"]);
                         this.wsid = data["Data"]["WorkSessionId"];
                         this.workerId = data["Data"]["WorkerId"];
                         this.pagination = data["Data"]["Pagination"];
+                        this.projectTitle = ("Title" in data["Data"]) ? data["Data"]["Title"] : "";
+                        this.instruction.enabled = data["Data"]["InstructionEnabled"];
                         this.getTemplate("NEXT");
                     }
                     else if(command=="Get"){

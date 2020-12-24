@@ -156,6 +156,8 @@ class Handler(EventHandler):
             output.set("WorkSessionId", wsid)
             output.set("WorkerId", wid)
             output.set("Pagination", self.schemes[pn].pagination)
+            output.set("InstructionEnabled", self.schemes[pn].instruction)
+            if self.schemes[pn].show_title:  output.set("Title", self.schemes[pn].title)
 
         elif command=="Get":
             target = event.data["Target"]
