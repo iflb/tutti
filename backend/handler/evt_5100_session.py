@@ -204,7 +204,7 @@ class Handler(EventHandler):
                             out_nsid = ns["NextId"]
                             out_ns = await self.r_ns.get(ns["NextId"])
                             await self.r_ns.add_id_to_history_for_wsid(wsid, out_nsid)
-                            if out_ns["IsTemplateNode"] and out_ns["Expired"]==1:
+                            if out_ns["IsTemplateNode"] and out_ns["Expired"]==0:
                                 out_ans = await self.r_ans.get(ns["NextId"])
                                 break
                             else:
@@ -228,7 +228,7 @@ class Handler(EventHandler):
                             out_nsid = ns["PrevId"]
                             out_ns = await self.r_ns.get(ns["PrevId"])
                             await self.r_ns.add_id_to_history_for_wsid(wsid, out_nsid)
-                            if out_ns["IsTemplateNode"] and out_ns["Expired"]==1:
+                            if out_ns["IsTemplateNode"] and out_ns["Expired"]==0:
                                 out_ans = await self.r_ans.get(ns["PrevId"])
                                 break
                             else:

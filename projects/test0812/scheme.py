@@ -6,7 +6,7 @@ class ProjectScheme(ProjectSchemeBase):
         self.title = "My test project"
         self.assignment_order = "bfs"
         self.sort_order = "random"
-        self.pagination = False
+        self.pagination = True
         self.instruction = False
         self.show_title = False
         
