@@ -59,11 +59,12 @@ services:
 
   redis:
     restart: always
-    image: redislabs/rejson:latest
+    #image: redislabs/rejson:latest
+    image: redis:6-alpine
     container_name: redis
     volumes: 
      - ./redis/data:/data
-    command: redis-server --loadmodule /usr/lib/redis/modules/rejson.so --appendonly yes
+    #command: redis-server --loadmodule /usr/lib/redis/modules/rejson.so --appendonly yes
     ports:
       - "6379:6379"
     networks:

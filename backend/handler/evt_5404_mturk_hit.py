@@ -44,6 +44,7 @@ class Handler(EventHandler):
                     if hits:  output.set("Result", hits)
                     else:     cached = False
 
+
                 if cached==False:
                     next_token = None
                     hits = {}
@@ -59,7 +60,7 @@ class Handler(EventHandler):
                             if htid not in hits:
                                 hits[htid] = {
                                     "Count": 0,
-                                    "HITIds": [h["HITId"]],
+                                    "HITIds": [],
                                     "Props": {
                                         k: h[k] for k in (
                                             "AutoApprovalDelayInSeconds",

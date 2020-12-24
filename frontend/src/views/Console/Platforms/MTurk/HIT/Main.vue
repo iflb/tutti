@@ -1,42 +1,13 @@
 <template>
     <v-main class="mt-10 grey lighten-4">
         <div style="max-width:1200px" class="mx-auto">
-            <!--<v-card class="my-3">
-                <v-card-text class="py-1">
-                    <v-row align="center">
-                        <v-col class="pa-0">
-                            <v-list-item two-line>
-                                <v-list-item-content>
-                                    <v-list-item-title>Create HIT Type</v-list-item-title>
-                                    <v-list-item-subtitle>HIT Metadata (title, reward, time limit, etc.) is required before posting.</v-list-item-subtitle>
-                                </v-list-item-content>
-                            </v-list-item>
-                        </v-col>
-                        <v-col class="text-end py-0">
-                            <v-btn>Create HIT Type</v-btn>
-                        </v-col>
-                    </v-row>
-                </v-card-text>
-                <v-divider></v-divider>
-                <v-card-text class="py-1">
-                    <v-row align="center">
-                        <v-col class="pa-0">
-                            <v-list-item two-line>
-                                <v-list-item-content>
-                                    <v-list-item-title>Create HIT Type</v-list-item-title>
-                                    <v-list-item-subtitle>HIT Metadata (title, reward, time limit, etc.) is required before posting.</v-list-item-subtitle>
-                                </v-list-item-content>
-                            </v-list-item>
-                        </v-col>
-                        <v-col class="text-end py-0">
-                            <v-btn>Create HIT Type</v-btn>
-                        </v-col>
-                    </v-row>
-                </v-card-text>
-            </v-card>-->
             <v-row>
                 <v-col class="text-right">
-                    <v-btn dark color="indigo" to="/console/platform/mturk/hit/create/">Create HITs</v-btn>
+                    <v-btn :loading="button.expireHITs.loading" :disabled="button.expireHITs.disabled" class="mx-2" dark
+                           color="warning" v-if="selectedHITIds.length>0" @click="button.expireHITs.loading=true; expireHITs()">Expire ({{ selectedHITIds.length }})</v-btn>
+                    <v-btn :loading="button.deleteHITs.loading" :disabled="button.deleteHITs.disabled" class="mx-2" dark
+                           color="error" v-if="selectedHITIds.length>0" @click="button.deleteHITs.loading=true; deleteHITs()">Delete ({{ selectedHITIds.length }})</v-btn>
+                    <v-btn class="mx-2" dark color="indigo" to="/console/platform/mturk/hit/create/">Create HITs...</v-btn>
                 </v-col>
             </v-row>
             <v-card>
@@ -51,6 +22,7 @@
                   dense
                   :loading="loadingHITs"
                   show-select
+                  v-model="selectedHITTypes"
                 >
                     <template v-slot:top>
                         <v-card-title>
@@ -85,6 +57,25 @@
                     </template>
                 </v-data-table>
             </v-card>
+
+            <v-snackbar :color="snackbar.success.color" v-model="snackbar.success.shown" :timeout="snackbar.success.timeout">
+              {{ snackbar.success.text }}
+              <template v-slot:action="{ attrs }">
+                  <v-btn dark color="white" text v-bind="attrs" @click="snackbar.success.shown=false">Close</v-btn>
+              </template>
+            </v-snackbar>
+            <v-snackbar :color="snackbar.warning.color" v-model="snackbar.warning.shown" :timeout="snackbar.warning.timeout">
+              {{ snackbar.warning.text }}
+              <template v-slot:action="{ attrs }">
+                  <v-btn dark color="white" text v-bind="attrs" @click="snackbar.warning.shown=false">Close</v-btn>
+              </template>
+            </v-snackbar>
+            <v-snackbar :color="snackbar.error.color" v-model="snackbar.error.shown" :timeout="snackbar.error.timeout">
+              {{ snackbar.error.text }}
+              <template v-slot:action="{ attrs }">
+                  <v-btn dark color="white" text v-bind="attrs" @click="snackbar.error.shown=false">Close</v-btn>
+              </template>
+            </v-snackbar>
         </div>
     </v-main>
 </template>
@@ -102,6 +93,7 @@ export default {
         //codemirror
     },
     data: () => ({
+        selectedHITTypes: [],
         search: "",
         expanded: [],
         headers: [
@@ -125,12 +117,49 @@ export default {
             indentWithTabs: true
         },
         hitTypeParams: "",
-        loadingHITs: false
+        loadingHITs: false,
+        button: {
+            expireHITs: {
+                loading: false,
+                disabled: false
+            },
+            deleteHITs: {
+                loading: false,
+                disabled: false
+            },
+        },
+        snackbar: {
+            success: {
+                shown: false,
+                text: "",
+                timeout: 5000,
+                color: "success"
+            },
+            warning: {
+                shown: false,
+                text: "",
+                timeout: 5000,
+                color: "warning"
+            },
+            error: {
+                shown: false,
+                text: "",
+                timeout: 5000,
+                color: "error"
+            }
+        }
     }),
     props: ["sharedProps","name"],
 
     computed: {
         ...mapGetters("ductsModule", [ "duct" ]),
+        selectedHITIds() {
+            var hitIds = [];
+            for(var i in this.selectedHITTypes){
+                hitIds = [...hitIds, ...this.selectedHITTypes[i]["detail"]["HITIds"]];
+            }
+            return hitIds;
+        }
     },
     methods: {
         ...mapActions("ductsModule", [ "onDuctOpen" ]),
@@ -144,6 +173,24 @@ export default {
             var minutes = Math.floor(seconds / 60);
             seconds -= minutes*60;
             return `${hours}:${("00"+minutes).slice(-2)}:${("00"+seconds).slice(-2)}`;
+        },
+        expireHITs(){
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.MTURK_EXPIRE_HITS,
+                data: {
+                    "HITIds": this.selectedHITIds
+                }
+            });
+        },
+        deleteHITs(){
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.MTURK_DELETE_HITS,
+                data: {
+                    "HITIds": this.selectedHITIds
+                }
+            });
         },
         _evtListHITs(cached){
             this.loadingHITs = true;
@@ -181,9 +228,66 @@ export default {
                                     detail: hits[i]
                                 });
                             }
+                            this.selectedHITTypes = [];
                             break;
                         }
                     }
+                }
+            });
+
+            this.duct.addEvtHandler({
+                tag: this.name, eid: this.duct.EVENT.MTURK_EXPIRE_HITS,
+                handler: (rid, eid, data) => {
+                    if(data["Status"]=="Error") {
+                        this.snackbar.error.text = "Errors occurred in expiring HITs";
+                        this.snackbar.error.shown = true;
+                    } else {
+                        const res = data["Data"]["Results"];
+                        var cntSuccess = 0;
+                        for(var i in res) {
+                            if(("ResponseMetadata" in res[i]) && ("HTTPStatusCode" in res[i]["ResponseMetadata"]) && (res[i]["ResponseMetadata"]["HTTPStatusCode"]==200))
+                                cntSuccess++;
+                        }
+                        if(cntSuccess==res.length) {
+                            this.snackbar.success.text = `Successfully expired ${res.length} HITs`;
+                            this.snackbar.success.shown = true;
+                        } else {
+                            this.snackbar.warning.text = `Expired ${cntSuccess} HITs, but errors occurred in expiring ${res.length-cntSuccess} HITs`;
+                            this.snackbar.warning.shown = true;
+                        }
+
+                    }
+                    this.button.expireHITs.loading = false;
+                    this.button.expireHITs.disabled = false;
+                    this._evtListHITs(false);
+                }
+            });
+
+            this.duct.addEvtHandler({
+                tag: this.name, eid: this.duct.EVENT.MTURK_DELETE_HITS,
+                handler: (rid, eid, data) => {
+                    if(data["Status"]=="Error") {
+                        this.snackbar.error.text = "Errors occurred in deleting HITs";
+                        this.snackbar.error.shown = true;
+                    } else {
+                        const res = data["Data"]["Results"];
+                        var cntSuccess = 0;
+                        for(var i in res) {
+                            if(("ResponseMetadata" in res[i]) && ("HTTPStatusCode" in res[i]["ResponseMetadata"]) && (res[i]["ResponseMetadata"]["HTTPStatusCode"]==200))
+                                cntSuccess++;
+                        }
+                        if(cntSuccess==res.length) {
+                            this.snackbar.success.text = `Successfully deleted ${res.length} HITs`;
+                            this.snackbar.success.shown = true;
+                        } else {
+                            this.snackbar.warning.text = `Deleted ${cntSuccess} HITs, but errors occurred in deleting ${res.length-cntSuccess} HITs`;
+                            this.snackbar.warning.shown = true;
+                        }
+
+                    }
+                    this.button.deleteHITs.loading = false;
+                    this.button.deleteHITs.disabled = false;
+                    this._evtListHITs(false);
                 }
             });
 

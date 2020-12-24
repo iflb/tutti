@@ -210,7 +210,7 @@ export default {
             { id: "00000000000000000060", name: "Worker_Adult" },
             { id: "000000000000000000L0", name: "Worker_PercentAssignmentsApproved" }
         ],
-
+        customQualIds: [],
 
         createNew: null,
         chosenExstHITTypeId: "",
@@ -267,6 +267,11 @@ export default {
                 const name = this.qualIds[i].name;
                 ret.push({ text: `${name} - ${id}`, value: id });
             }
+            for(const i in this.customQualIds){
+                const id = this.customQualIds[i].id;
+                const name = this.customQualIds[i].name;
+                ret.push({ text: `${name} - ${id}`, value: id });
+            }
             return ret;
         }
     },
@@ -318,6 +323,13 @@ export default {
         postHITs() {
             if(this.createNew){ this.createHITType(); }
             else { this.createHITsForHITTypeId(this.chosenExstHITTypeId); }
+        },
+        _evtGetQualificationTypeIds() {
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.MTURK_QUALIFICATION,
+                data: { "Command": "List" }
+            });
         }
     },
     watch: {
@@ -352,8 +364,27 @@ export default {
                 }
             });
 
+            this.duct.addEvtHandler({
+                tag: this.name, eid: this.duct.EVENT.MTURK_QUALIFICATION,
+                handler: (rid, eid, data) => {
+                    const command = data["Data"]["Command"];
+                    if(data["Status"]=="error") return;
+
+                    if(command=="List"){
+                        var ret = [];
+                        for(var i in data["Data"]["QualificationTypes"]) {
+                            const id = data["Data"]["QualificationTypes"][i]["QualificationTypeId"];
+                            const name = data["Data"]["QualificationTypes"][i]["Name"];
+                            ret.push({ id, name });
+                        }
+                        this.customQualIds = ret;
+                    }
+                }
+            });
             this._evtMTurkHIT({ "Command": "ListHITTypes" });
         });
+
+        this._evtGetQualificationTypeIds();
     }
 };
 </script>
