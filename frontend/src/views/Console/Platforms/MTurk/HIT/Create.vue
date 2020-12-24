@@ -163,9 +163,16 @@
             </v-card>
             <v-row class="mb-8">
                 <v-col class="text-right">
-                    <v-btn dark color="indigo" @click="postHITs()">Post HITs</v-btn>
+                    <v-btn dark :loading="postingHITs" color="indigo" @click="postHITs()">Post HITs</v-btn>
                 </v-col>
             </v-row>
+
+            <v-snackbar :color="snackbar.success.color" v-model="snackbar.success.shown" :timeout="snackbar.success.timeout">
+              {{ snackbar.success.text }}
+              <template v-slot:action="{ attrs }">
+                  <v-btn dark color="white" text v-bind="attrs" @click="snackbar.success.shown=false">Close</v-btn>
+              </template>
+            </v-snackbar>
         </div>
     </v-main>
 </template>
@@ -251,6 +258,16 @@ export default {
                 for(const i in value) if(!pattern.test(value[i])) { ret = false; value.splice(i,1); break; }
                 return ret || '';
             }
+        },
+
+        postingHITs: false,
+        snackbar: {
+            success: {
+                shown: false,
+                text: "",
+                timeout: 5000,
+                color: "success"
+            },
         }
     }),
     props: ["sharedProps"],
@@ -322,6 +339,7 @@ export default {
         },
 
         postHITs() {
+            this.postingHITs = true;
             if(this.createNew){ this.createHITType(); }
             else { this.createHITsForHITTypeId(this.chosenExstHITTypeId); }
         },
@@ -360,6 +378,13 @@ export default {
                         case "CreateHITType": {
                             const htid = data["Data"]["HITTypeId"];
                             this.createHITsForHITTypeId(htid);
+                            break;
+                        }
+                        case "CreateHITWithHITType": {
+                            this.postingHITs = false;
+                            this.snackbar.success.text = "Successfully posted HITs";
+                            this.snackbar.success.shown = true;
+                            break;
                         }
                     }
                 }

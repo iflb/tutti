@@ -105,7 +105,9 @@ export default {
           { text: 'HIT Type ID', value: 'id' },
           { text: 'Title', value: 'title' },
           { text: 'Reward', value: 'reward' },
-          { text: '# Posted HITs', value: 'num_hits' },
+          { text: '# HITs', value: 'num_hits' },
+          { text: '# Open HITs', value: 'num_assignable' },
+          { text: '# Closed HITs', value: 'num_reviewable' },
           { text: 'Creation Time', value: 'creation_time' },
           { text: '', value: 'data-table-expand' },
         ],
@@ -233,6 +235,8 @@ export default {
                                     reward: hits[i]["Props"]["Reward"],
                                     creation_time: this.unixTimeToLocaleString(hits[i]["CreationTime"]),
                                     num_hits: hits[i]["Count"],
+                                    num_assignable: hits[i]["HITStatusCount"]["Assignable"],
+                                    num_reviewable: hits[i]["HITStatusCount"]["Reviewable"],
                                     detail: hits[i]
                                 });
                             }
