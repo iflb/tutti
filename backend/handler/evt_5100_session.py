@@ -288,6 +288,8 @@ class Handler(EventHandler):
             raise Exception("unknown command '{}'".format(command))
 
     async def handle_closed(self, session):
+        return   # TODO
+
         try:
             wsid = await session.get_session_attribute('WorkSessionId')
         except KeyError:

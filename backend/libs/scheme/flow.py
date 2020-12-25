@@ -61,7 +61,6 @@ class Node:
         
     def eval_cond(self, wkr_client, ws_client):
         if callable(self.condition):
-            print("calling self.condition")
             return self.condition(wkr_client, ws_client)
         else:
             print("skipping self.condition", self.condition)

@@ -229,7 +229,7 @@ export default {
                             });
                             this.loadingNextTemplate = false;
                         } else {
-                            alert(d["TerminateReason"]);
+                            //alert(d["TerminateReason"]);
                             platformConfig.onSubmitWorkSession(this);
                         }
                     }
