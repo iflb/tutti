@@ -12,6 +12,10 @@ http {
         proxy_set_header X-Forwarded-Server $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 
+        location /static/ {
+            root /;
+        }
+
         location /vue/ {
             proxy_pass http://172.100.0.3/vue/;
             proxy_redirect off;
@@ -36,8 +40,8 @@ http {
             proxy_pass http://172.100.0.4/ducts/;
             proxy_redirect off;
         }
-        location /static/ {
-            proxy_pass http://172.100.0.4/static/;
+        location /ducts/static/ {
+            proxy_pass http://172.100.0.4/ducts/static/;
             proxy_redirect off;
         }
     }

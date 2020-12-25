@@ -10,6 +10,7 @@ services:
         - DOMAIN_NAME=${DOMAIN_NAME}
     volumes:
       - ./letsencrypt:/etc/letsencrypt
+      - ./static:/static
     ports:
       - "80:80"
       - "443:443"

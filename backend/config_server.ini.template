@@ -35,7 +35,7 @@ httpd_port = 80
 # root_path_ducts = /ducts/
 
 # URL path for static_root (<class 'str'>)
-# root_path_static = /static/
+root_path_static = /ducts/static/
 
 #  (<class 'str'>)
 # root_path_favicon = /favicon.ico

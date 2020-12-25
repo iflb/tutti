@@ -173,6 +173,12 @@
                   <v-btn dark color="white" text v-bind="attrs" @click="snackbar.success.shown=false">Close</v-btn>
               </template>
             </v-snackbar>
+            <v-snackbar :color="snackbar.error.color" v-model="snackbar.error.shown" :timeout="snackbar.error.timeout">
+              {{ snackbar.error.text }}
+              <template v-slot:action="{ attrs }">
+                  <v-btn dark color="white" text v-bind="attrs" @click="snackbar.error.shown=false">Close</v-btn>
+              </template>
+            </v-snackbar>
         </div>
     </v-main>
 </template>
@@ -268,6 +274,12 @@ export default {
                 timeout: 5000,
                 color: "success"
             },
+            error: {
+                shown: false,
+                text: "",
+                timeout: 5000,
+                color: "error"
+            }
         }
     }),
     props: ["sharedProps"],
@@ -367,7 +379,12 @@ export default {
                 tag: "/console/platform/mturk/hit/create/",
                 eid: this.duct.EVENT.MTURK_HIT,
                 handler: (rid, eid, data) => {
-                    if(data["Status"]=="Error") return;
+                    if(data["Status"]=="Error") {
+                        this.postingHITs = false;
+                        this.snackbar.error.text = "Error";
+                        this.snackbar.error.shown = true;
+                        console.log(data["Reason"]);
+                    }
 
                     const command = data["Data"]["Command"];
                     switch(command) {
