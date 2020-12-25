@@ -1,9 +1,9 @@
 <template>
     <div>
-    <v-card class="pa-1 mt-0 px-3" :color="cardColor" :tile="hasChildren" :shaped="!hasChildren">
+    <v-card class="pa-3 ma-3" :color="cardColor" :tile="hasChildren" :shaped="!hasChildren">
         <v-container>
             <v-row>
-                <v-col cols="10" md="6" class="pb-0">
+                <v-col cols="10" md="6">
                         <v-text-field
                             v-if="hasChildren"
                             v-model="node.name"
@@ -133,5 +133,8 @@ export default {
 <style>
 .CodeMirror {
     height: 100px;
+}
+.CodeMirror-vscrollbar, .CodeMirror-hscrollbar, .CodeMirror-scrollbar-filler, .CodeMirror-gutter-filler {
+    z-index: 3;
 }
 </style>
