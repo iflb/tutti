@@ -8,5 +8,5 @@ WORKDIR $FRONTEND_HOME
 COPY package.json* ./
 RUN npm install
 
-CMD ["npm","run","serve"]
+CMD ["npm","run","build"]
 #CMD ["/bin/ash"]
