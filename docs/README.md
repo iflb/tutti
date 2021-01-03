@@ -14,14 +14,11 @@ Tutti is a Docker-based environment that helps you **build your own Human-In-The
 
 ## Specs
 
-- Virtual Environment: [Docker Compose](https://docs.docker.jp/compose/)
+App Environment: [Docker Compose](https://docs.docker.jp/compose/)
 - Frontend server: [Vue CLI](https://cli.vuejs.org)
 - Backend server: [DUCTS](https://ducts.io)
 - Reverse-proxy server: [Nginx](https://nginx.org)
-- Data stores:
-  - [Redis](https://redis.io) (mainly for data caching / indexing / pubsub-ing)
-  - [MongoDB](https://mongodb.com) (for storing task-relevant data)
-
+- Data store: [Redis](https://redis.io)
 
 ---
 

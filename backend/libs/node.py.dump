@@ -14,7 +14,7 @@ class Statement(Enum):
     def __repr__(self):
         return self.name
 
-class Node:
+class FlowNode:
     def __init__(self, name, statement, cond, skippable=False):
         self.name = name
         self.statement = statement
@@ -67,7 +67,7 @@ class Node:
 
             return self.statement==statement and res_eval
 
-class TemplateNode(Node):
+class TemplateNode(FlowNode):
     def __init__(self, name, statement=Statement.NONE, cond=()):
         super().__init__(name, statement, cond)
         self.id = self._generate_id()
@@ -88,7 +88,7 @@ class TemplateNode(Node):
             "parent": self.parent,
         }, indent=2, cls=JSONEncoder)
 
-class BatchNode(Node):
+class BatchNode(FlowNode):
     def __init__(self, name, children, statement=Statement.NONE, cond=(), skippable=False):
         super().__init__(name, statement, cond, skippable)
         if len(children)==0:  raise Exception("batch node requires at least one child node")

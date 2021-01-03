@@ -122,6 +122,7 @@ export default {
             "duct"
         ]),
         template() {
+            console.log(`@/projects/${this.projectName}/templates/${this.templateName}/Main.vue`);
             try { return require(`@/projects/${this.projectName}/templates/${this.templateName}/Main.vue`).default }
             catch { return null }
         },
@@ -187,7 +188,6 @@ export default {
 
             this.initDuct( window.ducts = window.ducts || {}).then(() => {
                 this.duct.setEventHandler(this.duct.EVENT.SESSION, (rid, eid, data) => {
-                    console.log(data);
                     const command = data["Data"]["Command"];
                     if(command=="Create"){
                         if(data["Status"]=="Error") { console.error(`failed to create session ID: ${data["Reason"]}`); return; }

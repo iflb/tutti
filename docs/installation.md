@@ -14,8 +14,6 @@ Since their installation steps may depend on your local environment, please foll
 git clone https://github.com/iflb/tutti
 ```
 
-!> You need an **access permission** to the Github private repository. If you haven't requested it, contact someone at ifLab.
-
 ### 3. Activate Tutti
 
 #### [Optional] Automatic SSL configuration by using Let's Encrypt
@@ -34,7 +32,7 @@ ENABLE_SSL=1
 ...
 ```
 
-Also note that you need to have the port numbers 80 and 443 of your host server open.
+?> Also note that you need to set port numbers 80 and 443 of your host server open.
 
 #### Build
 

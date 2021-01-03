@@ -45,16 +45,15 @@ class Flow:
     def get_all_node_names(self):
         return self.nodes.keys()
 
-class Node:
-    def __init__(self, name, parent=None, prev=None, next=None, **kwargs):
+class FlowNode:
+    def __init__(self, name, parent=None, prev=None, next=None, statement=Statement.NONE, condition=None, is_skippable=False):
         self.name = name
         self.parent = parent
         self.prev = prev
         self.next = next
-
-        self.statement    = kwargs["statement"]    if "statement"    in kwargs else Statement.NONE
-        self.condition    = kwargs["condition"]    if "condition"    in kwargs else None
-        self.is_skippable = kwargs["is_skippable"] if "is_skippable" in kwargs else False
+        self.statement = statement
+        self.condition = condition
+        self.is_skippable = is_skippable
 
     def is_template(self):
         return isinstance(self, TemplateNode)
@@ -65,11 +64,6 @@ class Node:
         else:
             print("skipping self.condition", self.condition)
             return True
-        ## TODO
-        #import random
-        #ret = random.choice([True, False])
-        #print(f"random choice for '{node.name}': {ret}")
-        #return ret
 
     def forward(self, wkr_client, ws_client):
         def check_node_exec_or_skip(node):
@@ -105,27 +99,33 @@ class Node:
 
         return _parent
 
-class TerminalNode(Node):
-    def __init__(self, name, prev=None, next=None):
-        super().__init__(name, prev=prev, next=next)
+class TerminalNode(FlowNode):
+    def __init__(self, name):
+        super().__init__(name)
 
 class BeginNode(TerminalNode):
-    def __init__(self, next=None):
-        super().__init__(name="__begin__", next=next)
+    def __init__(self):
+        super().__init__("__begin__")
 
 class EndNode(TerminalNode):
-    def __init__(self, prev=None):
-        super().__init__(name="__end__", prev=prev)
+    def __init__(self):
+        super().__init__("__end__")
 
 
-class TemplateNode(Node):
-    def __init__(self, name, parent=None, prev=None, next=None, on_submit=None, **kwargs):
-        super().__init__(name,parent,prev,next,**kwargs)
+class TemplateNode(FlowNode):
+    def __init__(self, name, statement=Statement.NONE, condition=None, is_skippable=False, on_submit=None):
+        super().__init__(name,
+                         statement=statement,
+                         condition=condition,
+                         is_skippable=is_skippable)
         self.on_submit = on_submit
 
-class BatchNode(Node):
-    def __init__(self, name, children=None, **kwargs):
-        super().__init__(name=name, **kwargs)
+class BatchNode(FlowNode):
+    def __init__(self, name, children=None, statement=Statement.NONE, condition=None, is_skippable=False):
+        super().__init__(name,
+                         statement=statement,
+                         condition=condition,
+                         is_skippable=is_skippable)
         self.children = children if children else []
         self.scan_children()
 

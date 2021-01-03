@@ -9,6 +9,13 @@ class ProjectSchemeBase(ABC):
         pn = sys.modules[self.__class__.__module__].__file__.split("/")[-2]
         self.flow = Flow(pn, self.define_flow())
 
+        self.title = None
+        self.assignment_order = "bfs"
+        self.sort_order = "natural"
+        self.pagination = False
+        self.instruction = True
+        self.show_title = True
+
     @abstractmethod
     def config_params(self):
         pass

@@ -74,13 +74,10 @@ export default {
         ...mapGetters("ductsModule", ["duct"]),
         project() { return this.sharedProps.project },
 
-        nanotaskTemplateComponent: {
-            cache: true,
-            get: function() {
-                if(this.project && this.project.name && this.templateName){
-                    return require(`@/projects/${this.project.name}/templates/${this.templateName}/Main.vue`).default;
-                } else { return null }
-            }
+        nanotaskTemplateComponent() {
+            if(this.project && this.project.name && this.templateName){
+                return require(`@/projects/${this.project.name}/templates/${this.templateName}/Main.vue`).default;
+            } else { return null }
         },
 
         isTemplateSelectDisabled() {
