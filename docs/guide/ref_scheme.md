@@ -1,13 +1,15 @@
 # Project Scheme
 
 
-### File name and location
+## File name and location
 
 - ```tutti/projects/<project_name>/scheme.py```
 
 ?> The file is automatically created with `create_project` command.
 
 !> Changes in the project scheme will NOT be reloaded until you run `LoadFlow` DUCTS event or click <svg width="24" height="24" viewBox="0 0 24 24"><path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z" /></svg> icon in the Task Flow page in the console.
+
+## Classes
 
 <h3 id="class_libs.scheme.ProjectScheme" class="h-class">class libs.scheme.<b>ProjectScheme</b></h3>
 

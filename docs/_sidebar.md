@@ -1,4 +1,4 @@
-<img src="./_media/tutti_logo.png" />
+<img src="./_media/tutti_logo.png" width="150" />
 
 - [Home](/)
 - [Installation](installation.md)
@@ -12,7 +12,7 @@
   - ~~[Tutti Partner-Sourcing](platform/partner.md)~~
 - **Detailed Guide**
   - [Programming Reference](guide/ref.md)
-    - [- Project Scheme](guide/ref_scheme.md)
-    - [- Template](guide/ref_template.md)
+    - [- Project Scheme (Python)](guide/ref_scheme.md)
+    - [- Template (Vue.js)](guide/ref_template.md)
   - [DUCTS Events](guide/ducts.md)
   - [Troubleshooting](guide/troubleshooting.md)

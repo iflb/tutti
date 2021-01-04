@@ -131,6 +131,4 @@ In addition to the programming strategies of Vue.js and Vuetify, there are some 
 - `canSubmit`: a binary, computed property that indicate whether all the required fields registered with `v-nano.required` has a valid input value. This can be effectively used with a submit button to toggle its disability.
 - `nanoMixIn`: a Vue mix-in module that contains the essential data, methods, and hooks used in templates in Tutti projects. This is always necessary to be included and loaded in the file.
 
-For further information and other programming rules, see [Programming Reference](/guide/ref).
-
-?> Since Tutti runs Vue CLI dev server for the frontend, your edit in the code will be instantly reloaded and reflected without refreshing the browser ("[Hot-Module-Replacement](https://cli.vuejs.org/guide/cli-service.html#vue-cli-service-serve)").
+For further information and other programming rules, see [Programming Reference>Template](/guide/ref_template).

@@ -10,9 +10,6 @@ Now let's check what you've submitted so far as a worker!
 
 ### Useful data store client tools
 
-- MongoDB Client
-  - [MongoDB Compass](https://www.mongodb.com/try/download/compass)
-
 - Redis Client
   - redis-cli
     - brew install redis
