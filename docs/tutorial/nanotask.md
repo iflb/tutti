@@ -96,7 +96,7 @@ In below, we explain how to upload nanotask data for `main1` template.
 
 2. Click the <svg width="24" height="24" viewBox="0 0 24 24"><path d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z" /></svg> icon of the card for `main1` temlate to choose "Import Nanotasks..."
 
-3. Choose `sample-nanotasks.csv` stored in `tutti/projects/first-project/templates/main1/`. In the preview, you will see a list of image URLs for each nanotask (represented as a row) to be imported. Then click "IMPORT".
+3. Choose `sample-nanotasks.json` stored in `tutti/projects/first-project/templates/main1/`. ~~In the preview, you will see a list of image URLs for each nanotask (represented as a row) to be imported.~~ Then click "IMPORT".
 
 4. If you see an outlined button that says "Nanotasks (15)", it means the nanotasks were successfully imported. You can see the list of the imported nanotasks by clicking the button.
 
@@ -106,20 +106,43 @@ In below, we explain how to upload nanotask data for `main1` template.
 
 6. Go to "Launch in Production Mode (Private)" again and start the annotation tasks. You will see the images for `main1` template are now of URLs used in the registered nanotasks.
 
-### Understanding nanotask CSV
+### Understanding nanotask JSON
 
-Currently, the only way we prepared for uploading nanotasks is via CSV file.
-`sample-nanotasks.csv` contains information in the following format:
-```sample-nanotasks.csv
-"img_url0","img_url1"
-"<URL string 0>","<URL string 1>"
-"<URL string 0>","<URL string 1>"
-"<URL string 0>","<URL string 1>"
-"<URL string 0>","<URL string 1>"
-"<URL string 0>","<URL string 1>"
-"<URL string 0>","<URL string 1>"
-...
+Currently, the only way we prepared for uploading nanotasks is via JSON file.
+`sample-nanotasks.json` contains information in the following format:
+```json
+{
+    "Settings": {
+        "TagName": "mytagname",
+        "NumAssignable": 3,
+        "Priority": 1
+    },
+    "Nanotasks": [
+        {
+            "NumAssignable": 2,      // <--- this overrides global value (3)
+            "Priority": 3,           // <--- this overrides global value (1)
+            "Props": {
+                "img_url0": "/static/trump-left.jpg",
+                "img_url1": "/static/trump-right-1.jpg"
+            },
+            "GroundTruths": {
+                "choice": "Same"
+            }
+        },
+        ...
+    ]
+}
 ```
 
-The first row lists the nano-prop field names, each of which is quoted by doublequotes `"` and separated by comma `,`.
-Each row from the second row to the bottom row represents nano-prop values of a nanotask, with the same quotechars and delimiters.
+The top member named "Settings" specifies parameters for global settings across all nanotasks defined in the file.
+
+`TagName` is useful for creating a user-defined group of nanotasks, as Events for nanotask manipulation (*e.g.,* `UploadNanotasks` or `DeleteNanotasks`) can be queried for the group; it can be any string, but is recommended to be unique from that of any other nanotask group uploaded previously for more easily keeping track of all uploaded nanotasks.
+
+`NumAssignable` refers to the number of workers who can be assigned to the nanotask(s).
+`Priority` is an integer value for sorting assignment order of nanotasks; the **smaller** the number is set, the **more importantly** the nanotask(s) is/are treated.
+`NumAssignable` and `Priority` set as `Settings`' children are applied globally to all nanotasks listed in the file; however, the global values are overridden for nanotask items of which members are set individually as their children members in the `Nanotasks` list.
+
+`Props` specifies, as key-value data, contents you want to be dynamically rendered in the template as nanotasks are loaded one by one.
+Each key needs to correspond with what appears in the template, and its value can only accept a string.
+
+`GroundTruths` specifies, also as key-value data, ground-truth answers you wish to use to check workers' answers with in `FlowNode`'s conditional statements (see [Project Scheme](guide/ref_scheme.md)) or manually after workers' answers are collected.

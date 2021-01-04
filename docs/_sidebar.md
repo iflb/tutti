@@ -8,9 +8,11 @@
   - [3. Upload Nanotasks](tutorial/nanotask.md)
   - [4. Check Answers](tutorial/answer.md)
 - **Annotator Platforms**
-  - [Tutti Partner-Sourcing](platform/partner.md)
   - [Amazon Mechanical Turk](platform/mturk.md)
+  - ~~[Tutti Partner-Sourcing](platform/partner.md)~~
 - **Detailed Guide**
   - [Programming Reference](guide/ref.md)
+    - [- Project Scheme](guide/ref_scheme.md)
+    - [- Template](guide/ref_template.md)
   - [DUCTS Events](guide/ducts.md)
   - [Troubleshooting](guide/troubleshooting.md)
