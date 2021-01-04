@@ -4,8 +4,8 @@ import asyncio
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
 
-from libs.node import Statement
-from libs.session import SessionStatus
+from libs.scheme.flow import Statement
+#from libs.session import SessionStatus
 
 class Handler(EventHandler):
 
@@ -21,7 +21,8 @@ class Handler(EventHandler):
     async def handle(self, event):
 
         wsd = {"enums": {}}
-        enum_classes = [ Statement, SessionStatus ]
+        #enum_classes = [ Statement, SessionStatus ]
+        enum_classes = [ Statement ]
         for ec in enum_classes:
             wsd["enums"][ec.__name__] = { name:member.value for name, member in ec.__members__.items() }
 

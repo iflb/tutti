@@ -11,4 +11,4 @@ projects/*
 .DS_Store
 *.swp
 redis/
-static/
+projects/test0812
