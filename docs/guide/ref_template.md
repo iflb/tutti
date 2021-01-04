@@ -36,14 +36,14 @@ A HIT "preview" page is what MTurk workers see when they actually be assigned an
 Typical preview pages contain the similar user interface shown during the task or detailed task instruction.
 Be sure to design this page component thoughtfully, since it is requesters' responsibility to instruct workers to get better results and for fair work.
 
-<img src="/_media/preview.gif" width="500" />
+<img src="./_media/preview.gif" width="500" />
 
 ### Instruction.vue
 
 `Instruction.vue` is another page component that helps workers get better sense of what needs to be done during the task (this is not limited to Amazon Mechanical Turk).
 There are two patterns where the instruction page components is shown to workers: i) automatically rendered in a floating dialog for workers who have never visited the project, and ii) rendered in a floating dialog when the worker clicked "See instruction" button in the project interface (the button is only visible when `ProjectScheme.instruction` is set to True).
 
-<img src="/_media/instruction.gif" width="500" />
+<img src="./_media/instruction.gif" width="500" />
 
 
 ## Main Template
