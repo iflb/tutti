@@ -4,7 +4,7 @@
 - [インストール](/ja/installation.md)
 - **チュートリアル**
   - [1. プロジェクト・テンプレートの作成](/ja/tutorial/project-template.md)
-  - [2. Design Flow](/ja/tutorial/flow.md)
+  - [2. フロー設計](/ja/tutorial/flow.md)
   - [3. Upload Nanotasks](/ja/tutorial/nanotask.md)
   - [4. Check Answers](/ja/tutorial/answer.md)
 - **Annotator Platforms**
