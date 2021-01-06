@@ -280,7 +280,7 @@ export default {
 
             this.duct.addOnOpenHandler(() => {
                 this.srvStatusProfile.connected.handler();
-                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.PROJECT, data: { "Command": "List" } });
+                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_PROJECTS });
             });
             this.duct._connection_listener.on(["onclose", "onerror"], this.srvStatusProfile.disconnected.handler);
             this.duct.setEventHandler(this.duct.EVENT.EVENT_HISTORY, (rid, eid, data) => {
@@ -291,32 +291,29 @@ export default {
                         this.$set(this.sharedProps.evtHistory, data["Data"]["EventId"], data["Data"]["History"])
                 }
             });
-            this.duct.setEventHandler(this.duct.EVENT.PROJECT, (rid, eid, data) => {
+            this.duct.setEventHandler(this.duct.EVENT.LIST_PROJECTS, (rid, eid, data) => {
                 if(data["Status"]==="Error") return;
 
-                const command = data["Data"]["Command"];
-                switch(command){
-                    case "List": {
-                        var projects = data["Data"]["Projects"];
-                        for(const i in projects){
-                            const name = projects[i].name;
-                            const path = projects[i].path;
-                            var project = new Project(name, path);
-                            this.$set(this.projects, name, project);
-                        }
-                        var selected = localStorage.getItem("tuttiProject");   
-                        if(selected)  this.$set(this, "projectName", selected);
-                        break;
-                    }
-                    case "Create": {
-                        this.duct.sendMsg({
-                            tag: this.name,
-                            eid: this.duct.EVENT.PROJECT,
-                            data: { "Command": "List" }
-                        });
-                    }
+                var projects = data["Data"]["Projects"];
+                for(const i in projects){
+                    const name = projects[i].name;
+                    const path = projects[i].path;
+                    var project = new Project(name, path);
+                    this.$set(this.projects, name, project);
                 }
+                var selected = localStorage.getItem("tuttiProject");   
+                if(selected)  this.$set(this, "projectName", selected);
             });
+
+            this.duct.setEventHandler(this.duct.EVENT.CREATE_PROJECT, (rid, eid, data) => {
+                if(data["Status"]==="Error") return;
+                
+                this.duct.sendMsg({
+                    tag: this.name,
+                    eid: this.duct.EVENT.LIST_PROJECTS
+                });
+            });
+
             this.duct.setEventHandler(this.duct.EVENT.TEMPLATE, (rid, eid, data) => {
                 if(data["Status"]=="Error") return;
 

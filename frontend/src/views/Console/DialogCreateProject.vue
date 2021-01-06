@@ -41,9 +41,8 @@ export default {
         create() {
             this.duct.sendMsg({
                 tag: this.name,
-                eid: this.duct.EVENT.PROJECT,
+                eid: this.duct.EVENT.CREATE_PROJECT,
                 data: {
-                    "Command": "Create",
                     "ProjectName": this.newProjectName
                 }
             });
