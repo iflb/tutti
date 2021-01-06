@@ -5,7 +5,6 @@ import sys
 
 class ProjectSchemeBase(ABC):
     def __init__(self):
-        self.config_params()
         pn = sys.modules[self.__class__.__module__].__file__.split("/")[-2]
         self.flow = Flow(pn, self.define_flow())
 
@@ -15,6 +14,8 @@ class ProjectSchemeBase(ABC):
         self.pagination = False
         self.instruction = True
         self.show_title = True
+
+        self.config_params()
 
     @abstractmethod
     def config_params(self):
