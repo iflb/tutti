@@ -76,7 +76,7 @@ export default {
 
 Strictly speaking, the string value `nano.data.img_url0` and `nano.data.img_url1` actually works as javascript object variables, when the attribute name of their tags has a colon prefix (i.e., `:src`).
 This is a part of Vue.js' template syntax -- [a shorthand of `v-bind` directive](https://vuejs.org/v2/guide/syntax.html#v-bind-Shorthand) which interpolates the value of the specified variable in HTML attributes.
-`nano.data` is also a reserved structure for Tutti's functionality, which means the values for the fields `img_url0` and `img_url` is loaded from one of the registered nanotasks and interpolated to the `src` attributes.
+`nano.data` is also a reserved structure for Tutti's functionality, which means the values for the fields `img_url0` and `img_url1` is loaded from one of the registered nanotasks and interpolated to the `src` attributes.
 In Tutti, we call these fields for nanotasks **nano-props**.
 
 #### Default values
