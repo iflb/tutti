@@ -1,14 +1,13 @@
-# Check Answers
+# 回答の確認
 
-Now let's check what you've submitted so far as a worker!
+それでは、ワーカーとして作業した回答結果を確認してみましょう！
 
-### Steps
+### 手順
 
-1. Go to "Answers" from the sidebar in the browser console.
-2. Choose template name.
-3. Check the answers!
+1. ブラウザコンソールのサイドバーから"Answers"に移動する。
+2. テンプレート名を選び、回答を確認する　
 
-### Useful data store client tools
+### （参考）データストアのクライアントツール
 
 - Redis Client
   - redis-cli
