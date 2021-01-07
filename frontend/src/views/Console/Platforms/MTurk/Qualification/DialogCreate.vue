@@ -53,11 +53,8 @@ export default {
         create() {
             this.duct.sendMsg({
                 tag: this.name,
-                eid: this.duct.EVENT.MTURK_QUALIFICATION,
-                data: {
-                    "Command": "Create",
-                    "Params": this.qualParams
-                }
+                eid: this.duct.EVENT.MTURK_CREATE_QUALIFICATION,
+                data: this.qualParams
             });
             this.shown = false;
         }

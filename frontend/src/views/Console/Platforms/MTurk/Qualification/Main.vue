@@ -142,6 +142,7 @@ export default {
                     q.push(data);
                 }
             }
+            console.log(q);
             return q
         },
         selectedQualTypeIds() {
@@ -170,46 +171,85 @@ export default {
             this.loadingQuals = true;
             this.duct.sendMsg({
                 tag: this.name,
-                eid: this.duct.EVENT.MTURK_QUALIFICATION,
-                data: { "Command": "List" }
+                eid: this.duct.EVENT.MTURK_LIST_QUALIFICATIONS,
+                data: null
             });
         },
         _evtGetWorkersForQualificationTypeIds(qids){
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.MTURK_QUALIFICATION,
-                data: {
-                    "Command": "GetWorkers",
-                    "QualificationTypeIds": qids
-                }
-            });
+            for(var i in qids){
+                this.duct.sendMsg({
+                    tag: this.name,
+                    eid: this.duct.EVENT.MTURK_LIST_WORKERS_WITH_QUALIFICATION_TYPE,
+                    data: {
+                        "QualificationTypeId": qids[i]
+                    }
+                });
+            }
         }
     },
     mounted() {
         this.onDuctOpen(() => {
-            this.duct.addEvtHandler({ tag: this.name, eid: this.duct.EVENT.MTURK_QUALIFICATION, handler: (rid, eid, data) => {
-                    const command = data["Data"]["Command"];
+            this.duct.addEvtHandler({ tag: this.name, eid: this.duct.EVENT.MTURK_LIST_QUALIFICATIONS,
+                handler: (rid, eid, data) => {
                     if(data["Status"]=="error") return;
 
-                    if(command=="List"){
-                        var qids = [];
-                        for(var i in data["Data"]["QualificationTypes"]){
-                            qids.push(data["Data"]["QualificationTypes"][i]["QualificationTypeId"]);
-                        }
-                        this.$set(this.sharedProps, "mTurkQuals", data["Data"]["QualificationTypes"]);
-                        this.selectedQualTypes = [];
-                        this.loadingQuals = false;
-                        this._evtGetWorkersForQualificationTypeIds(qids);
+                    var qids = [];
+                    for(var i in data["Data"]["QualificationTypes"]){
+                        qids.push(data["Data"]["QualificationTypes"][i]["QualificationTypeId"]);
                     }
-                    else if(command=="Create"){
+                    this.$set(this.sharedProps, "mTurkQuals", data["Data"]["QualificationTypes"]);
+                    this.selectedQualTypes = [];
+                    this.loadingQuals = false;
+                    this._evtGetWorkersForQualificationTypeIds(qids);
+                }
+            });
+
+            this.duct.addEvtHandler({ tag: this.name, eid: this.duct.EVENT.MTURK_CREATE_QUALIFICATION,
+                handler: (rid, eid, data) => {
+                    if(data["Status"]=="Error") {
+                        this.snackbar.error.text = "Successfully created a qualification";
+                        this.snackbar.error.shown = true;
+                        console.log(data["Reason"]);
+                    } else {
                         this.snackbar.success.text = "Successfully created a qualification";
                         this.snackbar.success.shown = true;
                         this._evtGetQualificationTypeIds();
                     }
-                    //else if(command=="GetWorkers"){
-                    //}
                 }
             });
+
+            this.duct.addEvtHandler({ tag: this.name, eid: this.duct.EVENT.MTURK_LIST_WORKERS_WITH_QUALIFICATION_TYPE,
+                handler: (rid, eid, data) => {
+                    const qid = data["Data"]["Results"][0]["QualificationTypeId"];
+                    var quals = data["Data"]["Results"];
+                    this.$set(this.sharedProps.mTurkQuals[qid], "workers", quals);
+                }
+            });
+
+            //this.duct.addEvtHandler({ tag: this.name, eid: this.duct.EVENT.MTURK_QUALIFICATION, handler: (rid, eid, data) => {
+            //        const command = data["Data"]["Command"];
+            //        if(data["Status"]=="error") return;
+
+            //        //if(command=="List"){
+            //        //    var qids = [];
+            //        //    for(var i in data["Data"]["QualificationTypes"]){
+            //        //        qids.push(data["Data"]["QualificationTypes"][i]["QualificationTypeId"]);
+            //        //    }
+            //        //    this.$set(this.sharedProps, "mTurkQuals", data["Data"]["QualificationTypes"]);
+            //        //    this.selectedQualTypes = [];
+            //        //    this.loadingQuals = false;
+            //        //    this._evtGetWorkersForQualificationTypeIds(qids);
+            //        //}
+            //        //else
+            //        if(command=="Create"){
+            //            this.snackbar.success.text = "Successfully created a qualification";
+            //            this.snackbar.success.shown = true;
+            //            this._evtGetQualificationTypeIds();
+            //        }
+            //        //else if(command=="GetWorkers"){
+            //        //}
+            //    }
+            //});
 
             this.duct.addEvtHandler({
                 tag: this.name, eid: this.duct.EVENT.MTURK_DELETE_QUALIFICATIONS,

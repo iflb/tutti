@@ -1,16 +1,5 @@
-import boto3
-import json
-import datetime
-
-from ducts.event import EventHandler
+from ducts.spi import EventHandler, Event
 from ifconf import configure_module, config_callback
-
-import logging
-logger = logging.getLogger(__name__)
-
-logging.getLogger('boto3').setLevel(logging.CRITICAL)
-logging.getLogger('botocore').setLevel(logging.CRITICAL)
-logging.getLogger('nose').setLevel(logging.CRITICAL)
 
 from handler import paths, common
 from handler.handler_output import handler_output, CommandError
@@ -21,12 +10,12 @@ class Handler(EventHandler):
 
     def setup(self, handler_spec, manager):
         self.namespace_redis = manager.load_helper_module('helper_redis_namespace')
-        self.mturk = manager.load_helper_module('helper_mturk')
+        self.evt_boto3_mturk = manager.get_handler_for(manager.key_ids["BOTO3_MTURK"])[1]
         handler_spec.set_description('テンプレート一覧を取得します。')
         handler_spec.set_as_responsive()
+
         return handler_spec
 
     @handler_output
     async def handle(self, event, output):
-        async with self.mturk.get_client_async(event.session.redis) as client:
-            output.set("AccountBalance", await client.get_account_balance())
+        output.set("QualificationType", await self.evt_boto3_mturk.exec_boto3("create_qualification_type", event.data))
