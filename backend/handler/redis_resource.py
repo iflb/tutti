@@ -21,6 +21,9 @@ class RedisResource:
         if cnt:   return f"{self.base_path}/{self.id(cnt)}"
         elif id: return f"{self.base_path}/{id}"
 
+    async def get_counter(self):
+        return int(await self.redis.execute_str("GET", self.key_counter))
+
     async def next_count(self):
         return await self.redis.execute("INCR", self.key_counter)
 
@@ -85,6 +88,9 @@ class WorkerResource(RedisResource):
         platform_wid = data["PlatformWorkerId"]
         platform = data["Platform"]
         await self.add_id_map_for_platform(platform, platform_wid, id)
+
+    async def get_ids_for_pn(self, pn):
+        return await self.redis.execute_str("SMEMBERS", self.key_ids_for_pn(pn))
 
     async def add_id_map_for_platform(self, platform, platform_wid, id):
         await self.redis.execute("HSET", self.key_ids_map_for_platform(platform), platform_wid, id)

@@ -88,9 +88,8 @@ export default {
         templateName() {
             this.duct.sendMsg({
                 tag: this.name,
-                eid: this.duct.EVENT.ANSWER,
+                eid: this.duct.EVENT.GET_ANSWERS_FOR_TEMPLATE,
                 data: {
-                    "Command": "Get",
                     "ProjectName": this.project.name,
                     "TemplateName": this.templateName
                 }

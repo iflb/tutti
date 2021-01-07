@@ -146,7 +146,7 @@ export default {
             try {
                 args = JSON.parse(this.selectedEventArgs);
             } catch {
-                args = this.selectedEventArgs;
+                args = this.selectedEventArgs!=="" ? this.selectedEventArgs : null;
             }
             this.duct.sendMsg({ tag: this.name, eid: this.selectedEventId, data: args });
             this.duct.sendMsg({ tag: this.name, eid: histEid, data: `${this.selectedEventId} ${this.selectedEventArgs}`});
