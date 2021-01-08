@@ -223,9 +223,8 @@ export default {
         listTemplates(pn) {
             this.duct.sendMsg({
                 tag: this.name,
-                eid: this.duct.EVENT.TEMPLATE,
+                eid: this.duct.EVENT.LIST_TEMPLATES,
                 data: {
-                    "Command": "List",
                     "ProjectName": pn
                 }
             });
@@ -325,32 +324,32 @@ export default {
                 });
             });
 
-            this.duct.setEventHandler(this.duct.EVENT.TEMPLATE, (rid, eid, data) => {
+            this.duct.setEventHandler(this.duct.EVENT.CREATE_TEMPLATES, (rid, eid, data) => {
                 if(data["Status"]=="Error") return;
 
-                const command = data["Data"]["Command"];
-                if(command=="Create"){
-                    this.listTemplates(this.projectName);
-                } else if (command=="List"){
-                    const pn = data["Data"]["Project"];
-                    const tns = data["Data"]["Templates"];
-                    var templates = {};
-                    for(const i in tns){
-                        var template = new Template(tns[i]);
-                        templates[tns[i]] = template;
+                this.listTemplates(this.projectName);
+            });
+            this.duct.setEventHandler(this.duct.EVENT.LIST_TEMPLATES, (rid, eid, data) => {
+                if(data["Status"]=="Error") return;
 
-                        this.duct.sendMsg({
-                            tag: this.name,
-                            eid: this.duct.EVENT.NANOTASK,
-                            data: {
-                                "Command": "Get",
-                                "ProjectName": pn,
-                                "TemplateName": tns[i]
-                            }
-                        });
-                    }
-                    this.$set(this.project, "templates", templates);
+                const pn = data["Data"]["Project"];
+                const tns = data["Data"]["Templates"];
+                var templates = {};
+                for(const i in tns){
+                    var template = new Template(tns[i]);
+                    templates[tns[i]] = template;
+
+                    this.duct.sendMsg({
+                        tag: this.name,
+                        eid: this.duct.EVENT.NANOTASK,
+                        data: {
+                            "Command": "Get",
+                            "ProjectName": pn,
+                            "TemplateName": tns[i]
+                        }
+                    });
                 }
+                this.$set(this.project, "templates", templates);
             });
 
             this.duct.setEventHandler(this.duct.EVENT.NANOTASK, (rid, eid, data) => {

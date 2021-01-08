@@ -56,9 +56,8 @@ export default {
         create() {
             this.duct.sendMsg({
                 tag: this.name,
-                eid: this.duct.EVENT.TEMPLATE,
+                eid: this.duct.EVENT.CREATE_TEMPLATES,
                 data: {
-                    "Command": "Create",
                     "ProjectName": this.project,
                     "TemplateNames": [this.newTemplateName],
                     "PresetEnvName": this.newTemplatePreset[0],
@@ -74,17 +73,14 @@ export default {
         this.onDuctOpen(() => {
             this.duct.sendMsg({
                 tag: this.name,
-                eid: this.duct.EVENT.TEMPLATE,
-                data: { "Command": "ListPresets" }
+                eid: this.duct.EVENT.LIST_TEMPLATE_PRESETS,
+                data: null
             });
             this.duct.addEvtHandler({
                 tag: this.name,
-                eid: this.duct.EVENT.TEMPLATE,
+                eid: this.duct.EVENT.LIST_TEMPLATE_PRESETS,
                 handler: (rid, eid, data) => {
-                    const command = data["Data"]["Command"];
-                    if(command=="ListPresets") {
-                        this.$set(this, "presets", data["Data"]["Presets"]);
-                    }
+                    this.$set(this, "presets", data["Data"]["Presets"]);
                 }
             });
         });
