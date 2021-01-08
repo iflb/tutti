@@ -62,24 +62,9 @@
                 </v-data-table>
             </v-card>
 
-            <v-snackbar :color="snackbar.success.color" v-model="snackbar.success.shown" :timeout="snackbar.success.timeout">
-              {{ snackbar.success.text }}
-              <template v-slot:action="{ attrs }">
-                  <v-btn dark color="white" text v-bind="attrs" @click="snackbar.success.shown=false">Close</v-btn>
-              </template>
-            </v-snackbar>
-            <v-snackbar :color="snackbar.warning.color" v-model="snackbar.warning.shown" :timeout="snackbar.warning.timeout">
-              {{ snackbar.warning.text }}
-              <template v-slot:action="{ attrs }">
-                  <v-btn dark color="white" text v-bind="attrs" @click="snackbar.warning.shown=false">Close</v-btn>
-              </template>
-            </v-snackbar>
-            <v-snackbar :color="snackbar.error.color" v-model="snackbar.error.shown" :timeout="snackbar.error.timeout">
-              {{ snackbar.error.text }}
-              <template v-slot:action="{ attrs }">
-                  <v-btn dark color="white" text v-bind="attrs" @click="snackbar.error.shown=false">Close</v-btn>
-              </template>
-            </v-snackbar>
+            <tutti-snackbar color="success" :timeout="3000" :text="snackbarTexts.success" />
+            <tutti-snackbar color="warning" :timeout="3000" :text="snackbarTexts.warning" />
+            <tutti-snackbar color="error" :timeout="3000" :text="snackbarTexts.error" />
         </div>
     </v-main>
 </template>
@@ -88,15 +73,22 @@
 import { mapGetters, mapActions } from 'vuex'
 import VueJsonPretty from 'vue-json-pretty'
 import 'vue-json-pretty/lib/styles.css'
+import Snackbar from '@/views/assets/Snackbar.vue'
 //import { codemirror } from 'vue-codemirror'
 //import 'codemirror/lib/codemirror.css'
 
 export default {
     components: {
         VueJsonPretty,
+        TuttiSnackbar: Snackbar
         //codemirror
     },
     data: () => ({
+        snackbarTexts: {
+            success: "",
+            warning: "",
+            error: ""
+        },
         selectedHITTypes: [],
         search: "",
         expanded: [],
@@ -134,26 +126,6 @@ export default {
                 disabled: false
             },
         },
-        snackbar: {
-            success: {
-                shown: false,
-                text: "",
-                timeout: 5000,
-                color: "success"
-            },
-            warning: {
-                shown: false,
-                text: "",
-                timeout: 5000,
-                color: "warning"
-            },
-            error: {
-                shown: false,
-                text: "",
-                timeout: 5000,
-                color: "error"
-            }
-        }
     }),
     props: ["sharedProps","name"],
 
@@ -251,8 +223,7 @@ export default {
                 tag: this.name, eid: this.duct.EVENT.MTURK_EXPIRE_HITS,
                 handler: (rid, eid, data) => {
                     if(data["Status"]=="Error") {
-                        this.snackbar.error.text = "Errors occurred in expiring HITs";
-                        this.snackbar.error.shown = true;
+                        this.snackbarTexts.error = "Errors occurred in expiring HITs";
                     } else {
                         const res = data["Data"]["Results"];
                         var cntSuccess = 0;
@@ -261,11 +232,9 @@ export default {
                                 cntSuccess++;
                         }
                         if(cntSuccess==res.length) {
-                            this.snackbar.success.text = `Successfully expired ${res.length} HITs`;
-                            this.snackbar.success.shown = true;
+                            this.snackbarTexts.success = `Successfully expired ${res.length} HITs`;
                         } else {
-                            this.snackbar.warning.text = `Expired ${cntSuccess} HITs, but errors occurred in expiring ${res.length-cntSuccess} HITs`;
-                            this.snackbar.warning.shown = true;
+                            this.snackbarTexts.warning = `Expired ${cntSuccess} HITs, but errors occurred in expiring ${res.length-cntSuccess} HITs`;
                         }
 
                     }
@@ -279,8 +248,7 @@ export default {
                 tag: this.name, eid: this.duct.EVENT.MTURK_DELETE_HITS,
                 handler: (rid, eid, data) => {
                     if(data["Status"]=="Error") {
-                        this.snackbar.error.text = "Errors occurred in deleting HITs";
-                        this.snackbar.error.shown = true;
+                        this.snackbarTexts.error = "Errors occurred in deleting HITs";
                     } else {
                         const res = data["Data"]["Results"];
                         var cntSuccess = 0;
@@ -289,11 +257,9 @@ export default {
                                 cntSuccess++;
                         }
                         if(cntSuccess==res.length) {
-                            this.snackbar.success.text = `Successfully deleted ${res.length} HITs`;
-                            this.snackbar.success.shown = true;
+                            this.snackbarTexts.success = `Successfully deleted ${res.length} HITs`;
                         } else {
-                            this.snackbar.warning.text = `Deleted ${cntSuccess} HITs, but errors occurred in deleting ${res.length-cntSuccess} HITs`;
-                            this.snackbar.warning.shown = true;
+                            this.snackbarTexts.warning = `Deleted ${cntSuccess} HITs, but errors occurred in deleting ${res.length-cntSuccess} HITs`;
                         }
 
                     }

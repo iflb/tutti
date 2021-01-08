@@ -122,6 +122,8 @@
         <v-slide-x-transition hide-on-leave>
             <router-view v-if="duct" :shared-props="sharedProps" ref="child"></router-view>
         </v-slide-x-transition>
+
+        <tutti-snackbar color="success" :timeout="5000" :text="snackbarTexts.success" />
         
     </v-app>
 </template>
@@ -131,6 +133,7 @@ import dateFormat from 'dateformat'
 import store from '@/store.js'
 import { mapActions, mapGetters } from 'vuex'
 import DialogCreateProject from './DialogCreateProject.vue'
+import Snackbar from '@/views/assets/Snackbar.vue'
 
 var Project = class {
     constructor(name, path) {
@@ -153,8 +156,14 @@ var Template = class {
 
 export default {
     store,
-    components: { DialogCreateProject },
+    components: { 
+        TuttiSnackbar: Snackbar,
+        DialogCreateProject
+    },
     data: () => ({
+        snackbarTexts: {
+            success: ""
+        },
         drawer: true,
         name: "/console/",
 
@@ -307,6 +316,8 @@ export default {
 
             this.duct.setEventHandler(this.duct.EVENT.CREATE_PROJECT, (rid, eid, data) => {
                 if(data["Status"]==="Error") return;
+
+                this.snackbarTexts.success = `Successfully created project '${data["Data"]["ProjectName"]}'`;
                 
                 this.duct.sendMsg({
                     tag: this.name,
