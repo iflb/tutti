@@ -3,7 +3,7 @@ version: "3"
 services:
 
   rev-proxy:
-    container_name: rev-proxy
+    container_name: tutti-rev-proxy_${APP_NAME}
     build: 
       context: ./rev-proxy
       args:
@@ -25,7 +25,7 @@ services:
         ipv4_address: ${REV_PROXY_ADDRESS}
 
   frontend:
-    container_name: frontend
+    container_name: tutti-frontend_${APP_NAME}
     build:
       context: ./frontend
       args:
@@ -43,7 +43,7 @@ services:
         ipv4_address: ${FRONTEND_ADDRESS}
 
   backend:
-    container_name: backend
+    container_name: tutti-backend_${APP_NAME}
     build:
       context: ./backend
       args:
@@ -63,7 +63,7 @@ services:
     restart: always
     #image: redislabs/rejson:latest
     image: redis:6-alpine
-    container_name: redis
+    container_name: tutti-redis_${APP_NAME}
     volumes: 
      - ./redis/data:/data
     #command: redis-server --loadmodule /usr/lib/redis/modules/rejson.so --appendonly yes
