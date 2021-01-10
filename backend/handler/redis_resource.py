@@ -297,6 +297,7 @@ class WorkSessionResource(RedisResource):
         self.r_wkr = WorkerResource(redis)
 
     def key_id_for_pn_wid_ct(self,pn,wid,ct):  return f"WorkSessionId/PRJ:{pn}/{wid}/CT:{ct}"
+    def key_ids_for_pn(self,pn):               return f"WorkSessionIds/PRJ:{pn}"
 
     @classmethod
     def create_instance(cls, pn, wid, ct, platform):
@@ -312,7 +313,11 @@ class WorkSessionResource(RedisResource):
         wid = data["WorkerId"]
         ct = data["ClientToken"]
         await self.set_id_for_pn_wid_ct(pn, wid, ct, id)
+        await self.add_id_for_pn(pn, id)
         await self.r_wkr.add_id_for_pn(pn, wid)
+
+    async def add_id_for_pn(self, pn, id):
+        await self.redis.execute("SADD", self.key_ids_for_pn(pn), id)
 
     async def set_id_for_pn_wid_ct(self, pn, wid, ct, id):
         await self.redis.execute("SET", self.key_id_for_pn_wid_ct(pn,wid,ct), id)
