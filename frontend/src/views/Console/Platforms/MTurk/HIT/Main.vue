@@ -41,6 +41,7 @@
                     </template>
                     <template v-slot:item.id="{ item }">
                         {{ item.id }}
+                        <v-icon v-if="item.detail.HITStatusCount.Assignable>0" small @click="openNewWindow('https://worker.mturk.com/projects/'+item.groupId+'/tasks');">mdi-open-in-new</v-icon>
                         <v-icon v-if="item.detail.HITStatusCount.Assignable>0" small @click="openNewWindow('https://workersandbox.mturk.com/projects/'+item.groupId+'/tasks');">mdi-open-in-new</v-icon>
                     </template>
                     <template v-slot:expanded-item="{ headers, item }">

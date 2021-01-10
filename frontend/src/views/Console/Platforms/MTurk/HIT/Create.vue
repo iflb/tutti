@@ -1,5 +1,6 @@
 <template>
     <v-main class="mt-10 grey lighten-4">
+        {{ attributes }}
         <div style="max-width:1000px" class="mx-auto">
             <v-card>
                 <v-card-title>
@@ -244,7 +245,7 @@ export default {
             "QualificationTypeId": "",
             "Comparator": "",
             "IntegerValues": [],
-            "LocaleValues": [],
+            //"LocaleValues": [],
             "ActionsGuarded": ""
         },
         attributes: [],
@@ -315,8 +316,14 @@ export default {
         popQualRequirements()  { this.attributes.QualificationRequirements.pop(); },
 
         numLocaleValues(item)  { return (item && item.LocaleValues) ? item.LocaleValues.length : 0; },
-        pushLocaleValues(item) { item.LocaleValues.push({ "Country": "", "Subdivision": "" }); },
-        popLocaleValues(item)  { item.LocaleValues.pop(); },
+        pushLocaleValues(item) {
+            if( !("LocaleValues" in item) ) this.$set(item, "LocaleValues", []);
+            item.LocaleValues.push({ "Country": "", "Subdivision": "" });
+        },
+        popLocaleValues(item)  {
+            item.LocaleValues.pop();
+            if(item.LocaleValues.length==0) delete item.LocaleValues;
+        },
 
         _evtMTurkHIT(data) {
             this.duct.sendMsg({
@@ -441,9 +448,9 @@ export default {
             //    }
             //});
             this._evtMTurkHIT({ "Command": "ListHITTypes" });
+            this._evtGetQualificationTypeIds();
         });
 
-        this._evtGetQualificationTypeIds();
     }
 };
 </script>
