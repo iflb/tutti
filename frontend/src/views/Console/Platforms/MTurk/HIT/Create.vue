@@ -148,11 +148,11 @@
                         <tbody>
                             <tr>
                                 <td>MaxAssignments</td>
-                                <td><v-text-field dense hide-details disabled type="number" min=1 step=1 v-model="createHITParams.MaxAssignments"></v-text-field></td>
+                                <td><v-text-field dense hide-details disabled type="number" min=1 step=1 v-model.number="createHITParams.MaxAssignments"></v-text-field></td>
                             </tr>
                             <tr>
                                 <td>LifetimeInSeconds</td>
-                                <td><v-text-field dense hide-details type="number" min=0 step=10 v-model="createHITParams.LifetimeInSeconds"></v-text-field></td>
+                                <td><v-text-field dense hide-details type="number" min=0 step=10 v-model.number="createHITParams.LifetimeInSeconds"></v-text-field></td>
                             </tr>
                             <tr>
                                 <td>RequesterAnnotation</td>
