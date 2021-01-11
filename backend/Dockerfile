@@ -9,7 +9,7 @@ COPY config_server.ini.template ./config_server.ini.template
 COPY init.sh ./init.sh
 
 RUN apt-get update && \
-    apt-get install -y gcc redis-server gettext-base && \
+    apt-get install -y gcc gettext-base && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
