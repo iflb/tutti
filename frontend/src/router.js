@@ -31,6 +31,10 @@ export default new VueRouter({
                     props: getPropsForRoute
                 },
                 {
+                    path: "platform/mturk-new",
+                    component: () => import("./views/Console/Platforms/MTurk/MainNew")
+                },
+                {
                     path: "platform/mturk",
                     component: () => import("./views/Console/Platforms/MTurk/Main"),
                     props: getPropsForRoute
