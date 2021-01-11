@@ -19,10 +19,10 @@ http {
             root /;
         }
 
-        #location /vue/ {
-        #    proxy_pass http://172.100.0.3/vue/;
-        #    proxy_redirect off;
-        #}
+        location /vue-dev/ {
+            proxy_pass http://172.100.0.3/vue-dev/;
+            proxy_redirect off;
+        }
 
         location /vue/ {
             alias /var/www/html/dist/;

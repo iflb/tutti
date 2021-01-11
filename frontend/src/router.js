@@ -1,4 +1,4 @@
-    import Vue from 'vue'
+import Vue from 'vue'
 import VueRouter from 'vue-router'
 Vue.use(VueRouter)
 
@@ -8,7 +8,8 @@ function getPropsForRoute(route) {
 
 export default new VueRouter({
     mode: "history",
-    base: "/vue/",
+    base: process.env.BASE_URL,
+    //base: "/vue-dev/",
     routes: [
         {
             path: "/console",
