@@ -1,158 +1,81 @@
 <template>
-    <v-main class="mt-10 grey lighten-4">
-        <div style="max-width:1000px" class="mx-auto">
-        <v-row align="center" justify="center" class="my-6">
-            <v-col cols="3">
-                <v-img src="https://pbs.twimg.com/profile_images/1067838660035280897/XJfH-OpK_400x400.jpg"></v-img>
-            </v-col>
-            <v-col cols="7">
-                <div class="text-h3">Amazon Mechanical Turk</div>
-                <v-row class="mt-4">
-                    <v-btn class="ma-2" color="indigo" outlined @click="windowOpen('https://worker.mturk.com', '_blank');"><v-icon>mdi-account-group</v-icon>Workers</v-btn>
-                    <v-btn class="ma-2" color="indigo" outlined @click="windowOpen('https://requester.mturk.com', '_blank');"><v-icon>mdi-account-circle</v-icon>Requesters</v-btn>
-                </v-row>
-            </v-col>
-        </v-row>
-        <v-card v-if="!isAccountSet" :loading="credentialRequested">
-            <v-card-text>
-                MTurk account is not set. 
-                <v-btn text color="indigo" @click="$refs.dlgSetAccount.shown=true">Set account</v-btn>
-            </v-card-text>
-        </v-card>
-        <v-card v-if="isAccountSet" :loading="credentialRequested">
-            <v-alert v-if="!sharedProps.mTurkAccount.isSandbox" dense text type="warning">You are in the <b>production mode</b>; real payments can happen</v-alert>
-            <v-card-text>
-                Access Key ID: {{ accessKeyId }}<br>
-                Secret Access Key: {{ secretAccessKey }}<br>
-                Balance: ${{ sharedProps.mTurkAccount.availableBalance }} <span v-if="'onHoldBalance' in sharedProps.mTurkAccount">(on hold: {{ sharedProps.mTurkAccount.onHoldBalance }})</span>
-            </v-card-text>
-            <v-card-text class="pt-0">
-            <v-btn outlined color="indigo" v-text="sharedProps.mTurkAccount.isSandbox ? 'Change to production' : 'Change to sandbox'" @click="toggleSandboxMode()"></v-btn>
-            <v-btn class="ml-3" color="grey" outlined @click="clearCredentials()">Clear credentials</v-btn>
-            </v-card-text>
-        </v-card>
-        <dialog-set-account ref="dlgSetAccount" />
-        <v-row>
-            <v-col cols="4">
-                <v-card>
-                    <v-img src="https://media.istockphoto.com/videos/stack-of-files-documents-being-piled-onto-office-desk-video-id825340524?s=640x640" max-height="150"></v-img>
-                    <v-card-title>HITs</v-card-title>
-                    <v-card-text>Create, custormize, or remove task batches.</v-card-text>
-                    <v-card-actions><v-btn color="indigo lighten-1" text to="hit">Manage HITs</v-btn></v-card-actions>
-                </v-card>
-            </v-col>
-            <v-col cols="4">
-                <v-card>
-                    <v-img src="https://us.123rf.com/450wm/aniwhite/aniwhite1603/aniwhite160300174/53982937-stock-vector-the-crowd-of-abstract-people-flat-design-vector-illustration-.jpg?ver=6" max-height="150"></v-img>
-                    <v-card-title>Workers</v-card-title>
-                    <v-card-text>Check workers' status, block or contact workers, or grant qualifications.</v-card-text>
-                    <v-card-actions><v-btn color="indigo lighten-1" text>Manage workers</v-btn></v-card-actions>
-                </v-card>
-            </v-col>
-            <v-col cols="4">
-                <v-card>
-                    <v-img src="https://assets.st-note.com/production/uploads/images/30971758/rectangle_large_type_2_d321a7db4258595199bc6a264e7b320b.jpg?fit=bounds&format=jpeg&quality=45&width=960" max-height="150"></v-img>
-                    <v-card-title>Qualifications</v-card-title>
-                    <v-card-text>Create or remove qualifications.</v-card-text>
-                    <v-card-actions><v-btn color="indigo lighten-1" text to="qual/">Manage qualifications</v-btn></v-card-actions>
-                </v-card>
-            </v-col>
-        </v-row>
+    <v-main class="grey lighten-4">
+        <div v-if="credentials">
+            <v-system-bar v-if="credentials.Sandbox" dark color="warning">
+                <span>Current mode is set to <b>SANDBOX</b>.</span>
+                <v-tooltip bottom>
+                    <template v-slot:activator="{ on, attrs }">
+                        <v-btn icon v-bind="attrs" v-on="on" @click="setSandbox(false)" :loading="loadingCredentials"><v-icon>mdi-swap-horizontal</v-icon></v-btn>
+                    </template>
+                    <span>Change to production mode</span>
+                </v-tooltip>
+                <v-spacer></v-spacer>
+                <span>AccessKeyId: <b>{{ credentials.AccessKeyId }}</b></span>
+            </v-system-bar>
+            <v-system-bar v-else dark color="error">
+                <span>Current mode is set to <b>PRODUCTION</b>. Real payments can happen.</span>
+                <v-tooltip bottom>
+                    <template v-slot:activator="{ on, attrs }">
+                        <v-btn icon v-bind="attrs" v-on="on" @click="setSandbox(true)" :loading="loadingCredentials"><v-icon>mdi-swap-horizontal</v-icon></v-btn>
+                    </template>
+                    <span>Change to sandbox mode</span>
+                </v-tooltip>
+                <v-spacer></v-spacer>
+                <span>AccessKeyId: <b>{{ credentials.AccessKeyId }}</b> (Balance: <b>${{ credentials.AccountBalance.AvailableBalance }}</b>)</span>
+            </v-system-bar>
         </div>
+        <div v-else>
+            <v-system-bar color="grey lighten-2">
+                <span v-if="loadingCredentials">Loading credentials... <v-btn icon disabled loading></v-btn></span>
+                <span v-else>No valid credential is currently set</span>
+            </v-system-bar>
+        </div>
+
+        <v-slide-x-transition hide-on-leave>
+            <router-view :credentials="credentials"></router-view>
+        </v-slide-x-transition>
     </v-main>
 </template>
 <script>
-import DialogSetAccount from './DialogSetAccount.vue'
 import { mapGetters, mapActions } from 'vuex'
-
 export default {
-    props: ["sharedProps","name"],
-    components: { DialogSetAccount },
     data: () => ({
-        credentialRequested: true
+        credentials: null,
+        loadingCredentials: false
     }),
     computed: {
         ...mapGetters("ductsModule", [ "duct" ]),
-        accessKeyId() {
-            try { return this.sharedProps.mTurkAccount.accessKeyId;
-            } catch { return null; }
-        },
-        secretAccessKey() {
-            try { return this.sharedProps.mTurkAccount.secretAccessKey;
-            } catch { return null; }
-        },
-        isAccountSet() {
-            return this.accessKeyId && this.secretAccessKey;
-        }
     },
     methods: {
         ...mapActions("ductsModule", [ "onDuctOpen" ]),
-        windowOpen(url, target){
-            window.open(url, target);
+
+        onReceiveCredentials(rid, eid, data) {
+            this.loadingCredentials = false;
+            this.credentials = data["Data"]["Results"];
         },
+
         getCredentials() {
+            this.loadingCredentials = true;
             this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.AMT,
-                data: { "Command": "GetCredentials" }
+                tag: "",
+                eid: this.duct.EVENT["MTURK_GET_CREDENTIALS"],
+                data: null
             });
         },
-        toggleSandboxMode() {
-            this.credentialRequested = true;
+        setSandbox(Enabled) {
+            this.loadingCredentials = true;
             this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.AMT,
-                data: {
-                    "Command": "SetSandboxMode",
-                    "Enabled": !this.sharedProps.mTurkAccount.isSandbox
-                }
-            });
-        },
-        clearCredentials() {
-            this.credentialRequested = true;
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.AMT,
-                data: {
-                    "Command": "ResetAuthorization"
-                }
+                tag: "",
+                eid: this.duct.EVENT["MTURK_SET_SANDBOX"],
+                data: { Enabled }
             });
         }
     },
     mounted() {
         this.onDuctOpen(() => {
-            this.$set(this.sharedProps, "mTurkAccount", {});
-            this.duct.addEvtHandler({
-                tag: "/console/platform/mturk/", eid: this.duct.EVENT.AMT,
-                handler: (rid, eid, data) => {
-    
-                    if(data["Status"]=="Error") return;
-    
-                    const command = data["Data"]["Command"];
-                    switch(command){
-                        case "GetCredentials": {
-                            this.$set(this.sharedProps.mTurkAccount, "accessKeyId", data["Data"]["AccessKeyId"]);
-                            this.$set(this.sharedProps.mTurkAccount, "secretAccessKey", data["Data"]["SecretAccessKey"]);
-                            this.$set(this.sharedProps.mTurkAccount, "isSandbox", data["Data"]["IsSandbox"]);
+            const credEvtNames = ["MTURK_GET_CREDENTIALS", "MTURK_SET_CREDENTIALS", "MTURK_CLEAR_CREDENTIALS", "MTURK_SET_SANDBOX"];
+            for(var i in credEvtNames)  this.duct.addEvtHandler({ tag: "", eid: this.duct.EVENT[credEvtNames[i]], handler: this.onReceiveCredentials });
 
-                            if(data["Data"]["AccountBalance"]) {
-                                this.$set(this.sharedProps.mTurkAccount, "availableBalance", data["Data"]["AccountBalance"]["AvailableBalance"]);
-                                if("OnHoldBalance" in data["Data"]["AccountBalance"]){
-                                    this.$set(this.sharedProps.mTurkAccount, "onHoldBalance", data["Data"]["AccountBalance"]["OnHoldBalance"]);
-                                }
-                            }
-                            this.credentialRequested = false;
-                            break;
-                        }
-                        case "SetSandboxMode":
-                        case "SetCredentials":
-                        case "ResetAuthorization": {
-                            this.getCredentials();
-                            break;
-                        }
-                    }
-                }
-            });
             this.getCredentials();
         });
     }

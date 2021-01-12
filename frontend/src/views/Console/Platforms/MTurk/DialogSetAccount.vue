@@ -38,9 +38,8 @@ export default {
         setAccount() {
             this.duct.sendMsg({
                 tag: this.name,
-                eid: this.duct.EVENT.AMT,
+                eid: this.duct.EVENT.MTURK_SET_CREDENTIALS,
                 data: {
-                    "Command": "SetCredentials",
                     "AccessKeyId": this.accessKeyId,
                     "SecretAccessKey": this.secretAccessKey
                 }

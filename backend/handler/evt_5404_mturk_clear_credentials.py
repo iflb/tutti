@@ -15,4 +15,4 @@ class Handler(EventHandler):
     @handler_output
     async def handle(self, event, output):
         mturk_crd_core = self.manager.get_handler_for(self.manager.key_ids["MTURK_CREDENTIALS_CORE"])[1]
-        output.set("Results", await mturk_crd_core.clear(**event.data))
+        output.set("Results", await mturk_crd_core.clear())

@@ -42,7 +42,7 @@ class Handler(EventHandler):
                 return {
                     "AccessKeyId": access_key_id,
                     "SecretAccessKey": secret_access_key,
-                    "IsSandbox": sandbox,
+                    "Sandbox": sandbox,
                     "AccountBalance": ret
                 }
             except NoCredentialsError:

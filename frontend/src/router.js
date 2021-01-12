@@ -32,28 +32,31 @@ export default new VueRouter({
                     props: getPropsForRoute
                 },
                 {
-                    path: "platform/mturk-new",
-                    component: () => import("./views/Console/Platforms/MTurk/MainNew")
-                },
-                {
                     path: "platform/mturk",
+                    redirect: "platform/mturk/top",
                     component: () => import("./views/Console/Platforms/MTurk/Main"),
-                    props: getPropsForRoute
-                },
-                {
-                    path: "platform/mturk/hit/",
-                    component: () => import("./views/Console/Platforms/MTurk/HIT/Main"),
-                    props: getPropsForRoute
-                },
-                {
-                    path: "platform/mturk/hit/create/",
-                    component: () => import("./views/Console/Platforms/MTurk/HIT/Create"),
-                    props: getPropsForRoute
-                },
-                {
-                    path: "platform/mturk/qual/",
-                    component: () => import("./views/Console/Platforms/MTurk/Qualification/Main"),
-                    props: getPropsForRoute
+                    children: [
+                        {
+                            path: "top",
+                            component: () => import("./views/Console/Platforms/MTurk/Top"),
+                            props: getPropsForRoute
+                        },
+                        {
+                            path: "hit",
+                            component: () => import("./views/Console/Platforms/MTurk/HIT/Main"),
+                            props: getPropsForRoute
+                        },
+                        {
+                            path: "create",
+                            component: () => import("./views/Console/Platforms/MTurk/HIT/Create"),
+                            props: getPropsForRoute
+                        },
+                        {
+                            path: "qual",
+                            component: () => import("./views/Console/Platforms/MTurk/Qualification/Main"),
+                            props: getPropsForRoute
+                        }
+                    ]
                 },
                 {
                     path: "answer",
