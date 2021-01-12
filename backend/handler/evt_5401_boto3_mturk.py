@@ -42,10 +42,19 @@ class Handler(EventHandler):
             return results
 
     def map_nested_dicts_modify(self, ob, func):
-        for k, v in ob.items():
-            if isinstance(v, dict):
-                self.map_nested_dicts_modify(v, func)
-            elif isinstance(v, list):
-                for _v in v: self.map_nested_dicts_modify(_v, func)
-            else:
-                ob[k] = func(v)
+        if isinstance(ob, dict):
+            for k, v in ob.items():
+                if isinstance(v, dict):
+                    self.map_nested_dicts_modify(v, func)
+                elif isinstance(v, list):
+                    for _v in v: self.map_nested_dicts_modify(_v, func)
+                else:
+                    ob[k] = func(v)
+        elif isinstance(ob, list):
+            for i,v in enumerate(ob):
+                if isinstance(v, dict):
+                    self.map_nested_dicts_modify(v, func)
+                elif isinstance(v, list):
+                    for _v in v: self.map_nested_dicts_modify(_v, func)
+                else:
+                    ob[i] = func(v)

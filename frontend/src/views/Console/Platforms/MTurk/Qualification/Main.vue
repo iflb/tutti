@@ -3,8 +3,6 @@
         <div style="max-width:1200px" class="mx-auto">
             <v-row>
                 <v-col class="text-right">
-                    <!--<v-btn :loading="button.expireHITs.loading" :disabled="button.expireHITs.disabled" class="mx-2" dark
-                           color="warning" v-if="selectedHITIds.length>0" @click="button.expireHITs.loading=true; expireHITs()">Expire ({{ selectedHITIds.length }})</v-btn>-->
                     <v-btn :loading="button.deleteQuals.loading" :disabled="button.deleteQuals.disabled" class="mx-2" dark
                            color="error" v-if="selectedQualTypeIds.length>0" @click="button.deleteQuals.loading=true; deleteQuals()">Delete ({{ selectedQualTypeIds.length }})</v-btn>
                     <v-btn class="mx-2" dark color="indigo" @click="$refs.dlgCreate.shown=true">Create Qualification...</v-btn>
@@ -22,6 +20,8 @@
               :loading="loadingQuals"
               show-select
               v-model="selectedQualTypes"
+              sort-by="creationTime"
+              sort-desc
             >
                 <template v-slot:top>
                     <v-card-title>
