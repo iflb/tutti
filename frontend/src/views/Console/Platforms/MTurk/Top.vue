@@ -43,15 +43,11 @@
             <v-card v-else>
                 <v-card-text>
                     MTurk account is not set. 
-                    <v-btn text color="indigo" @click="$refs.dlgSetAccount.shown=true">Set account</v-btn>
+                    <v-btn text color="indigo" @click="$refs.dialogSetCredentials.shown=true">Set credentials</v-btn>
                 </v-card-text>
             </v-card>
         </v-col>
         </v-row>
-
-
-        <dialog-set-account ref="dlgSetAccount" />
-
 
         <v-row justify="center">
             <v-col cols="3">
@@ -79,16 +75,33 @@
                 </v-card>
             </v-col>
         </v-row>
+
+        <tutti-dialog ref="dialogSetCredentials" title="Set MTurk Credentials" maxWidth="600"
+            :actions="[
+                { label: 'Set account', color: 'indigo darken-1', dark: true, onclick: setCredentials },
+                { label: 'Cancel', color: 'grey darken-1', text: true }
+            ]" >
+            <template v-slot:body>
+                <v-text-field autofocus v-model="newCredentials.AccessKeyId" filled label="Access Key Id"></v-text-field>
+                <v-text-field v-model="newCredentials.SecretAccessKey" filled label="Secret Access Key"></v-text-field>
+            </template>
+        </tutti-dialog>
     </div>
 </template>
 <script>
-import DialogSetAccount from './DialogSetAccount.vue'
 import { mapGetters, mapActions } from 'vuex'
+import Dialog from '@/views/assets/Dialog.vue'
 
 export default {
     props: ["sharedProps", "credentials", "name"],
-    components: { DialogSetAccount },
+    components: {
+        TuttiDialog: Dialog
+    },
     data: () => ({
+        newCredentials: {
+            AccessKeyId: "",
+            SecretAccessKey: ""
+        }
     }),
     computed: {
         ...mapGetters("ductsModule", [ "duct" ]),
@@ -99,6 +112,13 @@ export default {
             window.open(url, target);
         },
 
+        setCredentials() {
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.MTURK_SET_CREDENTIALS,
+                data: this.newCredentials
+            });
+        },
         clearCredentials() {
             this.duct.sendMsg({
                 tag: "",
