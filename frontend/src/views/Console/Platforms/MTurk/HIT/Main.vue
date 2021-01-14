@@ -22,6 +22,8 @@
                       :loading="loadingHITs"
                       show-select
                       v-model="selectedHITTypes"
+                      sort-by="creation_time"
+                      sort-desc
                     >
                         <template v-slot:top>
                             <v-card-title>
@@ -32,7 +34,7 @@
                                 <v-text-field v-model="search" append-icon="mdi-magnify" label="Search" single-line hide-details></v-text-field>
                             </v-card-title>
                             <v-card-subtitle>
-                            (Last retrieved: {{ unixTimeToLocaleString(listLastRetrieved) }})
+                            (Last retrieved: {{ listLastRetrieved }})
                             </v-card-subtitle>
                         </template>
                         <template v-slot:item.active="{ item }">
@@ -51,10 +53,10 @@
                             </div>
                         </template>
                         <template v-slot:item.project_names="{ item }">
-                            <div v-if="item.project_names.length==1"> {{ item.project_names[0] }} </div>
+                            <div v-if="item.project_names && item.project_names.length==1"> {{ item.project_names[0] }} </div>
                             <v-tooltip bottom>
                                 <template #activator="{ on, attrs }">
-                                    <div v-if="item.project_names.length>1" v-html="item.project_names.join(',<br>')" v-bind="attrs" v-on="on" style="font-weight:bold; color:red;"> </div>
+                                    <div v-if="item.project_names && item.project_names.length>1" v-html="item.project_names.join(',<br>')" v-bind="attrs" v-on="on" style="font-weight:bold; color:red;"> </div>
                                 </template>
                                 <span><v-icon color="white">mdi-alert</v-icon> Multiple projects are bound to one HIT Type</span>
                             </v-tooltip>
@@ -97,6 +99,7 @@ import { mapGetters, mapActions } from 'vuex'
 import VueJsonPretty from 'vue-json-pretty'
 import 'vue-json-pretty/lib/styles.css'
 import Snackbar from '@/views/assets/Snackbar.vue'
+import { stringifyUnixTime } from '@/lib/utils'
 //import { codemirror } from 'vue-codemirror'
 //import 'codemirror/lib/codemirror.css'
 
@@ -152,7 +155,7 @@ export default {
             },
         },
     }),
-    props: ["name"],
+    props: ["credentials", "name"],
 
     computed: {
         ...mapGetters("ductsModule", [ "duct" ]),
@@ -168,10 +171,6 @@ export default {
         ...mapActions("ductsModule", [ "onDuctOpen" ]),
         openNewWindow(url) {
             window.open(url, "_blank");
-        },
-        unixTimeToLocaleString(unixTime) {
-            var dt = new Date(unixTime*1000);
-            return dt.toLocaleDateString() + " " + dt.toLocaleTimeString();
         },
         secondsToTimeString(seconds) {
             var hours = Math.floor(seconds / 3600);
@@ -210,6 +209,15 @@ export default {
             });
         }
     },
+
+    watch: {
+        credentials: {
+            handler() {
+                this._evtListHITs(true);
+            },
+            deep: true
+        }
+    },
     mounted() {
         this.onDuctOpen(() => {
             this.duct.addEvtHandler({
@@ -221,7 +229,7 @@ export default {
                     switch(command) {
                         case "List": {
                             this.loadingHITs = false;
-                            this.listLastRetrieved = data["Data"]["Result"]["LastRetrieved"];
+                            this.listLastRetrieved = stringifyUnixTime(data["Data"]["Result"]["LastRetrieved"]);
                             const hits = data["Data"]["Result"]["HITTypes"];
                             this.hitTypes = [];
                             for(var i in hits){
@@ -231,8 +239,8 @@ export default {
                                     title: hits[i]["Props"]["Title"],
                                     project_names: hits[i]["ProjectNames"],
                                     reward: hits[i]["Props"]["Reward"],
-                                    creation_time: this.unixTimeToLocaleString(hits[i]["CreationTime"]),
-                                    expiration_time: this.unixTimeToLocaleString(hits[i]["Expiration"]),
+                                    creation_time: stringifyUnixTime(hits[i]["CreationTime"]),
+                                    expiration_time: stringifyUnixTime(hits[i]["Expiration"]),
                                     num_hits: hits[i]["Count"],
                                     num_assignable: hits[i]["HITStatusCount"]["Assignable"],
                                     num_reviewable: hits[i]["HITStatusCount"]["Reviewable"],
@@ -295,7 +303,6 @@ export default {
                     this._evtListHITs(false);
                 }
             });
-
             this._evtListHITs(true);
         });
     }

@@ -1,10 +1,10 @@
 <template>
         <v-row class="my-10" justify="center">
-            <v-col class="text-right" cols="10">
+            <!--<v-col class="text-right" cols="10">
                 <v-btn :loading="button.deleteQuals.loading" :disabled="button.deleteQuals.disabled" class="mx-2" dark
                        color="error" v-if="selectedQualTypeIds.length>0" @click="button.deleteQuals.loading=true; deleteQuals()">Delete ({{ selectedQualTypeIds.length }})</v-btn>
                 <v-btn class="mx-2" dark color="indigo" @click="$refs.dlgCreate.shown=true">Create Qualification...</v-btn>
-            </v-col>
+            </v-col>-->
             <v-col cols="10">
                 <v-data-table
                   :headers="qualHeaders"
@@ -38,7 +38,7 @@
                                     <v-btn icon color="grey lighten-1"><v-icon>mdi-account-edit</v-icon></v-btn>
                                 </div>
                                 Description: <b>{{ item.detail.Description }}</b><br>
-                                Created at: <b>{{ item.detail.CreationTime }}</b><br>
+                                Created at: <b>{{ unixTimeToLocaleString(item.detail.CreationTime) }}</b><br>
                                 Automatically grant on submission: <b>{{ item.detail.AutoGranted }}</b><br>
                                 # of assigned workers: <b>{{ item.detail.workers ? item.detail.workers.length : 'retrieving...' }}</b><br>
                                 Raw data:
@@ -75,7 +75,6 @@ import DialogCreate from './DialogCreate.vue'
 import { mapGetters, mapActions } from 'vuex'
 import VueJsonPretty from 'vue-json-pretty'
 import 'vue-json-pretty/lib/styles.css'
-import { stringifyUnixTime } from '@/lib/utils'
 
 export default {
     components: {
@@ -121,7 +120,7 @@ export default {
             }
         }
     }),
-    props: ["credentials", "sharedProps","name"],
+    props: ["sharedProps","name"],
 
     computed: {
         ...mapGetters("ductsModule", [ "duct" ]),
@@ -134,7 +133,7 @@ export default {
                         "name": _q["Name"],
                         "status": _q["QualificationTypeStatus"],
                         "qualificationId": _q["QualificationTypeId"],
-                        "creationTime": stringifyUnixTime(_q["CreationTime"]),
+                        "creationTime": this.unixTimeToLocaleString(_q["CreationTime"]),
                         "detail": _q
                     };
                     q.push(data);
@@ -151,6 +150,10 @@ export default {
     },
     methods: {
         ...mapActions("ductsModule", [ "onDuctOpen" ]),
+        unixTimeToLocaleString(unixTime) {
+            var dt = new Date(unixTime*1000);
+            return dt.toLocaleDateString() + " " + dt.toLocaleTimeString();
+        },
         deleteQuals() {
             this.duct.sendMsg({
                 tag: this.name,
@@ -178,14 +181,6 @@ export default {
                     }
                 });
             }
-        }
-    },
-    watch: {
-        credentials: {
-            handler() {
-                this._evtGetQualificationTypeIds();
-            },
-            deep: true
         }
     },
     mounted() {
@@ -228,6 +223,31 @@ export default {
                     this.$set(this.sharedProps.mTurkQuals[qid], "workers", quals);
                 }
             });
+
+            //this.duct.addEvtHandler({ tag: this.name, eid: this.duct.EVENT.MTURK_QUALIFICATION, handler: (rid, eid, data) => {
+            //        const command = data["Data"]["Command"];
+            //        if(data["Status"]=="error") return;
+
+            //        //if(command=="List"){
+            //        //    var qids = [];
+            //        //    for(var i in data["Data"]["QualificationTypes"]){
+            //        //        qids.push(data["Data"]["QualificationTypes"][i]["QualificationTypeId"]);
+            //        //    }
+            //        //    this.$set(this.sharedProps, "mTurkQuals", data["Data"]["QualificationTypes"]);
+            //        //    this.selectedQualTypes = [];
+            //        //    this.loadingQuals = false;
+            //        //    this._evtGetWorkersForQualificationTypeIds(qids);
+            //        //}
+            //        //else
+            //        if(command=="Create"){
+            //            this.snackbar.success.text = "Successfully created a qualification";
+            //            this.snackbar.success.shown = true;
+            //            this._evtGetQualificationTypeIds();
+            //        }
+            //        //else if(command=="GetWorkers"){
+            //        //}
+            //    }
+            //});
 
             this.duct.addEvtHandler({
                 tag: this.name, eid: this.duct.EVENT.MTURK_DELETE_QUALIFICATIONS,
