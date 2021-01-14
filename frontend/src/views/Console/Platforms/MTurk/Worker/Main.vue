@@ -1,22 +1,23 @@
 <template>
         <v-row class="my-10" justify="center">
             <v-col cols="10" class="text-right">
-                <!--<v-btn :loading="button.expireHITs.loading" :disabled="button.expireHITs.disabled" class="mx-2" dark
-                       color="warning" v-if="selectedHITIds.length>0" @click="button.expireHITs.loading=true; expireHITs()">Expire ({{ selectedHITIds.length }})</v-btn>
-                <v-btn :loading="button.deleteHITs.loading" :disabled="button.deleteHITs.disabled" class="mx-2" dark
-                       color="error" v-if="selectedHITIds.length>0" @click="button.deleteHITs.loading=true; deleteHITs()">Delete ({{ selectedHITIds.length }})</v-btn>-->
-                <v-btn class="mx-2" dark color="indigo" @click="$refs.dialogSendEmail.shown=true">Create HITs...</v-btn>
+                <v-tooltip top>
+                    <template #activator="{ on, attrs }">
+                        <v-btn v-bind="attrs" v-on="on" class="mx-2" dark color="indigo" @click="$refs.dialogSendEmail.shown=true"><v-icon>mdi-email</v-icon></v-btn>
+                    </template>
+                    <span>Send email</span>
+                </v-tooltip>
             </v-col>
             <v-col cols="10">
                 <v-data-table
                   :headers="workerHeaders"
                   :items="workers"
-                  item-key="name"
+                  item-key="wid"
                   class="elevation-1"
                   dense
                   :loading="loadingWorkers"
                   show-select
-                  v-model="selectedQualTypes"
+                  v-model="selectedWorkers"
                   sort-by="Timestamp"
                   sort-desc
                 >
@@ -36,13 +37,25 @@
             <tutti-snackbar color="warning" :timeout="3000" :text="snackbarTexts.warning" />
             <tutti-snackbar color="error" :timeout="3000" :text="snackbarTexts.error" />
 
-            <tutti-dialog ref="dialogSendEmail" title="Send Email to Workers" maxWidth="800"
+            <tutti-dialog ref="dialogSendEmail" title="Send Email to Workers" maxWidth="800" persistent
                 :actions="[
                     { label: 'Send', color: 'indigo darken-1', dark: true, onclick: sendEmail },
                     { label: 'Cancel', color: 'grey darken-1', text: true }
                 ]" >
                 <template v-slot:body>
-                    <v-textarea v-model="hoge"></v-textarea>
+                    <v-combobox dense multiple small-chips outlined hide-selected v-model="sendEmailWorkerIds" :items="workerIds" label="To">
+                        <template v-slot:no-data>
+                            <v-list-item>
+                                <v-list-item-content>
+                                    <v-list-item-title>
+                                        No results matching "<strong>{{ search }}</strong>". Press <kbd>enter</kbd> to create a new one
+                                    </v-list-item-title>
+                                </v-list-item-content>
+                            </v-list-item>
+                        </template>
+                    </v-combobox>
+                    <v-text-field dense outlined label="Subject" v-model="email.Subject" />
+                    <v-textarea outlined label="Message" v-model="email.MessageText"></v-textarea>
                 </template>
             </tutti-dialog>
         </v-row>
@@ -59,38 +72,42 @@ export default {
         TuttiDialog: Dialog
     },
     data: () => ({
-        selectedQualTypes: [],
         hoge: "",
         search: "",
-        expanded: [],
         workerHeaders: [
           { text: 'Worker ID', value: 'wid' },
-          { text: 'Worker ID (Platform)', value: 'PlatformWorkerId' },
+          { text: 'Worker ID (MTurk)', value: 'PlatformWorkerId' },
           { text: 'Created Time', value: 'Timestamp' },
         ],
+        selectedWorkers: [],
         workers: [],
+        sendEmailWorkerIds: [],
         loadingWorkers: false,
-        button: {
-            deleteQuals: {
-                loading: false,
-                disabled: false
-            },
-        },
         snackbarTexts: {
             success: "",
             warning: "",
             error: ""
         },
+        email: {
+            Subject: "",
+            MessageText: ""
+        }
     }),
     props: ["sharedProps","name"],
 
     computed: {
         ...mapGetters("ductsModule", [ "duct" ]),
-        selectedQualTypeIds() {
-            var qtids = [];
-            for(var i in this.selectedQualTypes)
-                qtids.push(this.selectedQualTypes[i]["detail"]["QualificationTypeId"]);
-            return qtids;
+        selectedWorkerIds() {
+            var wids = [];
+            for(var i in this.selectedWorkers)
+                wids.push(this.selectedWorkers[i]["PlatformWorkerId"]);
+            return wids;
+        },
+        workerIds() {
+            var wids = [];
+            for(var i in this.workers)
+                wids.push(this.workers[i]["PlatformWorkerId"]);
+            return wids;
         }
     },
     methods: {
@@ -116,15 +133,25 @@ export default {
                 data: null
             });
         },
+        _evtSendEmail() {
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.MTURK_NOTIFY_WORKERS,
+                data: { ...this.email, "WorkerIds": this.sendEmailWorkerIds }
+            });
+        },
 
         sendEmail() {
-            console.log(this.hoge);
+            this._evtSendEmail();
         }
     },
     watch: {
         credentials: {
             handler() { this._evtListWorkers(); },
             deep: true
+        },
+        selectedWorkerIds() {
+            this.sendEmailWorkerIds = this.selectedWorkerIds;
         }
     },
     mounted() {

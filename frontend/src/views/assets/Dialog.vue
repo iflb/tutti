@@ -1,5 +1,5 @@
 <template>
-    <v-dialog v-model="shown" :max-width="maxWidth">
+    <v-dialog v-model="shown" :max-width="maxWidth" :persistent="persistent">
         <v-card>
             <v-card-title class="headline" v-if="title" v-html="title"></v-card-title>
             <v-card-text>
@@ -17,6 +17,6 @@ export default {
     data: () => ({
         shown: false
     }),
-    props: ["title", "actions", "maxWidth"]
+    props: ["title", "actions", "maxWidth", "persistent"]
 }
 </script>
