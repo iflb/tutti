@@ -431,23 +431,6 @@ export default {
                 }
             });
 
-            //this.duct.addEvtHandler({
-            //    tag: this.name, eid: this.duct.EVENT.MTURK_QUALIFICATION,
-            //    handler: (rid, eid, data) => {
-            //        const command = data["Data"]["Command"];
-            //        if(data["Status"]=="error") return;
-
-            //        if(command=="List"){
-            //            var ret = [];
-            //            for(var i in data["Data"]["QualificationTypes"]) {
-            //                const id = data["Data"]["QualificationTypes"][i]["QualificationTypeId"];
-            //                const name = data["Data"]["QualificationTypes"][i]["Name"];
-            //                ret.push({ id, name });
-            //            }
-            //            this.customQualIds = ret;
-            //        }
-            //    }
-            //});
             this._evtMTurkHIT({ "Command": "ListHITTypes" });
             this._evtGetQualificationTypeIds();
         });

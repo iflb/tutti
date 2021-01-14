@@ -7,6 +7,12 @@
                     </template>
                     <span>Send email</span>
                 </v-tooltip>
+                <v-tooltip top>
+                    <template #activator="{ on, attrs }">
+                        <v-btn v-bind="attrs" v-on="on" class="mx-2" dark color="indigo" @click="$refs.dialogAssociateQuals.shown=true; if(!quals) _evtListQuals();"><v-icon>mdi-account-star</v-icon></v-btn>
+                    </template>
+                    <span>Grant qualification</span>
+                </v-tooltip>
             </v-col>
             <v-col cols="10">
                 <v-data-table
@@ -58,6 +64,29 @@
                     <v-textarea outlined label="Message" v-model="email.MessageText"></v-textarea>
                 </template>
             </tutti-dialog>
+
+            <tutti-dialog ref="dialogAssociateQuals" title="Associate Qualifications to Workers" maxWidth="800" persistent
+                :actions="[
+                    { label: 'Send', color: 'indigo darken-1', dark: true, onclick: associateQuals },
+                    { label: 'Cancel', color: 'grey darken-1', text: true }
+                ]" >
+                <template v-slot:body>
+                    <v-combobox dense multiple small-chips outlined hide-selected v-model="newAssociateQual.WorkerIds" :items="workerIds" label="To">
+                        <template v-slot:no-data>
+                            <v-list-item>
+                                <v-list-item-content>
+                                    <v-list-item-title>
+                                        No results matching "<strong>{{ search }}</strong>". Press <kbd>enter</kbd> to create a new one
+                                    </v-list-item-title>
+                                </v-list-item-content>
+                            </v-list-item>
+                        </template>
+                    </v-combobox>
+                    <v-select v-model="newAssociateQual.QualificationTypeId" :items="qualificationTypes" label="QualificationTypeId" dense outlined></v-select>
+                    <v-text-field dense outlined v-model.number="newAssociateQual.IntegerValue" label="IntegerValue"></v-text-field>
+                    <v-switch v-model="newAssociateQual.SendNotification" label="SendNotification"/>
+                </template>
+            </tutti-dialog>
         </v-row>
 </template>
 <script>
@@ -82,6 +111,12 @@ export default {
         selectedWorkers: [],
         workers: [],
         sendEmailWorkerIds: [],
+        newAssociateQual: {
+            WorkerIds: [],
+            QualificationTypeId: "",
+            IntegerValue: null,
+            SendNotification: true
+        },
         loadingWorkers: false,
         snackbarTexts: {
             success: "",
@@ -91,7 +126,8 @@ export default {
         email: {
             Subject: "",
             MessageText: ""
-        }
+        },
+        quals: null
     }),
     props: ["sharedProps","name"],
 
@@ -107,6 +143,15 @@ export default {
             var wids = [];
             for(var i in this.workers)
                 wids.push(this.workers[i]["PlatformWorkerId"]);
+            return wids;
+        },
+        qualificationTypes() {
+            var wids = [];
+            for(var i in this.quals) {
+                const id = this.quals[i]["QualificationTypeId"];
+                const name = this.quals[i]["Name"];
+                wids.push({ text: `${name} - ${id}`, value: this.quals[i]["QualificationTypeId"] });
+            }
             return wids;
         }
     },
@@ -125,6 +170,9 @@ export default {
                 }
             });
         },
+        associateQuals() {
+            this._evtAssociateQuals();
+        },
         _evtListWorkers() {
             this.loadingWorkers = true;
             this.duct.sendMsg({
@@ -140,6 +188,20 @@ export default {
                 data: { ...this.email, "WorkerIds": this.sendEmailWorkerIds }
             });
         },
+        _evtListQuals() {
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.MTURK_LIST_QUALIFICATIONS,
+                data: null
+            });
+        },
+        _evtAssociateQuals() {
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.MTURK_ASSOCIATE_QUALIFICATIONS_WITH_WORKERS,
+                data: this.newAssociateQual
+            });
+        },
 
         sendEmail() {
             this._evtSendEmail();
@@ -152,6 +214,7 @@ export default {
         },
         selectedWorkerIds() {
             this.sendEmailWorkerIds = this.selectedWorkerIds;
+            this.newAssociateQual.WorkerIds = this.selectedWorkerIds;
         }
     },
     mounted() {
@@ -167,6 +230,12 @@ export default {
                         workers.push({ wid, ...data["Data"]["Workers"][wid] });
                     }
                     this.workers = workers;
+                }
+            });
+            this.duct.addEvtHandler({ tag: this.name, eid: this.duct.EVENT.MTURK_LIST_QUALIFICATIONS,
+                handler: (rid, eid, data) => {
+                    if(data["Status"]=="error") return;
+                    this.quals = data["Data"]["QualificationTypes"];
                 }
             });
 
