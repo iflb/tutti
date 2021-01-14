@@ -2,6 +2,7 @@ import os
 import json
 from pprint import pprint
 from datetime import datetime
+import xml.etree.ElementTree as ET
 
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
@@ -57,8 +58,11 @@ class Handler(EventHandler):
 
                         for h in res["HITs"]:
                             htid = h["HITTypeId"]
+                            pn = ET.fromstring(h["Question"])[0].text.split("/")[-1]
                             if htid not in hits:
+                                print(h["Question"])
                                 hits[htid] = {
+                                    "ProjectNames": [pn],
                                     "Count": 0,
                                     "HITIds": [],
                                     "HITGroupId": h["HITGroupId"],
@@ -90,6 +94,8 @@ class Handler(EventHandler):
                                     }
                                 }
 
+                            if pn not in hits[htid]["ProjectNames"]:
+                                hits[htid]["ProjectNames"].append(pn)
                             hits[htid]["Count"] += 1
                             hits[htid]["HITIds"].append(h["HITId"])
                             hits[htid]["HITStatusCount"][h["HITStatus"]] += 1

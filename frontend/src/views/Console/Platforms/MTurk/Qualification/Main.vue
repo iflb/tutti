@@ -1,54 +1,53 @@
 <template>
-    <v-main class="mt-10 grey lighten-4">
-        <div style="max-width:1200px" class="mx-auto">
-            <v-row>
-                <v-col class="text-right">
-                    <v-btn :loading="button.deleteQuals.loading" :disabled="button.deleteQuals.disabled" class="mx-2" dark
-                           color="error" v-if="selectedQualTypeIds.length>0" @click="button.deleteQuals.loading=true; deleteQuals()">Delete ({{ selectedQualTypeIds.length }})</v-btn>
-                    <v-btn class="mx-2" dark color="indigo" @click="$refs.dlgCreate.shown=true">Create Qualification...</v-btn>
-                </v-col>
-            </v-row>
-            <v-data-table
-              :headers="qualHeaders"
-              :items="quals"
-              :single-expand="false"
-              :expanded.sync="expanded"
-              item-key="name"
-              show-expand
-              class="elevation-1"
-              dense
-              :loading="loadingQuals"
-              show-select
-              v-model="selectedQualTypes"
-              sort-by="creationTime"
-              sort-desc
-            >
-                <template v-slot:top>
-                    <v-card-title>
-                        Qualifications
-                        <v-btn icon @click="_evtGetQualificationTypeIds()"><v-icon>mdi-refresh</v-icon></v-btn>
-                        <!--<v-btn icon @click="$refs.dlgCreate.shown=true"><v-icon>mdi-plus</v-icon></v-btn>-->
-                        <v-spacer></v-spacer>
-                        <v-text-field v-model="search" append-icon="mdi-magnify" label="Search" single-line hide-details></v-text-field>
-                    </v-card-title>
-                </template>
-                <template v-slot:expanded-item="{ headers, item }">
-                    <td :colspan="headers.length">
-                        <div class="my-2">
-                            <div class="d-flex flex-row-reverse">
-                                <v-btn icon color="grey lighten-1"><v-icon>mdi-pencil</v-icon></v-btn>
-                                <v-btn icon color="grey lighten-1"><v-icon>mdi-account-edit</v-icon></v-btn>
+        <v-row class="my-10" justify="center">
+            <v-col class="text-right" cols="10">
+                <v-btn :loading="button.deleteQuals.loading" :disabled="button.deleteQuals.disabled" class="mx-2" dark
+                       color="error" v-if="selectedQualTypeIds.length>0" @click="button.deleteQuals.loading=true; deleteQuals()">Delete ({{ selectedQualTypeIds.length }})</v-btn>
+                <v-btn class="mx-2" dark color="indigo" @click="$refs.dlgCreate.shown=true">Create Qualification...</v-btn>
+            </v-col>
+            <v-col cols="10">
+                <v-data-table
+                  :headers="qualHeaders"
+                  :items="quals"
+                  :single-expand="false"
+                  :expanded.sync="expanded"
+                  item-key="name"
+                  show-expand
+                  class="elevation-1"
+                  dense
+                  :loading="loadingQuals"
+                  show-select
+                  v-model="selectedQualTypes"
+                  sort-by="creationTime"
+                  sort-desc
+                >
+                    <template v-slot:top>
+                        <v-card-title>
+                            Qualifications
+                            <v-btn icon @click="_evtGetQualificationTypeIds()"><v-icon>mdi-refresh</v-icon></v-btn>
+                            <!--<v-btn icon @click="$refs.dlgCreate.shown=true"><v-icon>mdi-plus</v-icon></v-btn>-->
+                            <v-spacer></v-spacer>
+                            <v-text-field v-model="search" append-icon="mdi-magnify" label="Search" single-line hide-details></v-text-field>
+                        </v-card-title>
+                    </template>
+                    <template v-slot:expanded-item="{ headers, item }">
+                        <td :colspan="headers.length">
+                            <div class="my-2">
+                                <div class="d-flex flex-row-reverse">
+                                    <v-btn icon color="grey lighten-1"><v-icon>mdi-pencil</v-icon></v-btn>
+                                    <v-btn icon color="grey lighten-1"><v-icon>mdi-account-edit</v-icon></v-btn>
+                                </div>
+                                Description: <b>{{ item.detail.Description }}</b><br>
+                                Created at: <b>{{ unixTimeToLocaleString(item.detail.CreationTime) }}</b><br>
+                                Automatically grant on submission: <b>{{ item.detail.AutoGranted }}</b><br>
+                                # of assigned workers: <b>{{ item.detail.workers ? item.detail.workers.length : 'retrieving...' }}</b><br>
+                                Raw data:
+                                <vue-json-pretty :data="item.detail" :deep="1" style="font-size:0.6em;"></vue-json-pretty>
                             </div>
-                            Description: <b>{{ item.detail.Description }}</b><br>
-                            Created at: <b>{{ unixTimeToLocaleString(item.detail.CreationTime) }}</b><br>
-                            Automatically grant on submission: <b>{{ item.detail.AutoGranted }}</b><br>
-                            # of assigned workers: <b>{{ item.detail.workers ? item.detail.workers.length : 'retrieving...' }}</b><br>
-                            Raw data:
-                            <vue-json-pretty :data="item.detail" :deep="1" style="font-size:0.6em;"></vue-json-pretty>
-                        </div>
-                    </td>
-                </template>
-            </v-data-table>
+                        </td>
+                    </template>
+                </v-data-table>
+            </v-col>
             <dialog-create ref="dlgCreate"></dialog-create>
 
             <v-snackbar :color="snackbar.success.color" v-model="snackbar.success.shown" :timeout="snackbar.success.timeout">
@@ -69,9 +68,7 @@
                   <v-btn dark color="white" text v-bind="attrs" @click="snackbar.error.shown=false">Close</v-btn>
               </template>
             </v-snackbar>
-
-        </div>
-    </v-main>
+        </v-row>
 </template>
 <script>
 import DialogCreate from './DialogCreate.vue'
@@ -142,7 +139,6 @@ export default {
                     q.push(data);
                 }
             }
-            console.log(q);
             return q
         },
         selectedQualTypeIds() {
@@ -194,10 +190,13 @@ export default {
                     if(data["Status"]=="error") return;
 
                     var qids = [];
+                    this.$set(this.sharedProps, "mTurkQuals", {});
                     for(var i in data["Data"]["QualificationTypes"]){
-                        qids.push(data["Data"]["QualificationTypes"][i]["QualificationTypeId"]);
+                        const qtype = data["Data"]["QualificationTypes"][i];
+                        const qid = qtype["QualificationTypeId"];
+                        qids.push(qtype["QualificationTypeId"]);
+                        this.$set(this.sharedProps.mTurkQuals, qid, qtype);
                     }
-                    this.$set(this.sharedProps, "mTurkQuals", data["Data"]["QualificationTypes"]);
                     this.selectedQualTypes = [];
                     this.loadingQuals = false;
                     this._evtGetWorkersForQualificationTypeIds(qids);
@@ -209,7 +208,6 @@ export default {
                     if(data["Status"]=="Error") {
                         this.snackbar.error.text = "Successfully created a qualification";
                         this.snackbar.error.shown = true;
-                        console.log(data["Reason"]);
                     } else {
                         this.snackbar.success.text = "Successfully created a qualification";
                         this.snackbar.success.shown = true;

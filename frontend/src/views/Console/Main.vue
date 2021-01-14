@@ -373,9 +373,9 @@ export default {
                         break;
                     }
                     case "Get": {
-                        const d = data["Data"]["Nanotasks"];
+                        //const d = data["Data"]["Nanotasks"];
                         const cnt = data["Data"]["Count"];
-                        this.projects[pn].templates[tn].nanotask.data = d;
+                        //this.projects[pn].templates[tn].nanotask.data = d;
                         this.projects[pn].templates[tn].nanotask.cnt = cnt;
                     }
                 }

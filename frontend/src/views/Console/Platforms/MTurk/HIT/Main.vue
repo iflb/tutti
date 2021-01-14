@@ -45,6 +45,20 @@
                             <v-icon v-if="item.detail.HITStatusCount.Assignable>0" small @click="openNewWindow('https://worker.mturk.com/projects/'+item.groupId+'/tasks');">mdi-open-in-new</v-icon>
                             <v-icon v-if="item.detail.HITStatusCount.Assignable>0" small @click="openNewWindow('https://workersandbox.mturk.com/projects/'+item.groupId+'/tasks');">mdi-open-in-new</v-icon>
                         </template>
+                        <template v-slot:item.title="{ item }">
+                            <div class="text-truncate" style="max-width:100px;">
+                            {{ item.title }}
+                            </div>
+                        </template>
+                        <template v-slot:item.project_names="{ item }">
+                            <div v-if="item.project_names.length==1"> {{ item.project_names[0] }} </div>
+                            <v-tooltip bottom>
+                                <template #activator="{ on, attrs }">
+                                    <div v-if="item.project_names.length>1" v-html="item.project_names.join(',<br>')" v-bind="attrs" v-on="on" style="font-weight:bold; color:red;"> </div>
+                                </template>
+                                <span><v-icon color="white">mdi-alert</v-icon> Multiple projects are bound to one HIT Type</span>
+                            </v-tooltip>
+                        </template>
                         <template v-slot:item.num_hits="{ item }">
                             {{ item.num_hits }} ( {{ item.num_assignable }} / {{ item.num_reviewable }} )
                         </template>
@@ -105,6 +119,7 @@ export default {
           { text: '', value: 'active' },
           { text: 'HIT Type ID', value: 'id' },
           { text: 'Title', value: 'title' },
+          { text: 'Project', value: 'project_names' },
           { text: 'Reward', value: 'reward' },
           { text: '# HITs (Open/Closed)', value: 'num_hits' },
           //{ text: '# Open HITs', value: 'num_assignable' },
@@ -214,6 +229,7 @@ export default {
                                     id: i,
                                     groupId: hits[i]["HITGroupId"],
                                     title: hits[i]["Props"]["Title"],
+                                    project_names: hits[i]["ProjectNames"],
                                     reward: hits[i]["Props"]["Reward"],
                                     creation_time: this.unixTimeToLocaleString(hits[i]["CreationTime"]),
                                     expiration_time: this.unixTimeToLocaleString(hits[i]["Expiration"]),
