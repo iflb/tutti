@@ -1,5 +1,5 @@
 export const stringifyUnixTime = function(unixTime){
-    if(unixTime.toString().length==10) unixTime = unixTime*1000;
+    if(unixTime<10000000000) unixTime = Math.floor(unixTime*1000);
 
     var dt = new Date(unixTime);
     return dt.getFullYear() + '-' +

@@ -55,6 +55,11 @@ export default new VueRouter({
                             path: "qual",
                             component: () => import("./views/Console/Platforms/MTurk/Qualification/Main"),
                             props: getPropsForRoute
+                        },
+                        {
+                            path: "worker",
+                            component: () => import("./views/Console/Platforms/MTurk/Worker/Main"),
+                            props: getPropsForRoute
                         }
                     ]
                 },

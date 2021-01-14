@@ -3,7 +3,7 @@
             <v-col class="text-right" cols="10">
                 <v-btn :loading="button.deleteQuals.loading" :disabled="button.deleteQuals.disabled" class="mx-2" dark
                        color="error" v-if="selectedQualTypeIds.length>0" @click="button.deleteQuals.loading=true; deleteQuals()">Delete ({{ selectedQualTypeIds.length }})</v-btn>
-                <v-btn class="mx-2" dark color="indigo" @click="$refs.dlgCreate.shown=true">Create Qualification...</v-btn>
+                <v-btn class="mx-2" dark color="indigo" @click="$refs.dialogCreate.shown=true">Create Qualification...</v-btn>
             </v-col>
             <v-col cols="10">
                 <v-data-table
@@ -48,30 +48,33 @@
                     </template>
                 </v-data-table>
             </v-col>
-            <dialog-create ref="dlgCreate"></dialog-create>
 
-            <v-snackbar :color="snackbar.success.color" v-model="snackbar.success.shown" :timeout="snackbar.success.timeout">
-              {{ snackbar.success.text }}
-              <template v-slot:action="{ attrs }">
-                  <v-btn dark color="white" text v-bind="attrs" @click="snackbar.success.shown=false">Close</v-btn>
-              </template>
-            </v-snackbar>
-            <v-snackbar :color="snackbar.warning.color" v-model="snackbar.warning.shown" :timeout="snackbar.warning.timeout">
-              {{ snackbar.warning.text }}
-              <template v-slot:action="{ attrs }">
-                  <v-btn dark color="white" text v-bind="attrs" @click="snackbar.warning.shown=false">Close</v-btn>
-              </template>
-            </v-snackbar>
-            <v-snackbar :color="snackbar.error.color" v-model="snackbar.error.shown" :timeout="snackbar.error.timeout">
-              {{ snackbar.error.text }}
-              <template v-slot:action="{ attrs }">
-                  <v-btn dark color="white" text v-bind="attrs" @click="snackbar.error.shown=false">Close</v-btn>
-              </template>
-            </v-snackbar>
+            <tutti-snackbar color="success" :timeout="3000" :text="snackbarTexts.success" />
+            <tutti-snackbar color="warning" :timeout="3000" :text="snackbarTexts.warning" />
+            <tutti-snackbar color="error" :timeout="3000" :text="snackbarTexts.error" />
+
+            <tutti-dialog ref="dialogCreate" title="Create Qualification Type" maxWidth="500"
+                :actions="[
+                    { label: 'Create', color: 'indigo darken-1', dark: true, onclick: createQualificationType },
+                    { label: 'Cancel', color: 'grey darken-1', text: true }
+                ]" >
+                <template v-slot:body>
+                    <v-row>
+                        <v-col cols="12">
+                            <v-text-field prepend-icon="mdi-label" v-model="newQualParams.Name" filled label="Name" dense hide-details/>
+                        </v-col>
+                        <v-col cols="12">
+                            <v-text-field prepend-icon="mdi-message-text" v-model="newQualParams.Description" filled label="Description" dense hide-details/>
+                        </v-col>
+                        <v-col cols="6"><v-switch v-model="newQualParams.AutoGranted" color="indigo" hide-details label="AutoGranted" /></v-col>
+                    </v-row>
+                </template>
+            </tutti-dialog>
         </v-row>
 </template>
 <script>
-import DialogCreate from './DialogCreate.vue'
+import Snackbar from '@/views/assets/Snackbar.vue'
+import Dialog from '@/views/assets/Dialog.vue'
 import { mapGetters, mapActions } from 'vuex'
 import VueJsonPretty from 'vue-json-pretty'
 import 'vue-json-pretty/lib/styles.css'
@@ -80,7 +83,8 @@ import { stringifyUnixTime } from '@/lib/utils'
 export default {
     components: {
         VueJsonPretty,
-        DialogCreate
+        TuttiSnackbar: Snackbar,
+        TuttiDialog: Dialog
     },
     data: () => ({
         selectedQualTypes: [],
@@ -100,25 +104,16 @@ export default {
                 disabled: false
             },
         },
-        snackbar: {
-            success: {
-                shown: false,
-                text: "",
-                timeout: 5000,
-                color: "success"
-            },
-            warning: {
-                shown: false,
-                text: "",
-                timeout: 5000,
-                color: "warning"
-            },
-            error: {
-                shown: false,
-                text: "",
-                timeout: 5000,
-                color: "error"
-            }
+        snackbarTexts: {
+            success: "",
+            warning: "",
+            error: ""
+        },
+            newQualParams: {
+            Name: "",
+            Description: "",
+            AutoGranted: false,
+            QualificationTypeStatus: "Active"
         }
     }),
     props: ["credentials", "sharedProps","name"],
@@ -178,6 +173,13 @@ export default {
                     }
                 });
             }
+        },
+        createQualificationType() {
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.MTURK_CREATE_QUALIFICATION,
+                data: this.newQualParams
+            });
         }
     },
     watch: {
@@ -211,11 +213,9 @@ export default {
             this.duct.addEvtHandler({ tag: this.name, eid: this.duct.EVENT.MTURK_CREATE_QUALIFICATION,
                 handler: (rid, eid, data) => {
                     if(data["Status"]=="Error") {
-                        this.snackbar.error.text = "Successfully created a qualification";
-                        this.snackbar.error.shown = true;
+                        this.snackbarTexts.error = "Error in creating a qualification";
                     } else {
-                        this.snackbar.success.text = "Successfully created a qualification";
-                        this.snackbar.success.shown = true;
+                        this.snackbarTexts.success = "Successfully created a qualification";
                         this._evtGetQualificationTypeIds();
                     }
                 }
@@ -233,8 +233,7 @@ export default {
                 tag: this.name, eid: this.duct.EVENT.MTURK_DELETE_QUALIFICATIONS,
                 handler: (rid, eid, data) => {
                     if(data["Status"]=="Error") {
-                        this.snackbar.error.text = "Errors occurred in deleting qualifications";
-                        this.snackbar.error.shown = true;
+                        this.snackbarTexts.error = "Errors occurred in deleting qualifications";
                     } else {
                         const res = data["Data"]["Results"];
                         var cntSuccess = 0;
@@ -243,11 +242,9 @@ export default {
                                 cntSuccess++;
                         }
                         if(cntSuccess==res.length) {
-                            this.snackbar.success.text = `Successfully deleted ${res.length} qualifications`;
-                            this.snackbar.success.shown = true;
+                            this.snackbarTexts.success = `Successfully deleted ${res.length} qualifications`;
                         } else {
-                            this.snackbar.warning.text = `Deleted ${cntSuccess} qualifications, but errors occurred in deleting ${res.length-cntSuccess} qualifications`;
-                            this.snackbar.warning.shown = true;
+                            this.snackbarTexts.warning = `Deleted ${cntSuccess} qualifications, but errors occurred in deleting ${res.length-cntSuccess} qualifications`;
                         }
 
                     }
