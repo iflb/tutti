@@ -1,7 +1,6 @@
 <template>
-    <v-main class="mt-10 grey lighten-4">
-        {{ attributes }}
-        <div style="max-width:1000px" class="mx-auto">
+    <v-row class="my-10" justify="center">
+        <v-col cols="10">
             <v-card>
                 <v-card-title>
                     Assign HIT Type <v-btn icon @click="openNewWindow('https://docs.aws.amazon.com/AWSMechTurk/latest/AWSMechanicalTurkRequester/Concepts_HITTypesArticle.html');"><v-icon>mdi-help-circle-outline</v-icon></v-btn>
@@ -121,6 +120,8 @@
                     </template>
                 </v-simple-table>
             </v-card>
+        </v-col>
+        <v-col cols="10">
             <v-card class="mt-5">
                 <v-card-title>Create HITs</v-card-title>
                 <v-card-text>
@@ -162,31 +163,42 @@
                     </template>
                 </v-simple-table>
             </v-card>
-            <v-row class="mb-8">
-                <v-col class="text-right">
-                    <v-btn dark :loading="postingHITs" color="indigo" @click="postHITs()">Post HITs</v-btn>
-                </v-col>
-            </v-row>
+        </v-col>
+        <v-col cols="10" class="text-right">
+            <v-btn dark :loading="postingHITs" color="indigo" @click.stop="credentials.Sandbox ? postHITs() : confirmPostHITs();">Post HITs</v-btn>
+        </v-col>
 
-            <v-snackbar :color="snackbar.success.color" v-model="snackbar.success.shown" :timeout="snackbar.success.timeout">
-              {{ snackbar.success.text }}
-              <template v-slot:action="{ attrs }">
-                  <v-btn dark color="white" text v-bind="attrs" @click="snackbar.success.shown=false">Close</v-btn>
-              </template>
-            </v-snackbar>
-            <v-snackbar :color="snackbar.error.color" v-model="snackbar.error.shown" :timeout="snackbar.error.timeout">
-              {{ snackbar.error.text }}
-              <template v-slot:action="{ attrs }">
-                  <v-btn dark color="white" text v-bind="attrs" @click="snackbar.error.shown=false">Close</v-btn>
-              </template>
-            </v-snackbar>
-        </div>
-    </v-main>
+        <tutti-snackbar color="success" :timeout="3000" :text="snackbarTexts.success" />
+        <tutti-snackbar color="warning" :timeout="3000" :text="snackbarTexts.warning" />
+        <tutti-snackbar color="error" :timeout="3000" :text="snackbarTexts.error" />
+
+        <v-dialog v-model="confirmingPostHITs" persistent max-width="500">
+            <v-card>
+                <v-card-title class="headline">
+                    Post HITs in Production mode?
+                </v-card-title>
+                <v-card-text>
+                    You are currently in production mode, which will hire MTurk workers and pay them real money. Are you sure to proceed?
+                </v-card-text>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn text color="grey" @click="confirmingPostHITs=false;">Cancel</v-btn>
+                    <v-btn dark color="indigo darken-1" @click="confirmingPostHITs=false; postHITs();">Proceed</v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
+
+    </v-row>
 </template>
 <script>
 import { mapGetters, mapActions } from 'vuex'
+import Snackbar from '@/views/assets/Snackbar.vue'
 
 export default {
+    props: ["credentials", "sharedProps"],
+    components: {
+        TuttiSnackbar: Snackbar
+    },
     data: () => ({
         hitTypes: [],
 
@@ -267,23 +279,15 @@ export default {
             }
         },
 
+        confirmingPostHITs: false,
+
         postingHITs: false,
-        snackbar: {
-            success: {
-                shown: false,
-                text: "",
-                timeout: 5000,
-                color: "success"
-            },
-            error: {
-                shown: false,
-                text: "",
-                timeout: 5000,
-                color: "error"
-            }
-        }
+        snackbarTexts: {
+            success: "",
+            warning: "",
+            error: ""
+        },
     }),
-    props: ["sharedProps"],
     computed: {
         ...mapGetters("ductsModule", [ "duct" ]),
         numQualRequirements() {
@@ -344,11 +348,6 @@ export default {
         },
 
         createHITsForHITTypeId(htid) {
-            //console.log({
-            //    "Command": "CreateHIT",
-            //    "Params": { "HITTypeId": htid, ...this.createHITParams },
-            //    "NumHITs": this.numCreateHITs
-            //});
             this._evtMTurkHIT({
                 "Command": "CreateHITWithHITType",
                 "ProjectName": this.sharedProps.project.name,
@@ -356,7 +355,10 @@ export default {
                 "NumHITs": this.numCreateHITs
             });
         },
-
+        
+        confirmPostHITs() {
+            this.confirmingPostHITs = true;
+        },
         postHITs() {
             this.postingHITs = true;
             if(this.createNew){ this.createHITType(); }
@@ -381,6 +383,7 @@ export default {
     },
     created() {
         this.createNew = true;
+        console.log(this.credentials);
         this.onDuctOpen(() => {
             this.duct.addEvtHandler({
                 tag: "/console/platform/mturk/hit/create/",
@@ -388,8 +391,7 @@ export default {
                 handler: (rid, eid, data) => {
                     if(data["Status"]=="Error") {
                         this.postingHITs = false;
-                        this.snackbar.error.text = "Error";
-                        this.snackbar.error.shown = true;
+                        this.snackbarTexts.error = "Error";
                         console.log(data["Reason"]);
                     }
 
@@ -406,8 +408,7 @@ export default {
                         }
                         case "CreateHITWithHITType": {
                             this.postingHITs = false;
-                            this.snackbar.success.text = "Successfully posted HITs";
-                            this.snackbar.success.shown = true;
+                            this.snackbarTexts.success = "Successfully posted HITs";
                             break;
                         }
                     }

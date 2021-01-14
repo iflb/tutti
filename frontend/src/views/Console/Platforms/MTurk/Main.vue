@@ -32,7 +32,7 @@
         </div>
 
         <v-slide-x-transition hide-on-leave>
-            <router-view :credentials="credentials"></router-view>
+            <router-view :shared-props="sharedProps" :credentials="credentials"></router-view>
         </v-slide-x-transition>
     </v-main>
 </template>
@@ -43,6 +43,7 @@ export default {
         credentials: null,
         loadingCredentials: false
     }),
+    props: ["sharedProps"],
     computed: {
         ...mapGetters("ductsModule", [ "duct" ]),
     },

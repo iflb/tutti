@@ -47,7 +47,7 @@ export default new VueRouter({
                             props: getPropsForRoute
                         },
                         {
-                            path: "create",
+                            path: "hit/create",
                             component: () => import("./views/Console/Platforms/MTurk/HIT/Create"),
                             props: getPropsForRoute
                         },
@@ -84,9 +84,5 @@ export default new VueRouter({
             component: () => import("./views/PrivateProdLogin.vue"),
             props: true
         },
-        //{
-        //    path: "/vuep",
-        //    component: () => import("./views/Vuep")
-        //}
     ]
 })

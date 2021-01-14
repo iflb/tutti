@@ -134,7 +134,6 @@ class Handler(EventHandler):
                         <FrameHeight>{frame_height}</FrameHeight>
                     </ExternalQuestion>'''
                 num = event.data["NumHITs"]
-                print(params)
                 for i in range(num):
                     res = await client.create_hit_with_hit_type(**params)
 
