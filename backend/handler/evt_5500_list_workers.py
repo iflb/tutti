@@ -35,6 +35,7 @@ class Handler(EventHandler):
         if ProjectName:  pns = [ProjectName]
         else:            pns = [prj["name"] for prj in await self.evt_project.list_projects()]
 
+
         wkr_prjs = {}
         for pn in pns:
             wids = await self.r_wkr.get_ids_for_pn(pn)
@@ -47,6 +48,7 @@ class Handler(EventHandler):
         tasks = [self.r_wkr.get(wid) for wid in wids]
         workers = dict(zip(wids, await asyncio.gather(*tasks)))
         for wid in workers:
-            workers[wid]["Projects"] = wkr_prjs[wid]
-        if Platform:  workers = {wid:wkr for wid,wkr in workers.items() if wkr["Platform"]==Platform}
+            if (worker := workers[wid]) and (prjs := wkr_prjs[wid]):
+                worker["Projects"] = prjs
+        if Platform:  workers = {wid:wkr for wid,wkr in workers.items() if wkr and wkr["Platform"]==Platform}
         return workers
