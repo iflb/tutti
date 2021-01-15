@@ -15,12 +15,12 @@
                     <v-list-item @click="$refs.dlgCreateProject.shown=true">
                         <v-list-item-title>Create New Project...</v-list-item-title>
                     </v-list-item>
-                    <v-list-item :disabled="projectName==''" @click="launchProductionMode()">
-                        <v-list-item-title>Launch in Production Mode (Private)</v-list-item-title>
+                    <!--<v-list-item :disabled="projectName==''" @click="launchProductionMode()">
+                        <v-list-item-title>Launch Task UI</v-list-item-title>
                         <v-list-item-action>
                             <v-icon>mdi-open-in-new</v-icon>
                         </v-list-item-action>
-                    </v-list-item>
+                    </v-list-item>-->
                     <!--<v-list-item @click="copyProjectPath">
                         <v-list-item-content>
                             <v-list-item-title>Project Path (Click to Copy)</v-list-item-title>
@@ -84,6 +84,21 @@
                 <v-list-item-group active-class="indigo--text text--accent-4">
                     <v-subheader>PUBLISH & COLLECT</v-subheader>
  
+                    <v-list-item :href="`/vue/private-prod/${this.projectName}`" target="_blank">
+                        <v-list-item-icon>
+                            <v-icon>mdi-monitor</v-icon>
+                        </v-list-item-icon>
+                        <v-list-item-title>Task UI</v-list-item-title>
+                        <v-list-item-action>
+                            <v-icon small>mdi-launch</v-icon>
+                        </v-list-item-action>
+                    </v-list-item>
+                    <v-list-item to="/console/answer/">
+                        <v-list-item-icon>
+                            <v-icon>mdi-database-arrow-left-outline</v-icon>
+                        </v-list-item-icon>
+                        <v-list-item-title>Answers</v-list-item-title>
+                    </v-list-item>
                     <v-list-group prepend-icon="mdi-account-group" :value="false">
                         <template v-slot:activator><v-list-item-title>Worker Platforms</v-list-item-title></template>
                         <v-list-item to="/console/platform/mturk/">
@@ -99,12 +114,6 @@
                             </v-list-item-content>
                         </v-list-item>
                     </v-list-group>
-                    <v-list-item to="/console/answer/">
-                        <v-list-item-icon>
-                            <v-icon>mdi-comment-text-multiple-outline</v-icon>
-                        </v-list-item-icon>
-                        <v-list-item-title>Answers</v-list-item-title>
-                    </v-list-item>
                 </v-list-item-group>
                 <v-list-item-group active-class="indigo--text text--accent-4">
                     <v-subheader>OTHERS</v-subheader>
@@ -113,6 +122,15 @@
                             <v-icon>mdi-lightning-bolt</v-icon>
                         </v-list-item-icon>
                         <v-list-item-title>Duct Events</v-list-item-title>
+                    </v-list-item>
+                    <v-list-item href="https://iflb.github.io/tutti/" target="_blank">
+                        <v-list-item-icon>
+                            <v-icon>mdi-file-document-outline</v-icon>
+                        </v-list-item-icon>
+                        <v-list-item-title>Documentation</v-list-item-title>
+                        <v-list-item-action>
+                            <v-icon small>mdi-launch</v-icon>
+                        </v-list-item-action>
                     </v-list-item>
 
                 </v-list-item-group>
@@ -214,6 +232,9 @@ export default {
         },
     },
     methods: {
+        hoge() {
+            console.log("hoge");
+        },
         ...mapActions("ductsModule", [
             "initDuct",
             "openDuct",
