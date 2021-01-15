@@ -19,6 +19,7 @@ class Handler(EventHandler):
 
     def setup(self, handler_spec, manager):
         self.r_wkr = WorkerResource(manager.redis)
+        self.evt_project = manager.get_handler_for(manager.key_ids["PROJECT_CORE"])[1]
 
         handler_spec.set_description('テンプレート一覧を取得します。')
         handler_spec.set_as_responsive()
@@ -30,13 +31,22 @@ class Handler(EventHandler):
         output.set("Workers", await self.list_workers(**event.data))
 
     async def list_workers(self, Platform=None, ProjectName=None):
-        if ProjectName:
-            wids = await self.r_wkr.get_ids_for_pn(ProjectName)
-        else:
-            wkr_cnt = await self.r_wkr.get_counter()
-            wids = [self.r_wkr.id(i) for i in range(1, wkr_cnt+1)]
+        wids = []
+        if ProjectName:  pns = [ProjectName]
+        else:            pns = [prj["name"] for prj in await self.evt_project.list_projects()]
+
+        wkr_prjs = {}
+        for pn in pns:
+            wids = await self.r_wkr.get_ids_for_pn(pn)
+            for wid in wids:
+                if wid not in wkr_prjs:  wkr_prjs[wid] = []
+                wkr_prjs[wid].append(pn)
+
+        [wids.extend(await self.r_wkr.get_ids_for_pn(pn)) for pn in pns]
 
         tasks = [self.r_wkr.get(wid) for wid in wids]
         workers = dict(zip(wids, await asyncio.gather(*tasks)))
+        for wid in workers:
+            workers[wid]["Projects"] = wkr_prjs[wid]
         if Platform:  workers = {wid:wkr for wid,wkr in workers.items() if wkr["Platform"]==Platform}
         return workers

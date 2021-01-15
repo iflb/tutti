@@ -36,6 +36,9 @@
                             <v-text-field v-model="search" append-icon="mdi-magnify" label="Search" single-line hide-details></v-text-field>
                         </v-card-title>
                     </template>
+                    <template v-slot:item.Projects="{ item }">
+                        {{ item.Projects.join(", ") }}
+                    </template>
                 </v-data-table>
             </v-col>
 
@@ -106,6 +109,7 @@ export default {
         workerHeaders: [
           { text: 'Worker ID', value: 'wid' },
           { text: 'Worker ID (MTurk)', value: 'PlatformWorkerId' },
+          { text: 'Visited Projects', value: 'Projects' },
           { text: 'Created Time', value: 'Timestamp' },
         ],
         selectedWorkers: [],
@@ -177,8 +181,8 @@ export default {
             this.loadingWorkers = true;
             this.duct.sendMsg({
                 tag: this.name,
-                eid: this.duct.EVENT.MTURK_LIST_WORKERS,
-                data: null
+                eid: this.duct.EVENT.LIST_WORKERS,
+                data: { "Platform": "MTurk" }
             });
         },
         _evtSendEmail() {
@@ -219,7 +223,7 @@ export default {
     },
     mounted() {
         this.onDuctOpen(() => {
-            this.duct.addEvtHandler({ tag: this.name, eid: this.duct.EVENT.MTURK_LIST_WORKERS,
+            this.duct.addEvtHandler({ tag: this.name, eid: this.duct.EVENT.LIST_WORKERS,
                 handler: (rid, eid, data) => {
                     this.loadingWorkers = false;
                     if(data["Status"]=="error") return;
