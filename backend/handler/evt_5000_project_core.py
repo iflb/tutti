@@ -34,6 +34,16 @@ class Handler(EventHandler):
         process = await asyncio.create_subprocess_shell("mkdir -p {} && cp -r {}/* {}".format(path_prj, root_path_default_prj, path_prj), shell=True)
         return await process.wait()
 
+    async def copy_project(self, ProjectNameFrom, ProjectNameTo):
+        path_prj_from = self.path.project(ProjectNameFrom)
+        path_prj_to = self.path.project(ProjectNameTo)
+
+        if os.path.exists(path_prj_to):
+            raise Exception("Error: project '{}' already exists".format(ProjectNameTo))
+
+        process = await asyncio.create_subprocess_shell("cp -r {} {}".format(path_prj_from, path_prj_to), shell=True)
+        return await process.wait()
+
     async def delete_project(self, ProjectName):
         path_prj = self.path.project(ProjectName)
 
