@@ -71,16 +71,41 @@
                 </v-card-actions>
             </v-card>
         </v-dialog>
+        <tutti-dialog ref="dialogAdviseReturn" maxWidth="800"
+            :actions="[
+                { label: 'OK', color: 'grey darken-1', text: true }
+            ]">
+            <template v-slot:title>
+                <v-icon color="warning" class="mr-2">mdi-alert</v-icon> No more task is currently available
+            </template>
+            <template v-slot:body>
+                Thank you for your interest in this HIT! We are sorry but there is no more task available for you on this HIT for now.<br>
+                Please return this HIT (nothing else will happen while this page is open).
+            </template>
+        </tutti-dialog>
+        <tutti-dialog ref="dialogUnskippableNode" maxWidth="800"
+            :actions="[
+                { label: 'OK', color: 'success', dark: true, onclick: _onSubmitWorkSession }
+            ]">
+            <template v-slot:title>
+                <v-icon color="success" class="mr-2">mdi-check-circle</v-icon> You reached the end of this HIT
+            </template>
+            <template v-slot:body>
+                You reached the end of this task now; it might have been earlier than expected, but don't worry, you will still earn the same amount of reward.<br>
+                This HIT will be automatically submitted as you close this dialog.
+            </template>
+        </tutti-dialog>
     </v-app>
 </template>
 
 <script>
-import store from '@/store.js'
+//import store from '@/store.js'
 import { mapActions, mapGetters } from 'vuex'
 import { platformConfig } from './platformConfig'
+import Dialog from '@/views/assets/Dialog.vue'
 
 export default {
-    store,
+    //store,
     beforeRouteEnter: (to, from, next) => {
         next(vm => {
             var platformWorkerId = platformConfig.workerId(vm);
@@ -91,6 +116,9 @@ export default {
                 platformConfig.onWorkerIdNotFound(next, vm.projectName);
             }
         });
+    },
+    components: {
+        TuttiDialog: Dialog
     },
     data: () => ({
         projectTitle: "",
@@ -180,6 +208,9 @@ export default {
                 eid: this.duct.EVENT.SESSION,
                 data: data
             });
+        },
+        _onSubmitWorkSession() {
+            platformConfig.onSubmitWorkSession(this);
         }
     },
     created: function(){
@@ -188,11 +219,12 @@ export default {
 
             this.initDuct( window.ducts = window.ducts || {}).then(() => {
                 this.duct.setEventHandler(this.duct.EVENT.SESSION, (rid, eid, data) => {
+                    console.log(data);
                     const command = data["Data"]["Command"];
                     if(command=="Create"){
                         if(data["Status"]=="Error") { console.error(`failed to create session ID: ${data["Reason"]}`); return; }
 
-                        console.log(data["Data"]);
+                        //console.log(data["Data"]);
                         this.wsid = data["Data"]["WorkSessionId"];
                         this.workerId = data["Data"]["WorkerId"];
                         this.pagination = data["Data"]["Pagination"];
@@ -202,6 +234,8 @@ export default {
                     }
                     else if(command=="Get"){
                         if(data["Status"]=="Error") { console.error(`failed to get from state machine: ${data["Reason"]}`); return; }
+
+                        //console.log(data);
 
                         const d = data["Data"];
                         this.hasPrevTemplate = d["HasPrevTemplate"];
@@ -227,11 +261,14 @@ export default {
                                     this.$set(this, "prevAnswer", d["Answers"]);
                                 }
                             });
-                            this.loadingNextTemplate = false;
-                        } else {
-                            //alert(d["TerminateReason"]);
-                            platformConfig.onSubmitWorkSession(this);
+                        } else if(d["WorkSessionStatus"]=="Terminated") {
+                            if(this.templateName=="")  this.$refs.dialogAdviseReturn.shown = true;
+                            else if(d["TerminateReason"]=="UnskippableNode")  this.$refs.dialogUnskippableNode.shown = true;
+                            else if(d["TerminateReason"]=="SessionEnd")  this._onSubmitWorkSession(this);
+                            else  this._onSubmitWorkSession(this);
+                            //else  this.$refs.unexpectedTermination.shown = true;
                         }
+                        this.loadingNextTemplate = false;
                     }
                     else if(command=="SetAnswer"){
                         if(data["Status"]=="Error") { console.error(`failed to send answer: ${data["Reason"]}`); return; }
