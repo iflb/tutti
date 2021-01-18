@@ -96,7 +96,7 @@
 <script>
 //import DialogCreate from './DialogCreate.vue'
 import { mapGetters, mapActions } from 'vuex'
-import VueJsonPretty from 'vue-json-pretty'
+import VueJsonPretty from 'vue-json-pretty/lib/vue-json-pretty'
 import 'vue-json-pretty/lib/styles.css'
 import Snackbar from '@/views/assets/Snackbar.vue'
 import { stringifyUnixTime } from '@/lib/utils'

@@ -48,9 +48,9 @@
 <script>
 import store from '@/store.js'
 import { mapGetters, mapActions } from 'vuex'
-import VueJsonPretty from 'vue-json-pretty'
+import VueJsonPretty from 'vue-json-pretty/lib/vue-json-pretty'
 import 'vue-json-pretty/lib/styles.css'
-import { codemirror } from 'vue-codemirror'
+import { codemirror } from 'vue-codemirror/src/codemirror'
 import 'codemirror/lib/codemirror.css'
 
 export default {

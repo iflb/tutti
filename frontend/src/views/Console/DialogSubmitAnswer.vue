@@ -12,7 +12,7 @@
 </template>
 
 <script>
-import VueJsonPretty from 'vue-json-pretty'
+import VueJsonPretty from 'vue-json-pretty/lib/vue-json-pretty'
 
 export default {
     data: () => ({

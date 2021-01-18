@@ -52,7 +52,7 @@
 <script>
 import store from '@/store.js'
 import { mapGetters } from 'vuex'
-import VueJsonPretty from 'vue-json-pretty'
+import VueJsonPretty from 'vue-json-pretty/lib/vue-json-pretty'
 import DialogSubmitAnswer from './DialogSubmitAnswer.vue'
 import DialogCreateTemplate from './DialogCreateTemplate.vue'
 import 'vue-json-pretty/lib/styles.css'
