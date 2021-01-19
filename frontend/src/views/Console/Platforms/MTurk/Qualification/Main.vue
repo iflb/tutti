@@ -75,7 +75,6 @@
 <script>
 import Snackbar from '@/views/assets/Snackbar.vue'
 import Dialog from '@/views/assets/Dialog.vue'
-import { mapGetters, mapActions } from 'vuex'
 import VueJsonPretty from 'vue-json-pretty/lib/vue-json-pretty'
 import 'vue-json-pretty/lib/styles.css'
 import { stringifyUnixTime } from '@/lib/utils'
@@ -116,10 +115,9 @@ export default {
             QualificationTypeStatus: "Active"
         }
     }),
-    props: ["credentials", "sharedProps","name"],
+    props: ["duct", "credentials", "sharedProps","name"],
 
     computed: {
-        ...mapGetters("ductsModule", [ "duct" ]),
         quals() {
             var q = []
             if("mTurkQuals" in this.sharedProps) {
@@ -145,7 +143,6 @@ export default {
         }
     },
     methods: {
-        ...mapActions("ductsModule", [ "onDuctOpen" ]),
         deleteQuals() {
             this.duct.sendMsg({
                 tag: this.name,
@@ -191,7 +188,7 @@ export default {
         }
     },
     mounted() {
-        this.onDuctOpen(() => {
+        this.duct.invokeOrWaitForOpen(() => {
             this.duct.addEvtHandler({ tag: this.name, eid: this.duct.EVENT.MTURK_LIST_QUALIFICATIONS,
                 handler: (rid, eid, data) => {
                     if(data["Status"]=="error") return;

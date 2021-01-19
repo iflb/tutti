@@ -93,7 +93,6 @@
         </v-row>
 </template>
 <script>
-import { mapGetters, mapActions } from 'vuex'
 import Snackbar from '@/views/assets/Snackbar.vue'
 import Dialog from '@/views/assets/Dialog.vue'
 import { stringifyUnixTime } from '@/lib/utils'
@@ -133,10 +132,9 @@ export default {
         },
         quals: null
     }),
-    props: ["sharedProps","name"],
+    props: ["duct", "sharedProps","name"],
 
     computed: {
-        ...mapGetters("ductsModule", [ "duct" ]),
         selectedWorkerIds() {
             var wids = [];
             for(var i in this.selectedWorkers)
@@ -160,7 +158,6 @@ export default {
         }
     },
     methods: {
-        ...mapActions("ductsModule", [ "onDuctOpen" ]),
         unixTimeToLocaleString(unixTime) {
             var dt = new Date(unixTime*1000);
             return dt.toLocaleDateString() + " " + dt.toLocaleTimeString();
@@ -222,7 +219,7 @@ export default {
         }
     },
     mounted() {
-        this.onDuctOpen(() => {
+        this.duct.invokeOrWaitForOpen(() => {
             this.duct.addEvtHandler({ tag: this.name, eid: this.duct.EVENT.LIST_WORKERS,
                 handler: (rid, eid, data) => {
                     this.loadingWorkers = false;

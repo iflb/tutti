@@ -139,7 +139,7 @@
                         <v-col cols="2"> <v-text-field outlined dense hide-details type="number" min=0 step=1 v-model.number="numCreateHITs"></v-text-field> </v-col>
                     </v-row>
                 </v-card-text>
-                <v-card-subtitle><b>HIT Params</b> <v-btn icon @click="openNewWindow('https://docs.aws.amazon.com/AWSMechTurk/latest/AWSMturkAPI/ApiReference_CreateHITWithHITTypeOperation.html');"><v-icon>mdi-help-circle-outline</v-icon></v-btn></v-card-subtitle>
+                <v-card-subtitle><b>HIT Params</b> <v-btn icon href="https://docs.aws.amazon.com/AWSMechTurk/latest/AWSMturkAPI/ApiReference_CreateHITWithHITTypeOperation.html" target="_blank"><v-icon>mdi-help-circle-outline</v-icon></v-btn></v-card-subtitle>
                 <v-simple-table dense>
                     <template v-slot:default>
                         <thead><tr style="background-color:#eee;">
@@ -191,11 +191,10 @@
     </v-row>
 </template>
 <script>
-import { mapGetters, mapActions } from 'vuex'
 import Snackbar from '@/views/assets/Snackbar.vue'
 
 export default {
-    props: ["credentials", "sharedProps"],
+    props: ["duct", "credentials", "sharedProps"],
     components: {
         TuttiSnackbar: Snackbar
     },
@@ -289,7 +288,6 @@ export default {
         },
     }),
     computed: {
-        ...mapGetters("ductsModule", [ "duct" ]),
         numQualRequirements() {
             if(this.attributes && this.attributes.QualificationRequirements)
                 return this.attributes.QualificationRequirements.length;
@@ -311,7 +309,6 @@ export default {
         }
     },
     methods: {
-        ...mapActions("ductsModule", [ "onDuctOpen" ]),
         openNewWindow(url) {
             window.open(url, "_blank");
         },
@@ -383,8 +380,7 @@ export default {
     },
     created() {
         this.createNew = true;
-        console.log(this.credentials);
-        this.onDuctOpen(() => {
+        this.duct.invokeOrWaitForOpen(() => {
             this.duct.addEvtHandler({
                 tag: "/console/platform/mturk/hit/create/",
                 eid: this.duct.EVENT.MTURK_HIT,
@@ -418,7 +414,6 @@ export default {
             this.duct.addEvtHandler({
                 tag: this.name, eid: this.duct.EVENT.MTURK_LIST_QUALIFICATIONS,
                 handler: (rid, eid, data) => {
-                    console.log("hogehoge");
                     if(data["Status"]=="error") return;
 
                     var ret = [];

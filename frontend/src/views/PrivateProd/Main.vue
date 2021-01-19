@@ -99,13 +99,11 @@
 </template>
 
 <script>
-//import store from '@/store.js'
-import { mapActions, mapGetters } from 'vuex'
+import { DuctsLoader } from '@/lib/ducts-loader'
 import { platformConfig } from './platformConfig'
 import Dialog from '@/views/assets/Dialog.vue'
 
 export default {
-    //store,
     beforeRouteEnter: (to, from, next) => {
         next(vm => {
             var platformWorkerId = platformConfig.workerId(vm);
@@ -146,9 +144,6 @@ export default {
         hasNextTemplate: false,
     }),
     computed: {
-        ...mapGetters("ductsModule", [
-            "duct"
-        ]),
         template() {
             console.log(`@/projects/${this.projectName}/templates/${this.templateName}/Main.vue`);
             try { return require(`@/projects/${this.projectName}/templates/${this.templateName}/Main.vue`).default }
@@ -165,11 +160,6 @@ export default {
     },
     props: ["projectName"],
     methods: {
-        ...mapActions("ductsModule", [
-            "initDuct",
-            "openDuct",
-            "closeDuct"
-        ]),
         getTemplate(direction) {
             if(this.wsid) {
                 this.loadingNextTemplate = true;
@@ -217,68 +207,68 @@ export default {
         this.loadClientToken().then(() => {
             console.log("clientToken:", this.clientToken);
 
-            this.initDuct( window.ducts = window.ducts || {}).then(() => {
-                this.duct.setEventHandler(this.duct.EVENT.SESSION, (rid, eid, data) => {
-                    console.log(data);
-                    const command = data["Data"]["Command"];
-                    if(command=="Create"){
-                        if(data["Status"]=="Error") { console.error(`failed to create session ID: ${data["Reason"]}`); return; }
+            new DuctsLoader().initDuct("guest").then( ({ loader, duct }) => {
+                this.duct = duct;
 
-                        //console.log(data["Data"]);
-                        this.wsid = data["Data"]["WorkSessionId"];
-                        this.workerId = data["Data"]["WorkerId"];
-                        this.pagination = data["Data"]["Pagination"];
-                        this.projectTitle = ("Title" in data["Data"]) ? data["Data"]["Title"] : "";
-                        this.instruction.enabled = data["Data"]["InstructionEnabled"];
-                        this.getTemplate("NEXT");
-                    }
-                    else if(command=="Get"){
-                        if(data["Status"]=="Error") { console.error(`failed to get from state machine: ${data["Reason"]}`); return; }
+                duct.addOnOpenHandler(() => {
+                    this.duct.setTuttiEventHandler(this.duct.EVENT.SESSION,
+                        ({ data }) => {
+                            const command = data["Command"];
+                            if(command=="Create"){
+                                //if(data["Status"]=="Error") { console.error(`failed to create session ID: ${data["Reason"]}`); return; }
 
-                        //console.log(data);
-
-                        const d = data["Data"];
-                        this.hasPrevTemplate = d["HasPrevTemplate"];
-                        this.hasNextTemplate = d["HasNextTemplate"];
-                        if(d["Template"]){
-                            this.count += 1;
-                            this.showTemplate = false;
-                            this.$nextTick(() => {
-                                this.showTemplate = true;
-                                this.templateName = d["Template"];
-                                this.nsid = d["NodeSessionId"];
-                                if(d["IsStatic"]) {
-                                    console.log("loading static task");
-                                    this.$set(this, "nanoProps", null);
-                                    this.nanotaskId = null;
+                                this.wsid = data["WorkSessionId"];
+                                this.workerId = data["WorkerId"];
+                                this.pagination = data["Pagination"];
+                                this.projectTitle = data["Title"] || "";
+                                this.instruction.enabled = data["InstructionEnabled"];
+                                this.getTemplate("NEXT");
+                            }
+                            else if(command=="Get"){
+                                //if(data["Status"]=="Error") { console.error(`failed to get from state machine: ${data["Reason"]}`); return; }
+                                this.hasPrevTemplate = data["HasPrevTemplate"];
+                                this.hasNextTemplate = data["HasNextTemplate"];
+                                if(data["Template"]){
+                                    this.count += 1;
+                                    this.showTemplate = false;
+                                    this.$nextTick(() => {
+                                        this.showTemplate = true;
+                                        this.templateName = data["Template"];
+                                        this.nsid = data["NodeSessionId"];
+                                        if(data["IsStatic"]) {
+                                            console.log("loading static task");
+                                            this.$set(this, "nanoProps", null);
+                                            this.nanotaskId = null;
+                                        }
+                                        else {
+                                            this.$set(this, "nanoProps", data["Props"]);
+                                            this.nanotaskId = data["NanotaskId"];
+                                        }
+                                        
+                                        if("Answers" in data) {
+                                            this.$set(this, "prevAnswer", data["Answers"]);
+                                        }
+                                    });
+                                } else if(data["WorkSessionStatus"]=="Terminated") {
+                                    if(this.templateName=="")  this.$refs.dialogAdviseReturn.shown = true;
+                                    else if(data["TerminateReason"]=="UnskippableNode")  this.$refs.dialogUnskippableNode.shown = true;
+                                    else if(data["TerminateReason"]=="SessionEnd")  this._onSubmitWorkSession(this);
+                                    else  this._onSubmitWorkSession(this);
+                                    //else  this.$refs.unexpectedTermination.shown = true;
                                 }
-                                else {
-                                    this.$set(this, "nanoProps", d["Props"]);
-                                    this.nanotaskId = d["NanotaskId"];
-                                }
-                                
-                                if("Answers" in d) {
-                                    this.$set(this, "prevAnswer", d["Answers"]);
-                                }
-                            });
-                        } else if(d["WorkSessionStatus"]=="Terminated") {
-                            if(this.templateName=="")  this.$refs.dialogAdviseReturn.shown = true;
-                            else if(d["TerminateReason"]=="UnskippableNode")  this.$refs.dialogUnskippableNode.shown = true;
-                            else if(d["TerminateReason"]=="SessionEnd")  this._onSubmitWorkSession(this);
-                            else  this._onSubmitWorkSession(this);
-                            //else  this.$refs.unexpectedTermination.shown = true;
-                        }
-                        this.loadingNextTemplate = false;
-                    }
-                    else if(command=="SetAnswer"){
-                        if(data["Status"]=="Error") { console.error(`failed to send answer: ${data["Reason"]}`); return; }
+                                this.loadingNextTemplate = false;
+                            }
+                            else if(command=="SetAnswer"){
+                                //if(data["Status"]=="Error") { console.error(`failed to send answer: ${data["Reason"]}`); return; }
 
-                        this.answer = {}
-                        this.getTemplate("NEXT");
-                    }
+                                this.answer = {}
+                                this.getTemplate("NEXT");
+                            }
+                        },
+                        );
                 });
 
-                this.openDuct().then(() => {
+                loader.openDuct().then(() => {
                     this._evtSession({
                         "Command": "Create",
                         "ProjectName": this.projectName,
@@ -286,7 +276,7 @@ export default {
                         "ClientToken": this.clientToken,
                         "Platform": platformConfig.platformName
                     });
-                })
+                });
             })
 
         }).catch(platformConfig.onClientTokenFailure);

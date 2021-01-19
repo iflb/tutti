@@ -90,7 +90,6 @@ export default {
 
                     const rid = s.rid;
                     const tag = s.tag;
-                    //const sent = `${s.eid}__${s.data}`;
                     const sent = s.data;
                     const eid = `${Object.keys(this.duct.EVENT).find(key => this.duct.EVENT[key] === s.eid)} (${s.eid})`;
                     const received = null;

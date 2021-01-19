@@ -66,11 +66,7 @@
 </template>
 
 <script>
-import store from '@/store.js'
-import { mapGetters } from 'vuex'
-
 export default {
-    store,
     data: () => ({
         show: false,
         search: "",
@@ -78,9 +74,8 @@ export default {
 
         loading: true
     }),
-    props: ["project", "template", "nanotasks"],
+    props: ["duct", "project", "template", "nanotasks"],
     computed: {
-        ...mapGetters("ductsModule", [ "duct" ]),
         headers() {
             return [
                 { text: "NanotaskId",    value: "NanotaskId",    width: "10%" },

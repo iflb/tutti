@@ -89,11 +89,10 @@
     </div>
 </template>
 <script>
-import { mapGetters, mapActions } from 'vuex'
 import Dialog from '@/views/assets/Dialog.vue'
 
 export default {
-    props: ["sharedProps", "credentials", "name"],
+    props: ["duct", "sharedProps", "credentials", "name"],
     components: {
         TuttiDialog: Dialog
     },
@@ -103,11 +102,7 @@ export default {
             SecretAccessKey: ""
         }
     }),
-    computed: {
-        ...mapGetters("ductsModule", [ "duct" ]),
-    },
     methods: {
-        ...mapActions("ductsModule", [ "onDuctOpen" ]),
         windowOpen(url, target){
             window.open(url, target);
         },
@@ -126,8 +121,6 @@ export default {
                 data: null
             });
         }
-    },
-    mounted() {
     }
 }
 </script>

@@ -303,6 +303,7 @@ export default {
                     }
                     case "Get": {
                         const cnt = data["Count"];
+                        this.projects[ProjectName].templates[TemplateName].nanotask.data = data["Nanotasks"];
                         this.projects[ProjectName].templates[TemplateName].nanotask.cnt = cnt;
                         break;
                     }
@@ -361,7 +362,6 @@ export default {
             }
 
             duct.addOnOpenHandler(() => {
-                console.log("onopen");
                 this.srvStatus = "connected"
                 this.lastPinged = dateFormat(new Date(), "HH:MM:ss")
 

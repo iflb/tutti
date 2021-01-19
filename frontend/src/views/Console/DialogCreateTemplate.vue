@@ -18,13 +18,8 @@
 </template>
 
 <script>
-import store from '@/store.js'
-import { mapGetters, mapActions } from 'vuex'
-
 export default {
-    store,
     computed: {
-        ...mapGetters("ductsModule", [ "duct" ]),
         presetsList() {
             var l = []
             for(var i in this.presets){
@@ -50,9 +45,8 @@ export default {
         },
         presets: {}
     }),
-    props: ["project"],
+    props: ["duct", "project"],
     methods: {
-        ...mapActions("ductsModule", [ "onDuctOpen" ]),
         create() {
             this.duct.sendMsg({
                 tag: this.name,
@@ -70,7 +64,7 @@ export default {
         }
     },
     created() {
-        this.onDuctOpen(() => {
+        this.duct.invokeOrWaitForOpen(() => {
             this.duct.sendMsg({
                 tag: this.name,
                 eid: this.duct.EVENT.LIST_TEMPLATE_PRESETS,

@@ -94,20 +94,15 @@
     </div>
 </template>
 <script>
-//import DialogCreate from './DialogCreate.vue'
-import { mapGetters, mapActions } from 'vuex'
 import VueJsonPretty from 'vue-json-pretty/lib/vue-json-pretty'
 import 'vue-json-pretty/lib/styles.css'
 import Snackbar from '@/views/assets/Snackbar.vue'
 import { stringifyUnixTime } from '@/lib/utils'
-//import { codemirror } from 'vue-codemirror'
-//import 'codemirror/lib/codemirror.css'
 
 export default {
     components: {
         VueJsonPretty,
         TuttiSnackbar: Snackbar
-        //codemirror
     },
     data: () => ({
         snackbarTexts: {
@@ -125,8 +120,6 @@ export default {
           { text: 'Project', value: 'project_names' },
           { text: 'Reward', value: 'reward' },
           { text: '# HITs (Open/Closed)', value: 'num_hits' },
-          //{ text: '# Open HITs', value: 'num_assignable' },
-          //{ text: '# Closed HITs', value: 'num_reviewable' },
           { text: 'Creation Time', value: 'creation_time' },
           { text: 'Expiration Time', value: 'expiration_time' },
           { text: '', value: 'data-table-expand' },
@@ -155,10 +148,9 @@ export default {
             },
         },
     }),
-    props: ["credentials", "name"],
+    props: ["duct", "credentials", "name"],
 
     computed: {
-        ...mapGetters("ductsModule", [ "duct" ]),
         selectedHITIds() {
             var hitIds = [];
             for(var i in this.selectedHITTypes){
@@ -168,7 +160,6 @@ export default {
         }
     },
     methods: {
-        ...mapActions("ductsModule", [ "onDuctOpen" ]),
         openNewWindow(url) {
             window.open(url, "_blank");
         },
@@ -219,7 +210,7 @@ export default {
         }
     },
     mounted() {
-        this.onDuctOpen(() => {
+        this.duct.invokeOrWaitForOpen(() => {
             this.duct.addEvtHandler({
                 tag: this.name, eid: this.duct.EVENT.MTURK_HIT,
                 handler: (rid, eid, data) => {

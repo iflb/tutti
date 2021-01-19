@@ -36,11 +36,7 @@
 <script>
 import Papa from 'papaparse'
 
-import store from '@/store.js'
-import { mapGetters } from 'vuex'
-
 export default {
-    store,
     data: () => ({
         show: false,
         headers: [],
@@ -52,10 +48,7 @@ export default {
         numAssignments: 1,
         priority: 1
     }),
-    props: ["project", "template"],
-    computed: {
-        ...mapGetters("ductsModule", [ "duct" ]),
-    },
+    props: ["duct", "project", "template"],
     methods: {
         closeDialog() {
             this.contents = [];

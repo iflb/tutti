@@ -32,24 +32,18 @@
         </div>
 
         <v-slide-x-transition hide-on-leave>
-            <router-view :shared-props="sharedProps" :credentials="credentials"></router-view>
+            <router-view :duct="duct" :shared-props="sharedProps" :credentials="credentials"></router-view>
         </v-slide-x-transition>
     </v-main>
 </template>
 <script>
-import { mapGetters, mapActions } from 'vuex'
 export default {
     data: () => ({
         credentials: null,
         loadingCredentials: false
     }),
-    props: ["sharedProps"],
-    computed: {
-        ...mapGetters("ductsModule", [ "duct" ]),
-    },
+    props: ["duct", "sharedProps"],
     methods: {
-        ...mapActions("ductsModule", [ "onDuctOpen" ]),
-
         onReceiveCredentials(rid, eid, data) {
             this.loadingCredentials = false;
             this.credentials = data["Data"]["Results"];
@@ -73,7 +67,7 @@ export default {
         }
     },
     mounted() {
-        this.onDuctOpen(() => {
+        this.duct.invokeOrWaitForOpen(() => {
             const credEvtNames = ["MTURK_GET_CREDENTIALS", "MTURK_SET_CREDENTIALS", "MTURK_CLEAR_CREDENTIALS", "MTURK_SET_SANDBOX"];
             for(var i in credEvtNames)  this.duct.addEvtHandler({ tag: "", eid: this.duct.EVENT[credEvtNames[i]], handler: this.onReceiveCredentials });
 

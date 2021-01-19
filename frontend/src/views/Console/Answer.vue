@@ -39,20 +39,15 @@ function formatDate (date, format) {
     return format;
 }
 
-import store from '@/store.js'
-import { mapGetters } from 'vuex'
-
 export default {
-    store,
     data: () => ({
         templateName: null,
         ansTableHeaderValues: [],
         ansTableHeaders: [],
         searchStr: ""
     }),
-    props: ["sharedProps","name"],
+    props: ["duct", "sharedProps","name"],
     computed: {
-        ...mapGetters("ductsModule", ["duct"]),
         project() { return this.sharedProps.project },
 
         isTemplateSelectDisabled() {

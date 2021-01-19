@@ -17,14 +17,7 @@
 </template>
 
 <script>
-import store from '@/store.js'
-import { mapGetters } from 'vuex'
-
 export default {
-    store,
-    computed: {
-        ...mapGetters("ductsModule", [ "duct" ])
-    },
     data: () => ({
         shown: false,
         valid: false,
@@ -37,6 +30,7 @@ export default {
             }
         }
     }),
+    props: ["duct"],
     methods: {
         create() {
             this.duct.sendMsg({

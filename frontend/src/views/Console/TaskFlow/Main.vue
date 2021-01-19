@@ -13,22 +13,16 @@
                 <arrow :color="templateColor" depth="1" />
 
                 <div v-if="flow">
-                    <!--<recursive-batch
-                        v-for="(child, idx) in flow.children"
-                        :key="idx"
-                        :project="project"
-                        :node="child"
-                        :is-last="idx==flow.children.length-1"
-                        :depth="1"
-                        :name="name"
-                        :template-color="templateColor" />-->
                     <recursive-batch
-                        :project="project"
-                        :node="flow"
-                        :depth="1"
+                        :duct="duct"
                         :name="name"
-                        :is-last="true"
-                        :template-color="templateColor" />
+                        :parent-params="{
+                            project: project,
+                            node: flow,
+                            depth: 1,
+                            isLast: true,
+                            templateColor: templateColor,
+                        }" />
                 </div>
 
                 <arrow :color="templateColor" depth="1" />
@@ -50,14 +44,10 @@
 </template>
 
 <script>
-import store from '@/store.js'
-import { mapGetters } from 'vuex'
-
 import Arrow from './Arrow.vue'
 import RecursiveBatch from './RecursiveBatch.vue'
 
 export default {
-    store,
     data: () => ({
         snackbar: {
             visible: false,
@@ -65,19 +55,18 @@ export default {
             color: "",
             text: ""
         },
-        templateColor: "blue-grey lighten-4"
+        templateColor: "blue-grey lighten-4",
     }),
     components: {
         Arrow, RecursiveBatch
     },
-    props: ["sharedProps","name"],
+    props: ["duct", "sharedProps","name"],
     computed: {
-        ...mapGetters("ductsModule", [ "duct" ]),
         project() { return this.sharedProps.project },
         flow() {
             if(this.project) { return this.sharedProps.project.profile; }
             else { return null; }
-        }
+        },
     },
     methods: {
         showSnackbar(info){
@@ -96,22 +85,4 @@ export default {
         }
     },
 }
-
-document.addEventListener('keydown', function (e) {
-    var elem, end, start, value;
-    if (e.keyCode === 9) {
-        if (e.preventDefault) {
-            e.preventDefault();
-        }
-        elem = e.target;
-        start = elem.selectionStart;
-        end = elem.selectionEnd;
-        value = elem.value;
-        if(value){
-            elem.value = "" + (value.substring(0, start)) + "    " + (value.substring(end));
-            elem.selectionStart = elem.selectionEnd = start + 4;
-        }
-        return false;
-    }
-});
 </script>

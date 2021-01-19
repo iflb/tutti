@@ -50,15 +50,12 @@
 </template>
 
 <script>
-import store from '@/store.js'
-import { mapGetters } from 'vuex'
 import VueJsonPretty from 'vue-json-pretty/lib/vue-json-pretty'
 import DialogSubmitAnswer from './DialogSubmitAnswer.vue'
 import DialogCreateTemplate from './DialogCreateTemplate.vue'
 import 'vue-json-pretty/lib/styles.css'
 
 export default {
-    store,
     components: {
         VueJsonPretty,
         DialogSubmitAnswer,
@@ -69,9 +66,8 @@ export default {
         currentAnswer: {},
         sentAnswer: {},
     }),
-    props: ["sharedProps","name"],
+    props: ["duct", "sharedProps","name"],
     computed: {
-        ...mapGetters("ductsModule", ["duct"]),
         project() { return this.sharedProps.project },
 
         nanotaskTemplateComponent() {
