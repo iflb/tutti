@@ -1,8 +1,8 @@
-window.ducts.dynamiccrowd = window.ducts.dynamiccrowd || {};
-window.ducts.dynamiccrowd.event = window.ducts.dynamiccrowd.event || {};
+window.ducts.tutti = window.ducts.tutti || {};
+window.ducts.tutti.event = window.ducts.tutti.event || {};
 //window.ducts.nds.asr = window.ducts.nds.asr || {};
 //window.ducts.nds.asr.event = window.ducts.nds.asr.event || {};
-window.ducts.dynamiccrowd._local = window.ducts.dynamiccrowd._local || {};
+window.ducts.tutti._local = window.ducts.tutti._local || {};
 
 /*
 window.ducts.nds.ResourceEventListener = class extends window.ducts.DuctEventListener {
@@ -430,7 +430,7 @@ window.ducts.nds.AutomaticSpeechRecognizer = class {
 //    }
 //}
 
-window.ducts.dynamiccrowd.Duct = class extends window.ducts.Duct {
+window.ducts.tutti.Duct = class extends window.ducts.Duct {
 
     constructor(wsd) {
 	    super(wsd);

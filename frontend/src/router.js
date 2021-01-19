@@ -89,5 +89,9 @@ export default new VueRouter({
             component: () => import("./views/PrivateProdLogin.vue"),
             props: true
         },
+        {
+            path: "/test",
+            component: () => import("./views/Test/Main.vue")
+        }
     ]
 })
