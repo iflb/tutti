@@ -1,12 +1,9 @@
 module.exports = {
-    publicPath: process.env.NODE_ENV === 'production'
-       ? '/vue/' : '/vue-dev/',
-    //outputDir: "/var/www/html/vue-dist",
+    transpileDependencies: [ "vuetify" ],
+    publicPath: process.env.NODE_ENV === 'production' ? '/vue/' : '/vue-dev/',
     devServer: {
-        //port: 8081,
         port: 80,
         public: process.env.DOMAIN_NAME,
-        //publicPath: "/vue-dev/",
     },
     configureWebpack: {
         resolve: { symlinks: false },
@@ -20,12 +17,12 @@ module.exports = {
                 poll: true
             }
         },
-        optimization: {
-            splitChunks: {
-                minSize: 10000,
-                maxSize: 250000,
-            }
-        }
+        //optimization: {
+        //    splitChunks: {
+        //        minSize: 10000,
+        //        maxSize: 250000,
+        //    }
+        //}
     }
 };
 

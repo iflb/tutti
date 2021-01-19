@@ -44,7 +44,7 @@
         </v-row>
 
         <dialog-submit-answer ref="dlgSubmitAnswer" :answer="sentAnswer" />
-        <dialog-create-template ref="dlgCreateTemplate" :project="project ? project.name : null" />
+        <dialog-create-template ref="dlgCreateTemplate" :duct="duct" :project="project ? project.name : null" />
 
     </v-main>
 </template>

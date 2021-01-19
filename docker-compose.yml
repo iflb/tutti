@@ -32,7 +32,7 @@ services:
         - FRONTEND_HOME=${FRONTEND_HOME}
     volumes:
       - ./frontend:${FRONTEND_HOME}
-      - ${FRONTEND_HOME}/node_modules/
+      #- ${FRONTEND_HOME}/node_modules/
       - ./projects/:${FRONTEND_HOME}/src/projects/
     stdin_open: true
     tty: true
