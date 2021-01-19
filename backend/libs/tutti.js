@@ -506,6 +506,19 @@ window.ducts.tutti.Duct = class extends window.ducts.Duct {
 
     }
 
+    setTuttiEventHandler(eid, success, error) {
+        this.setEventHandler(eid, (rid, eid, data) => {
+            if (data["Status"]=="Success") success({ rid, eid, timestamp: data["Timestamp"], data: data["Data"] });
+            else if (data["Status"]=="Error" && error) error({ rid, eid, timestamp: data["Timestamp"], reason: data["Reason"] });
+        });
+    }
+
+    invokeOrWaitForOpen(f) {
+        if(this.state==window.ducts.State.OPEN_CONNECTED) f();
+        else this.addOnOpenHandler(f);
+    }
+
+
  
     /*
     _setup_handlers(self) {
@@ -639,54 +652,7 @@ window.ducts.tutti.Duct = class extends window.ducts.Duct {
 	    //self.send(self.next_rid(), self.EVENT.ASRCTRL_MODEL, null);
     }
 
-    /*
-    _handleDialogueEvent(self, rid, eid, data) {
-	    let state = ('STATE' in data) ? data.STATE : '';
-	    console.log('STATE='+state);
-	    let handle = (state in self._dialogue_handler) ? self._dialogue_handler[state] :
-	        (rid, eid, data) => {
-	    	self.uncaught_event_handler(rid, eid, data);
-	        };
-	    handle(rid, eid, data);
-    }
-    
-    _handleASREvent(self, rid, eid, data) {
-	    let state = ('STATE' in data) ? data.STATE : '';
-	    let handle = (state in self._asr_handler) ? self._asr_handler[state] :
-	        (rid, eid, data) => {
-	    	self.duct.uncaught_event_handler(rid, eid, data);
-	        };
-	    handle(rid, eid, data);
-    }
-    
-    _sendResourceCommand(self, event_id, kwargs) {
-	    let rid = self.next_rid();
-	    let eid = event_id;
-	    let data = kwargs;
-	    return self._send(self, rid, eid, data);
-    }
-
-    _sendStartScenario(self, scenarioKey) {
-	    let rid = self.next_rid();
-	    let eid = self.EVENT.MAIN_CONTROLLER;
-	    let data = {'key':scenarioKey};
-	    return self._send(self, rid, eid, data);
-    }
-
-    _sendUserBehavior(self, behavior) {
-	    let rid = self.next_rid();
-	    let eid = self.EVENT.USER_BEHAVIOR_LISTENER;
-	    let data = behavior;
-	    return self._send(self, rid, eid, data);
-    }
-
-    _sendASRCtrl(self, ctrl) {
-	    let rid = self.next_rid();
-	    let eid = self.EVENT.ASRCTRL_LISTENER;
-	    let data = ctrl;
-	    return self.send(rid, eid, data);
-    }
-
+    /*  // for reference
     _sendASRInput(self, audio) {
 	    let rid = self.next_rid();
 	    let eid = self.EVENT.USER_WAV_AUDIO_LISTENER;

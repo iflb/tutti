@@ -15,18 +15,6 @@
                     <v-list-item @click="$refs.dlgCreateProject.shown=true">
                         <v-list-item-title>Create New Project...</v-list-item-title>
                     </v-list-item>
-                    <!--<v-list-item :disabled="projectName==''" @click="launchProductionMode()">
-                        <v-list-item-title>Launch Task UI</v-list-item-title>
-                        <v-list-item-action>
-                            <v-icon>mdi-open-in-new</v-icon>
-                        </v-list-item-action>
-                    </v-list-item>-->
-                    <!--<v-list-item @click="copyProjectPath">
-                        <v-list-item-content>
-                            <v-list-item-title>Project Path (Click to Copy)</v-list-item-title>
-                            <v-list-item-subtitle>{{ this.project.path }}</v-list-item-subtitle>
-                        </v-list-item-content>
-                    </v-list-item>-->
                 </v-list>
             </v-menu>
 
@@ -138,7 +126,7 @@
         </v-navigation-drawer>
 
         <v-slide-x-transition hide-on-leave>
-            <router-view v-if="duct" :shared-props="sharedProps" ref="child"></router-view>
+            <router-view v-if="duct" :duct="duct" :shared-props="sharedProps" ref="child"></router-view>
         </v-slide-x-transition>
 
         <tutti-snackbar color="success" :timeout="5000" :text="snackbarTexts.success" />
@@ -147,9 +135,8 @@
 </template>
 
 <script>
+import { DuctsLoader } from '@/lib/ducts-loader'
 import dateFormat from 'dateformat'
-import store from '@/store.js'
-import { mapActions, mapGetters } from 'vuex'
 import DialogCreateProject from './DialogCreateProject.vue'
 import Snackbar from '@/views/assets/Snackbar.vue'
 
@@ -173,12 +160,12 @@ var Template = class {
 };
 
 export default {
-    store,
     components: { 
         TuttiSnackbar: Snackbar,
         DialogCreateProject
     },
     data: () => ({
+        duct: null,
         snackbarTexts: {
             success: ""
         },
@@ -198,10 +185,8 @@ export default {
         answers: {},
 
         sharedProps: {}
-
     }),
     computed: {
-        ...mapGetters("ductsModule", [ "duct" ]),
         projectNames() {
             return Object.keys(this.projects);
         },
@@ -232,14 +217,6 @@ export default {
         },
     },
     methods: {
-        hoge() {
-            console.log("hoge");
-        },
-        ...mapActions("ductsModule", [
-            "initDuct",
-            "openDuct",
-            "closeDuct"
-        ]),
         launchProductionMode(){ window.open(`/vue/private-prod/${this.projectName}`); },
         listTemplates(pn) {
             this.duct.sendMsg({
@@ -257,73 +234,15 @@ export default {
                 this.loading = false
             }, 500)
         },
-        copyProjectPath() {
-            this.copyText = this.project.path;
-            document.addEventListener("copy" , this.copyListener);
-            document.execCommand("copy");
-        },
-        copyListener(e) {
-            e.clipboardData.setData("text/plain" , this.copyText);
-            e.preventDefault();
-            document.removeEventListener("copy", this.copyListener);
-        }
-    },
 
-    created: function(){
-        this.$set(this.sharedProps, "project", this.project);
-        this.$set(this.sharedProps, "answers", this.answers);
-
-        this.initDuct().then(() => {
-            this.srvStatusProfile = {
-                connected: {
-                    handler: () => {
-                        this.srvStatus = "connected"
-                        this.lastPinged = dateFormat(new Date(), "HH:MM:ss")
-                    },
-                    btn: {
-                        color: "success",
-                        label: "Connected to server",
-                        menu: [ { title: "Disconnect", handler: this.closeDuct } ]
-                    }
-                },
-                connecting: {
-                    handler() {
-                    },
-                    btn: {
-                        color: "warning",
-                        label: "Connecting to server..."
-                    }
-                },
-                disconnected: {
-                    handler: () => {
-                        this.srvStatus = "disconnected"
-                    },
-                    btn: {
-                        color: "error",
-                        label: "No connection to server",
-                        menu: [ { title: "Connect", handler: this.duct.open } ]
-                    }
-                }
-            }
-
-
-            this.duct.addOnOpenHandler(() => {
-                this.srvStatusProfile.connected.handler();
-                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_PROJECTS });
+        setEventHandlers() {
+            this.duct.setTuttiEventHandler(this.duct.EVENT.EVENT_HISTORY, ({ data }) => {
+                if("AllHistory" in data)    this.$set(this.sharedProps, "evtHistory", data["AllHistory"])
+                else if("History" in data)  this.$set(this.sharedProps.evtHistory, data["EventId"], data["History"])
             });
-            this.duct._connection_listener.on(["onclose", "onerror"], this.srvStatusProfile.disconnected.handler);
-            this.duct.setEventHandler(this.duct.EVENT.EVENT_HISTORY, (rid, eid, data) => {
-                if(data["Status"]=="Success") {
-                    if("AllHistory" in data["Data"])
-                        this.$set(this.sharedProps, "evtHistory", data["Data"]["AllHistory"])
-                    else if("History" in data["Data"])
-                        this.$set(this.sharedProps.evtHistory, data["Data"]["EventId"], data["Data"]["History"])
-                }
-            });
-            this.duct.setEventHandler(this.duct.EVENT.LIST_PROJECTS, (rid, eid, data) => {
-                if(data["Status"]==="Error") return;
 
-                var projects = data["Data"]["Projects"];
+            this.duct.setTuttiEventHandler(this.duct.EVENT.LIST_PROJECTS, ({ data }) => {
+                var projects = data["Projects"];
                 for(const i in projects){
                     const name = projects[i].name;
                     const path = projects[i].path;
@@ -332,29 +251,24 @@ export default {
                 }
                 var selected = localStorage.getItem("tuttiProject");   
                 if(selected)  this.$set(this, "projectName", selected);
-            });
+            },
+            ({ reason }) => { console.error(reason); });
 
-            this.duct.setEventHandler(this.duct.EVENT.CREATE_PROJECT, (rid, eid, data) => {
-                if(data["Status"]==="Error") return;
-
-                this.snackbarTexts.success = `Successfully created project '${data["Data"]["ProjectName"]}'`;
-                
+            this.duct.setTuttiEventHandler(this.duct.EVENT.CREATE_PROJECT, ({ data }) => {
+                this.snackbarTexts.success = `Successfully created project '${data["ProjectName"]}'`;
                 this.duct.sendMsg({
                     tag: this.name,
                     eid: this.duct.EVENT.LIST_PROJECTS
                 });
             });
 
-            this.duct.setEventHandler(this.duct.EVENT.CREATE_TEMPLATES, (rid, eid, data) => {
-                if(data["Status"]=="Error") return;
-
+            this.duct.setTuttiEventHandler(this.duct.EVENT.CREATE_TEMPLATES, () => {
                 this.listTemplates(this.projectName);
             });
-            this.duct.setEventHandler(this.duct.EVENT.LIST_TEMPLATES, (rid, eid, data) => {
-                if(data["Status"]=="Error") return;
 
-                const pn = data["Data"]["Project"];
-                const tns = data["Data"]["Templates"];
+            this.duct.setTuttiEventHandler(this.duct.EVENT.LIST_TEMPLATES, ({ data }) => {
+                const pn = data["Project"];
+                const tns = data["Templates"];
                 var templates = {};
                 for(const i in tns){
                     var template = new Template(tns[i]);
@@ -373,83 +287,91 @@ export default {
                 this.$set(this.project, "templates", templates);
             });
 
-            this.duct.setEventHandler(this.duct.EVENT.NANOTASK, (rid, eid, data) => {
-                if(data["Status"]=="Error") return;
+            this.duct.setTuttiEventHandler(this.duct.EVENT.NANOTASK, ({ data }) => {
+                const Command = data["Command"];
+                const ProjectName = data["ProjectName"];
+                const TemplateName = data["TemplateName"];
 
-                const command = data["Data"]["Command"];
-                const pn = data["Data"]["ProjectName"];
-                const tn = data["Data"]["TemplateName"];
-
-                switch(command){
+                switch(Command){
                     case "Upload": {
                         this.duct.sendMsg({
                             tag: this.name,
                             eid: this.duct.EVENT.NANOTASK,
-                            data: {
-                                "Command": "Get",
-                                "ProjectName": pn,
-                                "TemplateName": tn
-                            }
+                            data: { Command, ProjectName, TemplateName }
                         });
                         break;
                     }
                     case "Get": {
-                        //const d = data["Data"]["Nanotasks"];
-                        const cnt = data["Data"]["Count"];
-                        //this.projects[pn].templates[tn].nanotask.data = d;
-                        this.projects[pn].templates[tn].nanotask.cnt = cnt;
+                        const cnt = data["Count"];
+                        this.projects[ProjectName].templates[TemplateName].nanotask.cnt = cnt;
+                        break;
                     }
                 }
             });
 
-            //this.duct.setEventHandler(this.duct.EVENT.MTURK_QUALIFICATION, (rid, eid, data) => {
-            //    const command = data["Data"]["Command"];
-            //    if(data["Status"]=="error") return;
+            this.duct.setTuttiEventHandler(this.duct.EVENT.SESSION,
+                ({ data }) => {
+                    if(data["Command"]=="LoadFlow"){
+                        this.project.profile = data["Flow"]
+                    }
+                },
+                ({ reason }) => {
+                    this.project.profile = null
+                    this.$refs.child.showSnackbar({
+                        color: "warning",
+                        text: reason
+                    })
+                }
+            );
 
-            //    if(command=="list") {
-            //        var quals = {};
-            //        const q = data["Data"]["QualificationTypes"];
-            //        for(var i in q){
-            //            const qid = q[i]["QualificationTypeId"];
-            //            quals[qid] = q[i];
-            //        }
-            //        this.$set(this.sharedProps, "mTurkQuals", quals);
-            //    }
-            //    else if(command=="get_workers") {
-            //        const quals = data["Data"]["Qualifications"];
-            //        for(var qid in quals){
-            //            this.$set(this.sharedProps.mTurkQuals[qid], "workers", quals[qid]);
-            //        }
-            //    }
-            //});
+            this.duct.setTuttiEventHandler(this.duct.EVENT.GET_ANSWERS_FOR_TEMPLATE, ({ data }) => {
+                this.answers = data["Answers"];
+            });
+        }
+    },
 
-            this.duct.addEvtHandler({
-                tag: "/console/flow/", eid: this.duct.EVENT.SESSION,
-                handler: (rid, eid, data) => {
-                    const command = data["Data"]["Command"];
-                    if(command=="LoadFlow"){
-                        if(data["Status"]=="Error"){
-                            this.project.profile = null
-                            this.$refs.child.showSnackbar({
-                                color: "warning",
-                                text: data["Reason"]
-                            })
-                        } else {
-                            this.project.profile = data["Data"]["Flow"]
-                        }
+    created: function(){
+        this.$set(this.sharedProps, "project", this.project);
+        this.$set(this.sharedProps, "answers", this.answers);
+
+        new DuctsLoader().initDuct("guest").then( ({ loader, duct }) => {
+            this.duct = duct;
+
+            this.srvStatusProfile = {
+                connected: {
+                    btn: {
+                        color: "success",
+                        label: "Connected to server",
+                        menu: [ { title: "Disconnect", handler: () => { loader.closeDuct(); } } ]
+                    }
+                },
+                connecting: {
+                    btn: {
+                        color: "warning",
+                        label: "Connecting to server..."
+                    }
+                },
+                disconnected: {
+                    btn: {
+                        color: "error",
+                        label: "No connection to server",
+                        menu: [ { title: "Connect", handler: () => { loader.openDuct(); } } ]
                     }
                 }
-            })
+            }
 
-            this.duct.addEvtHandler({
-                tag: "/console/answers/", eid: this.duct.EVENT.GET_ANSWERS_FOR_TEMPLATE,
-                handler: (rid, eid, data) => {
-                    this.answers = data["Data"]["Answers"];
-                }
-            })
+            duct.addOnOpenHandler(() => {
+                console.log("onopen");
+                this.srvStatus = "connected"
+                this.lastPinged = dateFormat(new Date(), "HH:MM:ss")
 
-            this.duct.open();
-        })
+                this.setEventHandlers();
+                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_PROJECTS });
+            });
+            duct._connection_listener.on(["onclose", "onerror"], () => { this.srvStatus = "disconnected"; } );
+
+            loader.openDuct();
+        });
     }
 }
 </script>

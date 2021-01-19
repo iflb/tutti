@@ -46,15 +46,12 @@
 </template>
 
 <script>
-import store from '@/store.js'
-import { mapGetters, mapActions } from 'vuex'
 import VueJsonPretty from 'vue-json-pretty/lib/vue-json-pretty'
 import 'vue-json-pretty/lib/styles.css'
-import { codemirror } from 'vue-codemirror/src/codemirror'
+import { codemirror } from 'vue-codemirror'
 import 'codemirror/lib/codemirror.css'
 
 export default {
-    store,
     components: {
         VueJsonPretty,
         codemirror
@@ -62,7 +59,6 @@ export default {
     data: () => ({
         selectedEventId: null,
         selectedEventArgs: "",
-        //selectedEventArgsHistory: [],
         events: [],
         logTableHeaders: [
             { text: "Request ID", value: "rid" },
@@ -79,16 +75,11 @@ export default {
             lineWrapping: true,
             theme: 'base16-dark',
             indentWithTabs: true
-            //smartIndent: true,
-            //indentUnit: 4,
         },
         code: "hoge = 1"
     }),
-    props: ["sharedProps","name"],
+    props: ["duct", "sharedProps","name"],
     computed: {
-        ...mapGetters("ductsModule", [
-            "duct"
-        ]),
         serverLogTableRows() {
             var rows = [];
             if(this.duct){
@@ -101,7 +92,7 @@ export default {
                     const tag = s.tag;
                     //const sent = `${s.eid}__${s.data}`;
                     const sent = s.data;
-                    const eid = s.eid;
+                    const eid = `${Object.keys(this.duct.EVENT).find(key => this.duct.EVENT[key] === s.eid)} (${s.eid})`;
                     const received = null;
                     rows.unshift({ rid, tag, eid, sent, received })
                 }
@@ -128,7 +119,6 @@ export default {
         }
     },
     methods: {
-        ...mapActions("ductsModule", [ "onDuctOpen" ]),
         loadEvents() {
             var events = []
             for(var key in this.duct.EVENT) {
@@ -154,7 +144,7 @@ export default {
         }
     },
     mounted() {
-        this.onDuctOpen(() => {
+        this.duct.invokeOrWaitForOpen(() => {
             this.loadEvents();
             this.getEventHistory();
         });

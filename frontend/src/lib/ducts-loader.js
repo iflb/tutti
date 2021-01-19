@@ -9,7 +9,8 @@ export class DuctsLoader {
             window.ducts.main = () => {
                 window.ducts.app = {}
                 window.ducts.app.duct = new window.ducts.tutti.Duct();
-                resolve(this);
+                this.duct = window.ducts.app.duct;
+                resolve({ loader: this, duct: this.duct });
             };
 
             var lib_script = document.createElement('script');
@@ -18,10 +19,17 @@ export class DuctsLoader {
         });
     }
     openDuct() {
-        return new Promise(function(resolve) {
-            window.ducts.app.duct.open(window.ducts.context_url + '/wsd').then(function() {
-                resolve(window.ducts.app.duct)
-            });
+        return new Promise((resolve, reject) => {
+            this.duct.open(window.ducts.context_url + '/wsd')
+                .then(() => { resolve(this.duct) })
+                .catch(reject);
         });
+    }
+    closeDuct() {
+        this.duct.close();
+    }
+    onDuctOpen(f) {
+        if(this.duct.state==window.ducts.State.OPEN_CONNECTED) f();
+        else this.duct.addOnOpenHandler(f);
     }
 }
