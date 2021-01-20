@@ -218,8 +218,14 @@ export default {
                             this.platformWorkerId = platformConfig.workerId(this);
                             if(!this.platformWorkerId) {
                                 this.showPreviewTemplate = true;
+                                this.$refs.dialogInstruction.shown = true;
                                 return;
                             } else {
+                                this.duct.sendMsg({
+                                    tag: this.name,
+                                    eid: this.duct.EVENT.CHECK_PLATFORM_WORKER_ID_EXISTENCE_FOR_PROJECT,
+                                    data: { ProjectName: this.projectName, Platform: platformConfig.platformName, PlatformWorkerId: this.platformWorkerId }
+                                });
                                 this._evtSession({
                                     "Command": "Create",
                                     "ProjectName": this.projectName,
@@ -231,6 +237,14 @@ export default {
                         },
                         ({ reason }) => {
                             alert("Error occured; please kindly report this to us!" + reason);
+                        }
+                    );
+                    this.duct.setTuttiEventHandler(this.duct.EVENT.CHECK_PLATFORM_WORKER_ID_EXISTENCE_FOR_PROJECT,
+                        ({ data }) => {
+                            if(!data["Exists"]) this.$refs.dialogInstruction.shown=true;
+                        },
+                        ({ reason }) => {
+                            console.error(reason);
                         }
                     );
                     this.duct.setTuttiEventHandler(this.duct.EVENT.SESSION,
