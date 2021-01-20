@@ -1,5 +1,7 @@
 import os
 import asyncio
+import importlib.util
+from importlib import reload
 
 from ducts.spi import EventHandler
 from ifconf import configure_module, config_callback

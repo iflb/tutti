@@ -15,7 +15,7 @@
               </v-card-text>
               <v-card-actions>
                 <v-spacer></v-spacer>
-                <v-btn color="primary" @click="mySubmit">Login</v-btn>
+                <v-btn color="indigo" dark @click="mySubmit">Log in</v-btn>
               </v-card-actions>
             </v-card>
           </v-col>

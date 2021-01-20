@@ -77,10 +77,6 @@ const routes = [
         props: true,
     },
     {
-        path: "/private-prod/:projectName/preview",
-        component: () => import("@/views/PrivateProd/Preview.vue"),
-    },
-    {
         path: "/private-prod-login",
         component: () => import("@/views/PrivateProdLogin.vue"),
         props: true

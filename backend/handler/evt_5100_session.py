@@ -1,5 +1,3 @@
-import importlib.util
-from importlib import reload
 import inspect
 
 from ducts.event import EventHandler
@@ -21,7 +19,6 @@ from handler.redis_resource import (WorkerResource,
 class Handler(EventHandler):
     def __init__(self):
         super().__init__()
-        self.schemes = self.load_all_project_schemes()
 
     async def setup(self, handler_spec, manager):
         self.r_wkr = WorkerResource(manager.redis)
@@ -31,68 +28,34 @@ class Handler(EventHandler):
         self.r_ans = AnswerResource(manager.redis)
         self.redis = manager.redis
 
+        self.evt_project = manager.get_handler_for(manager.key_ids["PROJECT_CORE"])[1]
+        self.evt_project_scheme = manager.get_handler_for(manager.key_ids["PROJECT_SCHEME_CORE"])[1]
+
         handler_spec.set_description('テンプレート一覧を取得します。')
         handler_spec.set_as_responsive()
 
         return handler_spec
 
-    def load_all_project_schemes(self):
-        schemes = {}
-        for project_name in common.get_projects():
-            try:
-                schemes[project_name] = self.load_project_scheme(project_name)
-            except Exception as e:
-                logger.error(str(e))
-        return schemes
+    async def _get_next_template_node(self, scheme, next_node, wid, wsid, nsid):
+        flow = scheme.flow
+        pn = scheme.flow.pn
 
-    def load_project_scheme(self, project_name):
-        try:
-            module = "projects.{}.scheme".format(project_name)
-            mod_flow = importlib.import_module(module)
-            importlib.reload(mod_flow)
-            scheme = mod_flow.ProjectScheme()
-            return scheme
-        except Exception as e:
-            raise Exception(f"could not load scheme for {module}: {str(e)}")
-
-    def get_batch_info_dict(self, child):
-        if child.is_template():
-            return {
-                "statement": child.statement.value,
-                "condition": inspect.getsource(child.condition) if child.condition else None,
-                "is_skippable": child.is_skippable,
-                "name": child.name
-            }
-        else:
-            _info = []
-            for c in child.children:
-                _info.append(self.get_batch_info_dict(c))
-            return {
-                "name": child.name,
-                "statement": child.statement.value,
-                "condition": inspect.getsource(child.condition) if child.condition else None,
-                "is_skippable": child.is_skippable,
-                "children": _info
-            }
-
-    async def _get_next_template_node(self, flow, next_node, wid, pn, wsid, nsid):
         prev_nsid = nsid
-        wkr_client = await WorkerClient(self.redis, wid, flow.pn)._load_for_read(flow)
-        ws_client = await WorkSessionClient(self.redis, wsid, flow.pn)._load_for_read(flow)
+        wkr_client = await WorkerClient(self.redis, wid, pn)._load_for_read(flow)
+        ws_client = await WorkSessionClient(self.redis, wsid, pn)._load_for_read(flow)
+
         while (next_node := next_node.forward(wkr_client, ws_client)):
             if next_node.is_template():
                 has_nanotasks = await self.r_nt.check_id_exists_for_pn_tn(pn, next_node.name)
                 if has_nanotasks:
-                    asmt_order = self.schemes[pn].assignment_order
-                    sort_order = self.schemes[pn].sort_order
+                    asmt_order = scheme.assignment_order
+                    sort_order = scheme.sort_order
                     nid = await self.r_nt.get_first_id_for_pn_tn_wid(pn, next_node.name, wid, assignment_order=asmt_order, sort_order=sort_order)
                     if not nid:  continue
                 else:
                     nid = None
             else:
                 nid = None
-            #else:
-            #    continue
             ns = NodeSessionResource.create_instance(pn=pn,
                                                      name=next_node.name,
                                                      wid=wid,
@@ -130,14 +93,8 @@ class Handler(EventHandler):
         command = event.data["Command"]
         output.set("Command", command)
 
-        if command=="LoadFlow":
-            pn = event.data["ProjectName"]
 
-            scheme = self.load_project_scheme(pn)
-            self.schemes[pn] = scheme
-            output.set("Flow", self.get_batch_info_dict(scheme.flow.root_node))
-
-        elif command=="Create":
+        if command=="Create":
             if not (
                     (pn := event.data["ProjectName"]) and
                     (platform := event.data["Platform"]) and
@@ -145,6 +102,8 @@ class Handler(EventHandler):
                     (ct := event.data["ClientToken"])
                 ):
                 raise Exception("ProjectName, Platform, PlatformWorkerId, and ClientToken are required")
+
+            scheme = await self.evt_project_scheme.get_project_scheme(ProjectName=event.data["ProjectName"])
 
             if not (wid := await self.r_wkr.get_id_for_platform(platform, platform_wid)):
                 wid = await self.r_wkr.add(WorkerResource.create_instance(platform_wid, platform))
@@ -155,9 +114,9 @@ class Handler(EventHandler):
 
             output.set("WorkSessionId", wsid)
             output.set("WorkerId", wid)
-            output.set("Pagination", self.schemes[pn].pagination)
-            output.set("InstructionEnabled", self.schemes[pn].instruction)
-            if self.schemes[pn].show_title:  output.set("Title", self.schemes[pn].title)
+            output.set("Pagination", scheme.pagination)
+            output.set("InstructionEnabled", scheme.instruction)
+            if scheme.show_title:  output.set("Title", scheme.title)
 
         elif command=="Get":
             target = event.data["Target"]
@@ -169,7 +128,7 @@ class Handler(EventHandler):
 
             pn = ws["ProjectName"]
             wid = ws["WorkerId"]
-            scheme = self.schemes[pn]
+            scheme = await self.evt_project_scheme.get_project_scheme(ProjectName=pn)
 
             out = {}
             if not nsid:
@@ -181,12 +140,12 @@ class Handler(EventHandler):
                         # mark current node session Expired=True
                         await self.r_ns.set_expired(out_nsid)
                         # assign another available nanotask
-                        out_ns, out_nsid = await self._get_next_template_node(scheme.flow, scheme.flow.get_node_by_name(out_ns["NodeName"]).prev, wid, pn, wsid, None)
+                        out_ns, out_nsid = await self._get_next_template_node(scheme, scheme.flow.get_node_by_name(out_ns["NodeName"]).prev, wid, wsid, None)
                         out_ans = None
 
                 else:
                     try:
-                        out_ns, out_nsid = await self._get_next_template_node(scheme.flow, scheme.flow.get_begin_node(), wid, pn, wsid, None)
+                        out_ns, out_nsid = await self._get_next_template_node(scheme, scheme.flow.get_begin_node(), wid, wsid, None)
                         out_ans = None
                     except SessionEndException as e:
                         output.set("WorkSessionStatus", "Terminated")
@@ -212,7 +171,7 @@ class Handler(EventHandler):
                                 continue
                         else:
                             try:
-                                out_ns, out_nsid = await self._get_next_template_node(scheme.flow, scheme.flow.get_node_by_name(ns["NodeName"]), wid, pn, wsid, nsid)
+                                out_ns, out_nsid = await self._get_next_template_node(scheme, scheme.flow.get_node_by_name(ns["NodeName"]), wid, wsid, nsid)
                                 out_ans = None
                                 break
                             except SessionEndException as e:
@@ -269,7 +228,7 @@ class Handler(EventHandler):
             await self.r_ans.add(nsid, answer)
             output.set("SentAnswer", answer)
 
-            scheme = self.schemes[pn]
+            scheme = await self.evt_project_scheme.get_project_scheme(ProjectName=pn)
             node = scheme.flow.get_node_by_name(ns["NodeName"])
             if nid:
                 nt = await self.r_nt.get(nid)

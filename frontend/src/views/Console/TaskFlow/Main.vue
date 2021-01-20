@@ -76,11 +76,8 @@ export default {
         refreshFlow(){
             this.duct.sendMsg({
                 tag: this.name,
-                eid: this.duct.EVENT.SESSION,
-                data: {
-                    "Command": "LoadFlow",
-                    "ProjectName": this.project.name
-                }
+                eid: this.duct.EVENT.GET_PROJECT_SCHEME,
+                data: { "ProjectName": this.project.name, "Cached": false }
             });
         }
     },

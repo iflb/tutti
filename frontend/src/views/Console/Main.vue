@@ -200,7 +200,7 @@ export default {
                 localStorage.setItem("tuttiProject", name);
                 this.project = this.projects[name];
                 this.listTemplates(name);
-                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.SESSION, data: { "Command": "LoadFlow", "ProjectName": name } })
+                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.GET_PROJECT_SCHEME, data: { "ProjectName": name } })
             } 
         },
         project: {
@@ -310,11 +310,9 @@ export default {
                 }
             });
 
-            this.duct.setTuttiEventHandler(this.duct.EVENT.SESSION,
+            this.duct.setTuttiEventHandler(this.duct.EVENT.GET_PROJECT_SCHEME,
                 ({ data }) => {
-                    if(data["Command"]=="LoadFlow"){
-                        this.project.profile = data["Flow"]
-                    }
+                    this.project.profile = data["Flow"]
                 },
                 ({ reason }) => {
                     this.project.profile = null
