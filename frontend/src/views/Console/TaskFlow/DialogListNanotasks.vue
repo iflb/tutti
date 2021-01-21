@@ -8,7 +8,18 @@
             <v-text-field v-model="search" append-icon="mdi-magnify" label="Search" single-line hide-details />
         </v-card-title>
         <v-card-text class="text-end">
-            <v-btn color="error" :disabled="selectedNanotaskIds.length==0" @click="deleteNanotasks()">Delete</v-btn>
+            <v-tooltip bottom v-if="selectedNanotaskIds.length>0">
+                <template v-slot:activator="{ on, attrs }">
+                    <v-btn v-bind="attrs" v-on="on" class="mx-3" dark color="grey darken-2" @click="$refs.dialogManageNumAssignments.shown=true"><v-icon>mdi-ticket-confirmation</v-icon></v-btn>
+                </template>
+                <span>Manage # of assignable tickets</span>
+            </v-tooltip>
+            <v-tooltip bottom v-if="selectedNanotaskIds.length>0">
+                <template v-slot:activator="{ on, attrs }">
+                    <v-btn v-bind="attrs" v-on="on" class="mx-3" dark color="error" @click="deleteNanotasks()"><v-icon>mdi-delete</v-icon></v-btn>
+                </template>
+                <span>Delete</span>
+            </v-tooltip>
         </v-card-text>
         <v-data-table
             v-model="selectedNanotasks"
@@ -62,19 +73,36 @@
           <v-btn text @click="closeDialog" >Close</v-btn>
         </v-card-actions>
       </v-card>
+
+      <tutti-dialog ref="dialogManageNumAssignments" title="Manage NumAssignable" maxWidth="350"
+          :actions="[
+              { label: 'Confirm', color: 'indigo darken-1', text: true, onclick: updateNumAssignable },
+              { label: 'Cancel', color: 'grey darken-1', text: true }
+          ]" >
+          <template v-slot:body>
+            <v-select v-model="numAssignableMethod" :items="[{text:'Fixed value',value:'fixed',default:true},{text:'Increment by',value:'increment'}]" />
+            <v-text-field type="number" v-model.number="numAssignableValue" step="1" />
+          </template>
+      </tutti-dialog>
     </v-dialog>
 </template>
 
 <script>
+import Dialog from '@/views/assets/Dialog.vue'
 export default {
     data: () => ({
         show: false,
         search: "",
         selectedNanotasks: [],
 
-        loading: true
+        loading: true,
+        numAssignableMethod: 'fixed',
+        numAssignableValue: 1
     }),
     props: ["duct", "project", "template", "nanotasks"],
+    components: {
+        TuttiDialog: Dialog
+    },
     computed: {
         headers() {
             return [
@@ -122,6 +150,24 @@ export default {
                     "NanotaskIds": this.selectedNanotaskIds
                 }
             });
+        },
+        updateNumAssignable() {
+            for(var i in this.selectedNanotaskIds) {
+                var numAssignable;
+                if(this.numAssignableMethod=="fixed")
+                    numAssignable = this.numAssignableValue;
+                else if(this.numAssignableMethod=="increment")
+                    numAssignable = this.selectedNanotasks[i]["NumAssignable"] + this.numAssignableValue;
+
+                this.duct.sendMsg({
+                    tag: "recursive",
+                    eid: this.duct.EVENT.UPDATE_NANOTASK_NUM_ASSIGNABLE,
+                    data: {
+                        "NanotaskId": this.selectedNanotasks[i]["NanotaskId"],
+                        "NumAssignable": numAssignable
+                    }
+                });
+            }
         }
     },
     watch: {
