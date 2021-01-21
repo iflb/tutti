@@ -119,8 +119,8 @@ class NanotaskResource(RedisResource):
 
     def key_ids_for_pn_tn(self,pn,tn):                     return f"NanotaskIds/PRJ:{pn}/TMPL:{tn}"
     def key_ids_occupied_for_pn_tn(self,pn,tn):            return f"NanotaskIdsOccupied/PRJ:{pn}/TMPL:{tn}"
+    #def key_ids_completed_for_pn_tn(self,pn,tn):           return f"NanotaskIdsCompleted/PRJ:{pn}/TMPL:{tn}"
     def key_ids_assigned_for_pn_tn_wid(self,pn,tn,wid):    return f"NanotaskIdsAssigned/PRJ:{pn}/TMPL:{tn}/{wid}"
-    def key_ids_completed_for_pn_tn(self,pn,tn):           return f"NanotaskIdsCompleted/PRJ:{pn}/TMPL:{tn}"
     def key_ids_completed_for_pn_tn_wid(self,pn,tn,wid):   return f"NanotaskIdsCompleted/PRJ:{pn}/TMPL:{tn}/{wid}"
     def key_ids_assignable_for_pn_tn_wid(self,pn,tn,wid):  return f"NanotaskIdsAssignable/PRJ:{pn}/TMPL:{tn}/{wid}"
 
@@ -183,8 +183,8 @@ class NanotaskResource(RedisResource):
     async def add_id_assigned_for_pn_tn_wid(self, pn, tn, wid, id):
         return await self.redis.execute("SADD", self.key_ids_assigned_for_pn_tn_wid(pn,tn,wid), id)
 
-    async def add_id_completed_for_pn_tn(self, pn, tn, id):
-        await self.redis.execute("SADD", self.key_ids_completed_for_pn_tn(pn,tn), id)
+    #async def add_id_completed_for_pn_tn(self, pn, tn, id):
+    #    await self.redis.execute("SADD", self.key_ids_completed_for_pn_tn(pn,tn), id)
 
     async def add_id_completed_for_pn_tn_wid(self, pn, tn, wid, id):
         await self.redis.execute("SADD", self.key_ids_completed_for_pn_tn_wid(pn,tn,wid), id)
@@ -206,22 +206,33 @@ class NanotaskResource(RedisResource):
     async def get_ids_assigned_for_pn_tn_wid(self, pn, tn, wid):
         return await self.redis.execute_str("SMEMBERS", self.key_ids_assigned_for_pn_tn_wid(pn,tn,wid))
 
+    async def get_ids_occupied_for_pn_tn_wid(self, pn, tn):
+        return await self.redis.execute_str("SMEMBERS", self.key_ids_occupied_for_pn_tn(pn,tn))
+
     async def get_first_id_for_pn_tn_wid(self, pn, tn, wid, assignment_order="bfs", sort_order="natural"):
         while True:
+            print(self.key_ids_occupied_for_pn_tn(pn,tn))
+            print(await self.get_ids_occupied_for_pn_tn_wid(pn,tn))
+            # watch changes in ID set of occupied nanotasks for the template
             await self.redis.execute("WATCH", self.key_ids_occupied_for_pn_tn(pn,tn))
             await self.redis.execute("MULTI")
+            # create *ID set of assignable nanotasks for the template and the worker* by
+            # (all nanotask IDs for the template) - (unavailable nanotask IDs for the template) - (already-assigned nanotask IDs for the template and the worker)
             await self.redis.execute("ZUNIONSTORE",
                                      self.key_ids_assignable_for_pn_tn_wid(pn,tn,wid), 3,
                                      self.key_ids_for_pn_tn(pn,tn),
                                      self.key_ids_occupied_for_pn_tn(pn,tn),
                                      self.key_ids_assigned_for_pn_tn_wid(pn,tn,wid),
                                      "WEIGHTS", 1, 0, 0, "AGGREGATE", "MIN")
+
+            # get the most prioritized (with top priority but LEAST # of assigned workers) nanotask ID(s) from the obtained ID set
             get_first_bfs = '''
                 local ret = redis.call('ZRANGEBYSCORE', '{key_nids_assignable_for_pn_tn_wid}', 1, '+inf', 'WITHSCORES', 'LIMIT', 0, 1)
                 local nid = ret[1]
                 local priority = ret[2]
 
             '''
+            # get the most prioritized (with top priority and most # of assigned workers) nanotask ID(s) from the obtained ID set
             get_first_dfs = '''
                 local ret = redis.call('ZRANGEBYSCORE', '{key_nids_assignable_for_pn_tn_wid}', 1, '+inf', 'WITHSCORES', 'LIMIT', 0, 1)
                 local _priority = ret[2]
@@ -232,6 +243,10 @@ class NanotaskResource(RedisResource):
                 local priority = ret[2]
 
             '''
+            # if there are more than one ID, get one of them randomly or in natural order
+            # count up # of assigned workers for the nanotask
+            # compare # of assignable workers and assigned workers;
+            # if no more workers can be assigned, mark the nanotask as unavailable
             get_first_common = '''
                 local num_nids = redis.call('ZCOUNT', '{key_nids_assignable_for_pn_tn_wid}', priority, priority)
                 if num_nids > 1 then
@@ -250,12 +265,16 @@ class NanotaskResource(RedisResource):
                 local key_wids_assigned_for_nid = string.gsub('{key_wids_assigned_for_nid}', '%[%[nid%]%]', nid)
                 local nt = redis.call('GET', key_nt)
                 local num_assignable = cjson.decode(nt)['NumAssignable']
-                local num_assigned = redis.call('SCARD', key_wids_assigned_for_nid)
 
                 -- self.add_id_assigned_for_pn_tn_wid
                 redis.call('SADD', '{key_nids_assigned_for_pn_tn_wid}', nid)
                 -- self.r_wkr.add_id_assigned_for_nid
                 redis.call('SADD', key_wids_assigned_for_nid, '{wid}')
+
+                local num_assigned = redis.call('SCARD', key_wids_assigned_for_nid)
+
+                redis.call('SADD', 'NanotaskIds/hogemi/num_assignable', num_assignable)
+                redis.call('SADD', 'NanotaskIds/hogemi/num_assigned', num_assigned)
                 if num_assignable <= num_assigned then
                     -- self.add_id_occupied_for_pn_tn
                     redis.call('SADD', '{key_nids_occupied_for_pn_tn}', nid)
@@ -284,8 +303,36 @@ class NanotaskResource(RedisResource):
             if type(ret[1])==aioredis.WatchVariableError:  continue
             else:  break
 
-        return ret[1].decode() if ret[1] else None
+        try:
+            return ret[1].decode()
+        except:
+            return None
 
+
+    async def update_nanotask_assignability(self, id):
+        nt = await self.get(id=id)
+        pn = nt["ProjectName"]
+        tn = nt["TemplateName"]
+        query = '''
+            local nt = redis.call('GET', '{key_nt}')
+            local num_assignable = cjson.decode(nt)['NumAssignable']
+            local num_assigned = redis.call('SCARD', '{key_wids_assigned_for_nid}')
+
+            if num_assignable <= num_assigned then
+                -- self.add_id_occupied_for_pn_tn
+                redis.call('SADD', '{key_nids_occupied_for_pn_tn}', '{nid}')
+            else
+                -- self.delete_id_occupied_for_pn_tn
+                redis.call('SREM', '{key_nids_occupied_for_pn_tn}', '{nid}')
+            end
+            
+            return '{nid}'
+        '''.format(nid=id,
+                   key_nt=self.key(id=id),
+                   key_wids_assigned_for_nid=self.r_wkr.key_ids_assigned_for_nid(id),
+                   key_nids_occupied_for_pn_tn=self.key_ids_occupied_for_pn_tn(pn,tn))
+
+        await self.redis.execute("EVAL", query, 0)
 
     async def check_id_exists_for_pn_tn(self, pn, tn):
         return (await self.redis.execute("EXISTS", self.key_ids_for_pn_tn(pn,tn)))==1

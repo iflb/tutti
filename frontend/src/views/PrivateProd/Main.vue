@@ -254,6 +254,7 @@ export default {
                                 //if(data["Status"]=="Error") { console.error(`failed to create session ID: ${data["Reason"]}`); return; }
 
                                 this.wsid = data["WorkSessionId"];
+                                console.log("work session id", this.wsid);
                                 this.workerId = data["WorkerId"];
                                 //this.pagination = data["Pagination"];
                                 //this.projectTitle = data["Title"] || "";
@@ -262,6 +263,7 @@ export default {
                             }
                             else if(command=="Get"){
                                 //if(data["Status"]=="Error") { console.error(`failed to get from state machine: ${data["Reason"]}`); return; }
+                                console.log("template", data["Template"]);
                                 this.hasPrevTemplate = data["HasPrevTemplate"];
                                 this.hasNextTemplate = data["HasNextTemplate"];
                                 if(data["Template"]){

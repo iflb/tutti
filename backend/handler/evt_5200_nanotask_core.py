@@ -50,3 +50,6 @@ class Handler(EventHandler):
 
     async def delete_nanotasks(self, NanotaskIds):
         await self.r_nt.delete_multi(NanotaskIds)
+
+    async def update_nanotask_assignability(self, NanotaskId):
+        await self.r_nt.update_nanotask_assignability(NanotaskId)

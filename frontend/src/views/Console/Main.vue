@@ -12,13 +12,21 @@
                     <v-btn fab dark small icon v-on="on" v-bind="attrs"><v-icon>mdi-dots-vertical</v-icon></v-btn>
                 </template>
                 <v-list>
-                    <v-list-item @click="$refs.dlgCreateProject.shown=true">
+                    <v-list-item @click="$refs.dialogCreateProject.shown=true">
                         <v-list-item-title>Create New Project...</v-list-item-title>
                     </v-list-item>
                 </v-list>
             </v-menu>
 
-            <dialog-create-project ref="dlgCreateProject" />
+            <tutti-dialog ref="dialogCreateProject" title="Create New Project" maxWidth="400"
+                :actions="[
+                    { label: 'Create', color: 'indigo darken-1', text: true, onclick: createProject },
+                    { label: 'Cancel', color: 'grey darken-1', text: true }
+                ]" >
+                <template v-slot:body>
+                    <v-text-field autofocus v-model="newProjectName" filled prepend-icon="mdi-pencil" label="Enter Project Name" :rules="[rules.required, rules.alphanumeric]"></v-text-field>
+                </template>
+            </tutti-dialog>
 
             <v-spacer></v-spacer>
             <v-menu offset-y v-if="srvStatusProfile">
@@ -137,8 +145,8 @@
 <script>
 import { DuctsLoader } from '@/lib/ducts-loader'
 import dateFormat from 'dateformat'
-import DialogCreateProject from './DialogCreateProject.vue'
 import Snackbar from '@/views/assets/Snackbar.vue'
+import Dialog from '@/views/assets/Dialog.vue'
 
 var Project = class {
     constructor(name, path) {
@@ -162,7 +170,7 @@ var Template = class {
 export default {
     components: { 
         TuttiSnackbar: Snackbar,
-        DialogCreateProject
+        TuttiDialog: Dialog
     },
     data: () => ({
         duct: null,
@@ -184,7 +192,17 @@ export default {
 
         answers: {},
 
-        sharedProps: {}
+        sharedProps: {},
+
+        newProjectName: "",
+
+        rules: {
+            required: value => !!value || "This field is required",
+            alphanumeric: value => {
+                const pattern = /^[a-zA-Z0-9_-]*$/;
+                return pattern.test(value) || 'Alphabets, numbers, "_", or "-" is only allowed';
+            }
+        }
     }),
     computed: {
         projectNames() {
@@ -218,6 +236,15 @@ export default {
     },
     methods: {
         launchProductionMode(){ window.open(`/vue/private-prod/${this.projectName}`); },
+        createProject() {
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.CREATE_PROJECT,
+                data: {
+                    "ProjectName": this.newProjectName
+                }
+            });
+        },
         listTemplates(pn) {
             this.duct.sendMsg({
                 tag: this.name,
