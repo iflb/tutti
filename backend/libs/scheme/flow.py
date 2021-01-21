@@ -65,16 +65,20 @@ class FlowNode:
             print("skipping self.condition", self.condition)
             return True
 
-    def forward(self, wkr_client, ws_client):
-        def check_node_exec_or_skip(node):
+    def forward(self, wkr_client, ws_client, try_skip=False):
+        def check_node_exec_or_skip(node, try_skip=False):
             if node.statement in (Statement.IF, Statement.WHILE):
-                if node.eval_cond(wkr_client, ws_client):
+                if node.eval_cond(wkr_client, ws_client) and try_skip==False:
                     return node
                 else:
                     if node.is_skippable:  return None
                     else:  raise UnskippableNodeException(f"unskippable node '{node.name}'")
             else:
-                return node
+                if try_skip:
+                    if node.is_skippable:  return None
+                    else:  raise UnskippableNodeException(f"unskippable node '{node.name}'")
+                else:
+                    return node
 
 
         if isinstance(self, BatchNode):
@@ -85,13 +89,17 @@ class FlowNode:
 
         _parent = self
         while True:
-            if _parent.statement==Statement.WHILE:
-                if _parent.eval_cond(wkr_client, ws_client):
-                    return _parent
+            if try_skip:
+                check_node_exec_or_skip(_parent, try_skip=try_skip)
+                # reaches here only if the node *is_skippable*, to go to the next node 
+            else:
+                if _parent.statement==Statement.WHILE:
+                    if _parent.eval_cond(wkr_client, ws_client):
+                        return _parent
 
             _next = _parent
             while (_next := _next.next):
-                node = check_node_exec_or_skip(_next)
+                node = check_node_exec_or_skip(_next, try_skip=try_skip)
                 if node: return node
                 else:    continue
 

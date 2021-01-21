@@ -44,14 +44,18 @@ class Handler(EventHandler):
         wkr_client = await WorkerClient(self.redis, wid, pn)._load_for_read(flow)
         ws_client = await WorkSessionClient(self.redis, wsid, pn)._load_for_read(flow)
 
-        while (next_node := next_node.forward(wkr_client, ws_client)):
+        try_skip = False
+        while (next_node := next_node.forward(wkr_client, ws_client, try_skip=try_skip)):
+            try_skip = False
             if next_node.is_template():
                 has_nanotasks = await self.r_nt.check_id_exists_for_pn_tn(pn, next_node.name)
                 if has_nanotasks:
                     asmt_order = scheme.assignment_order
                     sort_order = scheme.sort_order
                     nid = await self.r_nt.get_first_id_for_pn_tn_wid(pn, next_node.name, wid, assignment_order=asmt_order, sort_order=sort_order)
-                    if not nid:  continue
+                    if not nid:
+                        try_skip = True
+                        continue
                 else:
                     nid = None
             else:
@@ -148,10 +152,12 @@ class Handler(EventHandler):
                         out_ns, out_nsid = await self._get_next_template_node(scheme, scheme.flow.get_begin_node(), wid, wsid, None)
                         out_ans = None
                     except SessionEndException as e:
+                        #print("SessionEndException")
                         output.set("WorkSessionStatus", "Terminated")
                         output.set("TerminateReason", "SessionEnd")
                         return 
                     except UnskippableNodeException as e:
+                        #print("UnskippableNodeException")
                         output.set("WorkSessionStatus", "Terminated")
                         output.set("TerminateReason", "UnskippableNode")
                         return
@@ -175,10 +181,12 @@ class Handler(EventHandler):
                                 out_ans = None
                                 break
                             except SessionEndException as e:
+                                #print("SessionEndException")
                                 output.set("WorkSessionStatus", "Terminated")
                                 output.set("TerminateReason", "SessionEnd")
                                 return 
                             except UnskippableNodeException as e:
+                                #print("UnskippableNodeException")
                                 output.set("WorkSessionStatus", "Terminated")
                                 output.set("TerminateReason", "UnskippableNode")
                                 return

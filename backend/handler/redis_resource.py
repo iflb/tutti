@@ -211,8 +211,6 @@ class NanotaskResource(RedisResource):
 
     async def get_first_id_for_pn_tn_wid(self, pn, tn, wid, assignment_order="bfs", sort_order="natural"):
         while True:
-            print(self.key_ids_occupied_for_pn_tn(pn,tn))
-            print(await self.get_ids_occupied_for_pn_tn_wid(pn,tn))
             # watch changes in ID set of occupied nanotasks for the template
             await self.redis.execute("WATCH", self.key_ids_occupied_for_pn_tn(pn,tn))
             await self.redis.execute("MULTI")
