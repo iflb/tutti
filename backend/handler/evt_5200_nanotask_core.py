@@ -51,5 +51,10 @@ class Handler(EventHandler):
     async def delete_nanotasks(self, NanotaskIds):
         await self.r_nt.delete_multi(NanotaskIds)
 
-    async def update_nanotask_assignability(self, NanotaskId):
+    async def update_nanotask_num_assignable(self, NanotaskId, NumAssignable):
+        nt = await self.r_nt.get(NanotaskId)
+        nt["NumAssignable"] = NumAssignable
+        await self.r_nt.update(NanotaskId, nt)
+
+    async def update_nanotask_assignability_status(self, NanotaskId):
         await self.r_nt.update_nanotask_assignability(NanotaskId)

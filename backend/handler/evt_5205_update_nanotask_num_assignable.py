@@ -20,4 +20,8 @@ class Handler(EventHandler):
 
     @handler_output
     async def handle(self, event, output):
-        await self.evt_nanotask.update_nanotask_assignability(**event.data)
+        kwargs1 = {k:event.data[k] for k in ["NanotaskId", "NumAssignable"] if k in event.data}
+        await self.evt_nanotask.update_nanotask_num_assignable(**kwargs1)
+
+        kwargs2 = {k:event.data[k] for k in ["NanotaskId"] if k in event.data}
+        await self.evt_nanotask.update_nanotask_assignability_status(**kwargs2)
