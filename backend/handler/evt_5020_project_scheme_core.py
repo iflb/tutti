@@ -35,9 +35,12 @@ class Handler(EventHandler):
         if Cached:
             return self.schemes[ProjectName]
         else:
-            module = "projects.{}.scheme".format(ProjectName)
-            mod_flow = importlib.import_module(module)
-            importlib.reload(mod_flow)
-            scheme = mod_flow.ProjectScheme()
-            self.schemes[ProjectName] = scheme
-            return scheme
+            try:
+                module = "projects.{}.scheme".format(ProjectName)
+                mod_flow = importlib.import_module(module)
+                importlib.reload(mod_flow)
+                scheme = mod_flow.ProjectScheme()
+                self.schemes[ProjectName] = scheme
+                return scheme
+            except:
+                return None

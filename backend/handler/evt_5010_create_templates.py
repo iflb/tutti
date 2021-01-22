@@ -2,6 +2,7 @@ from datetime import datetime
 import os
 import asyncio
 import shutil
+from pathlib import Path
 
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
@@ -43,6 +44,7 @@ class Handler(EventHandler):
     
             try:
                 shutil.copytree(preset, dst)
+                open(dst/Path("dummy.txt"),"w").close()
                 templates_success.append(tn)
             except Exception as e:
                 raise Exception("Error for '{}': {} (Successful for templates: {})".format(tn, e, templates_success))

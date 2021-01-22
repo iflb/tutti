@@ -7,12 +7,16 @@
                     <v-col cols="12" lg="8">
                         <v-row class="justify-start ml-5 mr-0 pr-0" align="center">
                             <v-col cols="10">
-                                <v-select width="300" hide-details :items="templateNames" v-model="templateName" label="Template name" :disabled="isTemplateSelectDisabled"></v-select>
+                                <v-select width="300" :hide-details="!templateCreated" messages="Page refresh may be required for rendering the new templates" :items="templateNames" v-model="templateName" label="Template name" :disabled="isTemplateSelectDisabled">
+                                    <template v-if="templateCreated" v-slot:message="{ message }">
+                                        <span style="color:darkorange;font-weight:bold;">{{ message }}</span>
+                                    </template>
+                                </v-select>
                             </v-col>
                             <v-col cols="2">
                                 <v-tooltip bottom>
                                     <template v-slot:activator="{ on, attrs }">
-                                        <v-btn fab small icon v-on="on" v-bind="attrs" :disabled="!project || project.name==''" @click.stop="$refs.dlgCreateTemplate.shown=true"><v-icon dark>mdi-plus-box-multiple-outline</v-icon></v-btn>
+                                        <v-btn fab small icon v-on="on" v-bind="attrs" :disabled="!project" @click.stop="$refs.dialogCreateTemplate.shown=true"><v-icon dark>mdi-plus-box-multiple-outline</v-icon></v-btn>
                                     </template>
                                     <span>Create New Template...</span>
                                 </v-tooltip>
@@ -43,8 +47,17 @@
             </v-col>
         </v-row>
 
+        <tutti-dialog ref="dialogCreateTemplate" maxWidth="400" title="Create New Template"
+            :actions="[
+                { label: 'Create', color: 'indigo darken-1', text: true, disableByRule: true, onclick: createTemplate },
+                { label: 'Cancel', color: 'grey darken-1', text: true }
+            ]">
+            <template v-slot:body>
+                <v-text-field autofocus v-model="newTemplateName" filled prepend-icon="mdi-pencil" label="Enter Template Name" :rules="[rules.required, rules.alphanumeric]"></v-text-field>
+                <v-autocomplete v-model="newTemplatePreset" :items="presetsList" dense filled prepend-icon="mdi-shape" label="Choose Preset Template" :rules="[rules.required]"></v-autocomplete>
+            </template>
+        </tutti-dialog>
         <dialog-submit-answer ref="dlgSubmitAnswer" :answer="sentAnswer" />
-        <dialog-create-template ref="dlgCreateTemplate" :duct="duct" :project="project ? project.name : null" />
 
     </v-main>
 </template>
@@ -52,19 +65,28 @@
 <script>
 import VueJsonPretty from 'vue-json-pretty/lib/vue-json-pretty'
 import DialogSubmitAnswer from './DialogSubmitAnswer.vue'
-import DialogCreateTemplate from './DialogCreateTemplate.vue'
+import Dialog from '@/views/assets/Dialog.vue'
+import rules from '@/lib/input-rules'
 import 'vue-json-pretty/lib/styles.css'
 
 export default {
     components: {
         VueJsonPretty,
         DialogSubmitAnswer,
-        DialogCreateTemplate,
+        TuttiDialog: Dialog
     },
     data: () => ({
         templateName: null,
         currentAnswer: {},
         sentAnswer: {},
+        freeInput: "",
+
+        newTemplateName: "",
+        newTemplatePreset: "",
+        presets: {},
+        templateCreated: false,
+
+        rules: rules,
     }),
     props: ["duct", "sharedProps","name"],
     computed: {
@@ -82,11 +104,37 @@ export default {
         templateNames() {
             if(this.project && this.project.templates) return Object.keys(this.project.templates);
             else return [];
+        },
+
+        presetsList() {
+            var l = []
+            for(var i in this.presets){
+                l.push({
+                    text: `${this.presets[i][0]} - ${this.presets[i][1]}`,
+                    value: this.presets[i]
+                });
+            }
+            return l;
         }
     },
     methods: {
         updateAnswer($event) {
             this.currentAnswer = $event;
+        },
+        createTemplate() {
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.CREATE_TEMPLATES,
+                data: {
+                    "ProjectName": this.project.name,
+                    "TemplateNames": [this.newTemplateName],
+                    "PresetEnvName": this.newTemplatePreset[0],
+                    "PresetTemplateName": this.newTemplatePreset[1]
+                }
+            });
+            this.newTemplateName = "";
+            this.newTemplatePreset = "";
+            this.templateCreated = true;
         },
         submit($event) {
             this.sentAnswer = $event;
@@ -96,6 +144,22 @@ export default {
     watch: {
         "project.name"() { this.templateName = null },
         templateName() { this.currentAnswer = {} }
+    },
+    created() {
+        this.duct.invokeOrWaitForOpen(() => {
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.LIST_TEMPLATE_PRESETS,
+                data: null
+            });
+            this.duct.addEvtHandler({
+                tag: this.name,
+                eid: this.duct.EVENT.LIST_TEMPLATE_PRESETS,
+                handler: (rid, eid, data) => {
+                    this.$set(this, "presets", data["Data"]["Presets"]);
+                }
+            });
+        });
     }
 }
 </script>
