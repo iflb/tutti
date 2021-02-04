@@ -16,6 +16,7 @@
             </v-card-title>
             <v-data-table dense :headers="headers" :items="contents" :search="search"></v-data-table>
         </v-card>
+        <vue-json-pretty :data="contents"></vue-json-pretty>
         <v-container v-if="contents.length>0">
             <v-row>
                 <v-col><v-text-field v-model="tagName" label="Tag Name" :min="1" /></v-col>
@@ -35,6 +36,7 @@
 
 <script>
 import Papa from 'papaparse'
+import VueJsonPretty from 'vue-json-pretty/lib/vue-json-pretty'
 
 export default {
     data: () => ({
@@ -48,7 +50,10 @@ export default {
         numAssignments: 1,
         priority: 1
     }),
-    props: ["duct", "project", "template"],
+    props: ["duct", "prjName", "template"],
+    components: {
+        VueJsonPretty
+    },
     methods: {
         closeDialog() {
             this.contents = [];
@@ -58,12 +63,14 @@ export default {
         importNanotasks() {
             this.duct.sendMsg({
                 tag: "recursive",
-                eid: this.duct.EVENT.NANOTASK,
+                eid: this.duct.EVENT.UPLOAD_NANOTASKS,
                 data: {
-                    "Command":       "Upload",
-                    "ProjectName":   this.project.name,
+                    "ProjectName":   this.prjName,
                     "TemplateName":  this.template,
-                    "Data": this.contents
+                    "Nanotasks": this.contents["Nanotasks"],
+                    "NumAssignable": this.contents["Settings"]["NumAssignable"],
+                    "Priority": this.contents["Settings"]["Priority"],
+                    "TagName": this.contents["Settings"]["TagName"],
                 }
             });
             this.closeDialog();

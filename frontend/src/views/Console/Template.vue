@@ -142,6 +142,9 @@ export default {
     },
     created() {
         this.duct.invokeOrWaitForOpen(() => {
+            this.duct.setTuttiEventHandler(this.duct.EVENT.CREATE_TEMPLATES, () => {
+                this.listTemplates();
+            });
             this.duct.addTuttiEvtHandler({
                 eid: this.duct.EVENT.LIST_TEMPLATE_PRESETS,
                 success: ({ data }) => {
@@ -152,9 +155,6 @@ export default {
                 eid: this.duct.EVENT.LIST_TEMPLATES, 
                 success: ({ data }) => {
                     this.tmplNames = data["Templates"];
-                },
-                error: ({ reason }) => {
-                    console.log(reason);
                 }
             });
 

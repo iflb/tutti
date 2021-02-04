@@ -5,7 +5,7 @@
             
             <v-toolbar-title>Tutti Management Console</v-toolbar-title>
             <v-spacer></v-spacer>
-            <v-autocomplete v-model="prjName" :items="prjNames" :search-input.sync="searchString" label="Select existing project" hide-details cache-items solo-inverted hide-no-data dense rounded></v-autocomplete>
+            <v-autocomplete v-model="prjName" :items="prjNames" label="Select existing project" hide-details cache-items solo-inverted hide-no-data dense rounded></v-autocomplete>
 
             <v-menu bottom left offset-y>
                 <template v-slot:activator="{ on, attrs }">
@@ -149,15 +149,6 @@ import dateFormat from 'dateformat'
 import Snackbar from '@/views/assets/Snackbar.vue'
 import Dialog from '@/views/assets/Dialog.vue'
 
-var Project = class {
-    constructor(name, path) {
-        this.name = name;
-        this.templates = {};
-        this.profile = null;
-        this.path = path;
-    }
-};
-
 export default {
     components: { 
         TuttiSnackbar: Snackbar,
@@ -175,14 +166,8 @@ export default {
         srvStatus: "connecting",
         srvStatusProfile: null,
 
-        searchString: "",
-
         prjNames: [],
-        projects: {},
-        project: new Project("", null),
         prjName: "",
-
-        answers: {},
 
         sharedProps: {},
 
@@ -197,31 +182,11 @@ export default {
         }
     }),
     watch: {
-        searchString (val) {
-            val && val !== this.select && this.querySelections(val)
-        },
-        prjName (name) {  // called when project name is selected on the app bar
-            if(name){
-                localStorage.setItem("tuttiProject", name);
-                this.project = this.projects[name];
-                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.GET_PROJECT_SCHEME, data: { "ProjectName": name } })
-            } 
-        },
-        project: {
-            handler: function(val) {
-                this.$set(this.sharedProps, "project", val)
-            },
-            deep: true
-        },
-        answers: {
-            handler: function(val) {
-                this.$set(this.sharedProps, "answers", val)
-            },
-            deep: true
+        prjName (name) {
+            if(name){ localStorage.setItem("tuttiProject", name); } 
         },
     },
     methods: {
-        launchProductionMode(){ window.open(`/vue/private-prod/${this.prjName}`); },
         createProject() {
             this.duct.sendMsg({
                 tag: this.name,
@@ -231,92 +196,38 @@ export default {
                 }
             });
         },
-        listTemplates(pn) {
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.LIST_TEMPLATES,
-                data: {
-                    "ProjectName": pn
-                }
-            });
-        },
-        querySelections (v) {
-            this.loading = true
-            setTimeout(() => {
-                this.items = Object.keys(this.projects).filter(e => { return (e || '').toLowerCase().indexOf((v || '').toLowerCase()) > -1 })
-                this.loading = false
-            }, 500)
-        },
 
         setEventHandlers() {
-            this.duct.setTuttiEventHandler(this.duct.EVENT.EVENT_HISTORY, ({ data }) => {
-                if("AllHistory" in data)    this.$set(this.sharedProps, "evtHistory", data["AllHistory"])
-                else if("History" in data)  this.$set(this.sharedProps.evtHistory, data["EventId"], data["History"])
-            });
-
-            this.duct.setTuttiEventHandler(this.duct.EVENT.LIST_PROJECTS, ({ data }) => {
-                this.prjNames = data["Projects"].map((value) => (value.name));
-                this.prjName = localStorage.getItem("tuttiProject") || null;
-            },
-            ({ reason }) => { console.error(reason); });
-
-            this.duct.setTuttiEventHandler(this.duct.EVENT.CREATE_PROJECT, ({ data }) => {
-                this.snackbarTexts.success = `Successfully created project '${data["ProjectName"]}'`;
-                this.duct.sendMsg({
-                    tag: this.name,
-                    eid: this.duct.EVENT.LIST_PROJECTS
-                });
-            });
-
-            this.duct.setTuttiEventHandler(this.duct.EVENT.CREATE_TEMPLATES, () => {
-                this.listTemplates(this.prjName);
-            });
-
-            this.duct.setTuttiEventHandler(this.duct.EVENT.NANOTASK, ({ data }) => {
-                const Command = data["Command"];
-                const ProjectName = data["ProjectName"];
-                const TemplateName = data["TemplateName"];
-
-                switch(Command){
-                    case "Upload": {
-                        this.duct.sendMsg({
-                            tag: this.name,
-                            eid: this.duct.EVENT.NANOTASK,
-                            data: { Command, ProjectName, TemplateName }
-                        });
-                        break;
-                    }
-                    case "Get": {
-                        const cnt = data["Count"];
-                        this.projects[ProjectName].templates[TemplateName].nanotask.data = data["Nanotasks"];
-                        this.projects[ProjectName].templates[TemplateName].nanotask.cnt = cnt;
-                        break;
-                    }
+            this.duct.addTuttiEvtHandler({
+                eid: this.duct.EVENT.EVENT_HISTORY,
+                success: ({ data }) => {
+                    if("AllHistory" in data)    this.$set(this.sharedProps, "evtHistory", data["AllHistory"])
+                    else if("History" in data)  this.$set(this.sharedProps.evtHistory, data["EventId"], data["History"])
                 }
             });
 
-            this.duct.setTuttiEventHandler(this.duct.EVENT.GET_PROJECT_SCHEME,
-                ({ data }) => {
-                    this.project.profile = data["Flow"]
-                },
-                ({ reason }) => {
-                    this.project.profile = null
-                    this.$refs.child.showSnackbar({
-                        color: "warning",
-                        text: reason
-                    })
+            this.duct.addTuttiEvtHandler({
+                eid: this.duct.EVENT.LIST_PROJECTS,
+                success: ({ data }) => {
+                    this.prjNames = data["Projects"].map((value) => (value.name));
+                    this.prjName = localStorage.getItem("tuttiProject") || null;
                 }
-            );
+            });
 
-            this.duct.setTuttiEventHandler(this.duct.EVENT.GET_ANSWERS_FOR_TEMPLATE, ({ data }) => {
-                this.answers = data["Answers"];
+            this.duct.addTuttiEvtHandler({
+                eid: this.duct.EVENT.CREATE_PROJECT,
+                success: ({ data }) => {
+                    this.snackbarTexts.success = `Successfully created project '${data["ProjectName"]}'`;
+                    this.duct.sendMsg({
+                        tag: this.name,
+                        eid: this.duct.EVENT.LIST_PROJECTS
+                    });
+                }
             });
         }
     },
 
     created: function(){
-        this.$set(this.sharedProps, "project", this.project);
-        //this.$set(this.sharedProps, "answers", this.answers);
 
         new DuctsLoader().initDuct("guest").then( ({ loader, duct }) => {
             this.duct = duct;

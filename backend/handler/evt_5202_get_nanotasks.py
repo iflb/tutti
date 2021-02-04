@@ -21,5 +21,7 @@ class Handler(EventHandler):
     @handler_output
     async def handle(self, event, output):
         nanotasks = await self.evt_nanotask.get_nanotasks(**event.data)
+        output.set("ProjectName", event.data["ProjectName"])
+        output.set("TemplateName", event.data["TemplateName"])
         output.set("Nanotasks", nanotasks)
         output.set("Count", len(nanotasks))

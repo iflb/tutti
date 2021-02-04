@@ -27,8 +27,8 @@ class Handler(EventHandler):
     async def upload_nanotasks(self, ProjectName, TemplateName, Nanotasks, TagName=None, NumAssignable=None, Priority=None):
         tasks = []
         for nt in Nanotasks:
-            _num_assignable = nt["NumAssignable"] if "NumAssignable" in nt else priority
-            _priority = nt["Priority"] if "Priority" in nt else priority
+            _num_assignable = nt["NumAssignable"] if "NumAssignable" in nt else NumAssignable
+            _priority = nt["Priority"] if "Priority" in nt else Priority
             _props = nt["Props"] if "Props" in nt else None
             _gt = nt["GroundTruths"] if "GroundTruths" in nt else None
             params = {

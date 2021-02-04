@@ -99,7 +99,7 @@ export default {
         numAssignableMethod: 'fixed',
         numAssignableValue: 1
     }),
-    props: ["duct", "project", "template", "nanotasks"],
+    props: ["duct", "prjName", "template", "nanotasks"],
     components: {
         TuttiDialog: Dialog
     },
@@ -145,7 +145,7 @@ export default {
                 eid: this.duct.EVENT.NANOTASK,
                 data: {
                     "Command": "Delete",
-                    "ProjectName": this.project.name,
+                    "ProjectName": this.prjName,
                     "TemplateName": this.template,
                     "NanotaskIds": this.selectedNanotaskIds
                 }
@@ -178,7 +178,7 @@ export default {
                     eid: this.duct.EVENT.NANOTASK,
                     data: {
                         "Command": "Get",
-                        "ProjectName": this.project.name,
+                        "ProjectName": this.prjName,
                         "TemplateName": this.template
                     }
                 });

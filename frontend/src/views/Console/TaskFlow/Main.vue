@@ -5,7 +5,7 @@
             <v-container>
                 <v-row>
                     <v-col align="right">
-                        <v-btn text icon @click="refreshFlow()"><v-icon>mdi-refresh</v-icon></v-btn>
+                        <v-btn text icon @click="loadFlow()"><v-icon>mdi-refresh</v-icon></v-btn>
                     </v-col>
                 </v-row>
                 <v-card align="center" class="mx-auto py-2 text-h6" color="grey lighten-2" width="200">Start</v-card>
@@ -17,11 +17,10 @@
                         :duct="duct"
                         :name="name"
                         :parent-params="{
-                            project: project,
+                            prjName, templateColor,
                             node: flow,
                             depth: 1,
                             isLast: true,
-                            templateColor: templateColor,
                         }" />
                 </div>
 
@@ -32,13 +31,7 @@
             </v-card>
         </v-col></v-row>
 
-
-        <v-snackbar v-model="snackbar.visible" :timeout="snackbar.timeout" :color="snackbar.color">
-            {{ snackbar.text }}
-            <template v-slot:action="{ attrs }">
-            <v-btn color="white" text v-bind="attrs" @click="snackbar.visible = false">Close</v-btn>
-            </template>
-        </v-snackbar>
+        <tutti-snackbar v-for="type in Object.keys(snackbarTexts)" :key="type" :color="type" :text="snackbarTexts[type]" :timeout="2000" />
 
     </v-main>
 </template>
@@ -46,40 +39,54 @@
 <script>
 import Arrow from './Arrow.vue'
 import RecursiveBatch from './RecursiveBatch.vue'
+import Snackbar from '@/views/assets/Snackbar.vue'
 
 export default {
     data: () => ({
-        snackbar: {
-            visible: false,
-            timeout: 3000,
-            color: "",
-            text: ""
+        snackbarTexts: {
+            success: "",
+            error: ""
         },
         templateColor: "blue-grey lighten-4",
+        flow: null,
     }),
     components: {
-        Arrow, RecursiveBatch
+        Arrow, RecursiveBatch,
+        TuttiSnackbar: Snackbar
     },
-    props: ["duct", "sharedProps","name"],
-    computed: {
-        project() { return this.sharedProps.project },
-        flow() {
-            if(this.project) { return this.sharedProps.project.profile; }
-            else { return null; }
-        },
-    },
+    props: ["duct", "prjName", "name"],
     methods: {
         showSnackbar(info){
             Object.assign(this.snackbar, info)
             this.snackbar.visible = true
         },
-        refreshFlow(){
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.GET_PROJECT_SCHEME,
-                data: { "ProjectName": this.project.name, "Cached": false }
-            });
+        loadFlow(){
+            if(this.prjName){
+                this.duct.sendMsg({
+                    tag: this.name,
+                    eid: this.duct.EVENT.GET_PROJECT_SCHEME,
+                    data: { "ProjectName": this.prjName, "Cached": false }
+                });
+            }
         }
     },
+    watch: {
+        prjName() { this.loadFlow(); }
+    },
+    created() {
+        this.duct.invokeOrWaitForOpen(() => {
+            this.duct.addTuttiEvtHandler({
+                eid: this.duct.EVENT.GET_PROJECT_SCHEME,
+                success: ({ data }) => {
+                    this.flow = data["Flow"];
+                    this.snackbarTexts.success = "successfully loaded flow";
+                },
+                error: ({ data }) => {
+                    this.snackbarTexts.error = "Error in loading flow: " + data["Reason"];
+                }
+            });
+            this.loadFlow();
+        });
+    }
 }
 </script>

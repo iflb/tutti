@@ -7,6 +7,8 @@ window.ducts.tutti.Duct = class extends window.ducts.Duct {
     constructor(wsd) {
 	    super(wsd);
 
+        this.controller = new window.ducts.tutti.Controller(this);
+
         this.sendMsg = ({ tag, eid, data }) => {
             const rid = this.next_rid();
             if(typeof data === "string") { data = data.split(" ") }
@@ -32,6 +34,8 @@ window.ducts.tutti.Duct = class extends window.ducts.Duct {
             ({ eid, success, error }) => {
                 if(!(eid in this.evtHandlersNew)) this.evtHandlersNew[eid] = [];
                 this.evtHandlersNew[eid].push({ success, error });
+                console.log("added evt handler");
+                console.log(this.evtHandlersNew);
             }
             
         this.catchall_event_handler = (rid, eid, data) => {
@@ -92,3 +96,21 @@ window.ducts.tutti.Duct = class extends window.ducts.Duct {
 	    self.send(self.next_rid(), self.EVENT.APP_WSD, null);
     }
 };
+
+window.ducts.tutti.EventListener = class extends window.ducts.DuctEventListener {
+
+}
+
+window.ducts.tutti.Controller = class {
+    constructor(duct) {
+        this._duct = duct;
+    }
+
+    listTemplates(tag, ProjectName) {
+        this._duct.sendMsg({
+            tag,
+            eid: this._duct.EVENT.LIST_TEMPLATES,
+            data: { ProjectName }
+        });
+    }
+}

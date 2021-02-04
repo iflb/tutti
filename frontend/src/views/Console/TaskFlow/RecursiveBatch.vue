@@ -1,16 +1,15 @@
 <template>
     <div>
-    <v-card class="pa-3 ma-3" :color="cardColor" :tile="hasChildren" :shaped="!hasChildren">
+    <v-card class="pa-3 ma-3" :color="cardColor" :tile="isBatch" :shaped="!isBatch">
         <v-container>
             <v-row>
                 <v-col cols="10" md="6">
-                        <v-text-field v-if="hasChildren" v-model="node.name" label="Batch name" prepend-inner-icon="mdi-pencil" outlined filled hide-details dense />
-                        <v-select v-if="!hasChildren" v-model="node.name" :items="Object.keys(project.templates)" label="Template name" filled hide-details outlined dense />
+                        <v-text-field v-model="node.name" :label="isBatch ? 'Batch name' : 'Template name'" prepend-inner-icon="mdi-pencil" outlined filled hide-details dense />
                 </v-col>
 
                 <v-spacer></v-spacer>
 
-                <v-menu bottom left offset-y v-if="!hasChildren">
+                <v-menu bottom left offset-y v-if="!isBatch">
                     <template v-slot:activator="{ on, attrs }">
                         <v-btn icon v-on="on" v-bind="attrs"><v-icon>mdi-dots-vertical</v-icon></v-btn>
                     </template>
@@ -40,7 +39,7 @@
                 <v-col cols="12" class="pb-0" v-if="hasNanotask">
                     <v-chip dark label outlined color="indigo" @click="$refs.dlgList.show=true">
                         <v-icon left>mdi-file-document-multiple-outline</v-icon>
-                        Nanotasks ({{ project.templates[node.name].nanotask.cnt }})
+                        Nanotasks ({{ nanotasks.length }})
                     </v-chip>
                 </v-col>
             </v-row>
@@ -51,8 +50,7 @@
                     :duct="duct"
                     :name="name"
                     :parent-params="{
-                        templateColor: templateColor,
-                        project: project,
+                        prjName, templateColor,
                         node: child,
                         isLast: idx==children.length-1,
                         depth: depth+1
@@ -64,8 +62,8 @@
     </v-card>
     <arrow v-if="!isLast" :depth="depth" :color="templateColor" />
 
-    <dialog-import :duct="duct" :project="project" :template="node.name" ref="dlgImport" />
-    <dialog-list :duct="duct" :project="project" :template="node.name" :nanotasks="nanotasks" ref="dlgList" />
+    <dialog-import :duct="duct" :prj-name="prjName" :template="node.name" ref="dlgImport" />
+    <dialog-list :duct="duct" :prj-name="prjName" :template="node.name" :nanotasks="nanotasks" ref="dlgList" />
 
     </div>
 </template>
@@ -93,24 +91,52 @@ export default {
             lineNumbers: true,
             line: true,
             readOnly: true
-        }
+        },
+        nanotasks: []
     }),
     computed: {
-        cardColor() { return this.hasChildren ? `${this.color} lighten-${this.depth+2}` : this.templateColor; },
+        cardColor() { return this.isBatch ? `${this.color} lighten-${this.depth+2}` : this.templateColor; },
         children() { return this.node ? this.node.children : []; },
-        hasChildren() { return this.children ? this.children.length>0 : false; },
-        hasNanotask() { return !this.hasChildren && this.project.templates[this.node.name].nanotask.cnt>0; },
-        nanotasks() {
-            try { return this.project.templates[this.node.name].nanotask.data; }
-            catch { return []; }
-        },
+        isBatch() { return this.children ? this.children.length>0 : false; },
+        hasNanotask() { return !this.isBatch && this.nanotasks.length>0; },
 
-        project() { return this.parentParams.project; },
+        prjName() { return this.parentParams.prjName; },
         node() { return this.parentParams.node; },
         templateColor() { return this.parentParams.templateColor; },
         depth() { return this.parentParams.depth; },
         isLast() { return this.parentParams.isLast; },
     },
+    methods: {
+        getNanotasks() {
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.GET_NANOTASKS,
+                data: { "ProjectName": this.prjName, "TemplateName": this.node.name }
+            });
+        }
+    },
+    created() {
+        this.duct.invokeOrWaitForOpen(() => {
+            this.duct.addTuttiEvtHandler({
+                eid: this.duct.EVENT.GET_NANOTASKS,
+                success: ({ data }) => {
+                    if(data["ProjectName"]==this.prjName && data["TemplateName"]==this.node.name)
+                        this.nanotasks = data["Nanotasks"];
+                }
+            });
+
+            this.duct.addTuttiEvtHandler({
+                eid: this.duct.EVENT.UPLOAD_NANOTASKS,
+                success: ({ data }) => {
+                    if(data["ProjectName"]==this.prjName && data["TemplateName"]==this.node.name)
+                        this.getNanotasks();
+                }
+            });
+            
+            if(!this.isBatch){ this.getNanotasks(); }
+        });
+
+    }
 }
 </script>
 <style>
