@@ -1,18 +1,18 @@
 <template>
     <v-app>
-        <v-app-bar color="indigo" dark app clipped-left dense>
+        <v-app-bar color="indigo" dark app clipped-left clipped-right dense>
             <v-app-bar-nav-icon @click="drawer = !drawer"></v-app-bar-nav-icon>
             
             <v-toolbar-title>Tutti Management Console</v-toolbar-title>
             <v-spacer></v-spacer>
-            <v-autocomplete v-model="projectName" :items="projectNames" :search-input.sync="searchString" label="Select existing project" hide-details cache-items solo-inverted hide-no-data dense rounded></v-autocomplete>
+            <v-autocomplete v-model="prjName" :items="prjNames" :search-input.sync="searchString" label="Select existing project" hide-details cache-items solo-inverted hide-no-data dense rounded></v-autocomplete>
 
             <v-menu bottom left offset-y>
                 <template v-slot:activator="{ on, attrs }">
                     <v-btn fab dark small icon v-on="on" v-bind="attrs"><v-icon>mdi-dots-vertical</v-icon></v-btn>
                 </template>
                 <v-list>
-                    <v-list-item @click="$refs.dialogCreateProject.shown=true">
+                    <v-list-item @click="$refs.dialogCreateProject.show()">
                         <v-list-item-title>Create New Project...</v-list-item-title>
                     </v-list-item>
                 </v-list>
@@ -44,16 +44,9 @@
             </v-menu>
         </v-app-bar>
 
-        <v-navigation-drawer v-model="drawer" app clipped>
+        <v-navigation-drawer v-model="drawer" app clipped left>
             <v-list nav dense>
                 <v-list-item-group active-class="indigo--text text--accent-4">
-                    <!--<v-list-item>
-                        <v-list-item-content>
-                            <v-list-item-title class="title">DynamicCrowd</v-list-item-title>
-                            <v-list-item-subtitle>Alpha Version</v-list-item-subtitle>
-                        </v-list-item-content>
-                    </v-list-item>-->
-
                     <v-list-item to="/console/dashboard/">
                         <v-list-item-icon>
                             <v-icon>mdi-view-dashboard</v-icon>
@@ -80,7 +73,7 @@
                 <v-list-item-group active-class="indigo--text text--accent-4">
                     <v-subheader>PUBLISH & COLLECT</v-subheader>
  
-                    <v-list-item :href="`/vue/private-prod/${this.projectName}`" target="_blank">
+                    <v-list-item :href="`/vue/private-prod/${this.prjName}`" target="_blank">
                         <v-list-item-icon>
                             <v-icon>mdi-monitor</v-icon>
                         </v-list-item-icon>
@@ -133,9 +126,17 @@
             </v-list>
         </v-navigation-drawer>
 
-        <v-slide-x-transition hide-on-leave>
-            <router-view v-if="duct" :duct="duct" :shared-props="sharedProps" ref="child"></router-view>
-        </v-slide-x-transition>
+        <transition name="fade" mode="out-in">
+            <keep-alive>
+                <router-view app
+                    v-if="duct"
+                    :duct="duct"
+                    :prj-name="prjName"
+                    :shared-props="sharedProps"
+                    ref="child"
+                ></router-view>
+            </keep-alive>
+        </transition>
 
         <tutti-snackbar color="success" :timeout="5000" :text="snackbarTexts.success" />
         
@@ -154,16 +155,6 @@ var Project = class {
         this.templates = {};
         this.profile = null;
         this.path = path;
-    }
-};
-
-var Template = class {
-    constructor(name) {
-        this.name = name;
-        this.nanotask = {
-            cnt: 0,
-            data: []
-        };
     }
 };
 
@@ -186,9 +177,10 @@ export default {
 
         searchString: "",
 
+        prjNames: [],
         projects: {},
         project: new Project("", null),
-        projectName: "",
+        prjName: "",
 
         answers: {},
 
@@ -204,20 +196,14 @@ export default {
             }
         }
     }),
-    computed: {
-        projectNames() {
-            return Object.keys(this.projects);
-        },
-    },
     watch: {
         searchString (val) {
             val && val !== this.select && this.querySelections(val)
         },
-        projectName (name) {  // called when project name is selected on the app bar
+        prjName (name) {  // called when project name is selected on the app bar
             if(name){
                 localStorage.setItem("tuttiProject", name);
                 this.project = this.projects[name];
-                this.listTemplates(name);
                 this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.GET_PROJECT_SCHEME, data: { "ProjectName": name } })
             } 
         },
@@ -235,7 +221,7 @@ export default {
         },
     },
     methods: {
-        launchProductionMode(){ window.open(`/vue/private-prod/${this.projectName}`); },
+        launchProductionMode(){ window.open(`/vue/private-prod/${this.prjName}`); },
         createProject() {
             this.duct.sendMsg({
                 tag: this.name,
@@ -269,15 +255,8 @@ export default {
             });
 
             this.duct.setTuttiEventHandler(this.duct.EVENT.LIST_PROJECTS, ({ data }) => {
-                var projects = data["Projects"];
-                for(const i in projects){
-                    const name = projects[i].name;
-                    const path = projects[i].path;
-                    var project = new Project(name, path);
-                    this.$set(this.projects, name, project);
-                }
-                var selected = localStorage.getItem("tuttiProject");   
-                if(selected)  this.$set(this, "projectName", selected);
+                this.prjNames = data["Projects"].map((value) => (value.name));
+                this.prjName = localStorage.getItem("tuttiProject") || null;
             },
             ({ reason }) => { console.error(reason); });
 
@@ -290,28 +269,7 @@ export default {
             });
 
             this.duct.setTuttiEventHandler(this.duct.EVENT.CREATE_TEMPLATES, () => {
-                this.listTemplates(this.projectName);
-            });
-
-            this.duct.setTuttiEventHandler(this.duct.EVENT.LIST_TEMPLATES, ({ data }) => {
-                const pn = data["Project"];
-                const tns = data["Templates"];
-                var templates = {};
-                for(const i in tns){
-                    var template = new Template(tns[i]);
-                    templates[tns[i]] = template;
-
-                    this.duct.sendMsg({
-                        tag: this.name,
-                        eid: this.duct.EVENT.NANOTASK,
-                        data: {
-                            "Command": "Get",
-                            "ProjectName": pn,
-                            "TemplateName": tns[i]
-                        }
-                    });
-                }
-                this.$set(this.project, "templates", templates);
+                this.listTemplates(this.prjName);
             });
 
             this.duct.setTuttiEventHandler(this.duct.EVENT.NANOTASK, ({ data }) => {
@@ -358,7 +316,7 @@ export default {
 
     created: function(){
         this.$set(this.sharedProps, "project", this.project);
-        this.$set(this.sharedProps, "answers", this.answers);
+        //this.$set(this.sharedProps, "answers", this.answers);
 
         new DuctsLoader().initDuct("guest").then( ({ loader, duct }) => {
             this.duct = duct;
@@ -400,3 +358,20 @@ export default {
     }
 }
 </script>
+<style>
+.fade-enter-active,
+.fade-leave-active {
+  transition-duration: 0.5s;
+  transition-property: opacity;
+  transition-timing-function: ease-in;
+}
+
+.fade-enter-active {
+  transition-duration: 0.5s;
+}
+
+.fade-enter,
+.fade-leave-active {
+  opacity: 0
+}
+</style>

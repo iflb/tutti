@@ -1,51 +1,36 @@
 <template>
-    <v-main class="mt-10 grey lighten-4">
-        <v-row justify="center">
-            <v-col cols="10">
-            <v-card class="pa-3">
-                <v-row justify="center">
-                    <v-col cols="12" lg="8">
-                        <v-row class="justify-start ml-5 mr-0 pr-0" align="center">
-                            <v-col cols="10">
-                                <v-select width="300" :hide-details="!templateCreated" messages="Page refresh may be required for rendering the new templates" :items="templateNames" v-model="templateName" label="Template name" :disabled="isTemplateSelectDisabled">
-                                    <template v-if="templateCreated" v-slot:message="{ message }">
-                                        <span style="color:darkorange;font-weight:bold;">{{ message }}</span>
-                                    </template>
-                                </v-select>
-                            </v-col>
-                            <v-col cols="2">
-                                <v-tooltip bottom>
-                                    <template v-slot:activator="{ on, attrs }">
-                                        <v-btn fab small icon v-on="on" v-bind="attrs" :disabled="!project" @click.stop="$refs.dialogCreateTemplate.shown=true"><v-icon dark>mdi-plus-box-multiple-outline</v-icon></v-btn>
-                                    </template>
-                                    <span>Create New Template...</span>
-                                </v-tooltip>
-                            </v-col>
-                        </v-row>
-                    </v-col>
-                </v-row>
-            </v-card>
-            </v-col>
-        </v-row>
-        <v-row justify="center">
-            <v-col cols="10" md="7">
-                <v-card height="100%">
-                    <v-fade-transition hide-on-leave>
-                    <component :is="nanotaskTemplateComponent" @submit="submit" @updateAnswer="updateAnswer"/>
-                    </v-fade-transition>
-                </v-card>
-            </v-col>
-            <v-col cols="10" md="3">
-                <v-card height="100%" color="grey lighten-3">
-                    <v-list-item three-line>
-                        <v-list-item-content>
-                            <div class="overline mb-4">ANSWER DATA</div>
-                            <vue-json-pretty :data="currentAnswer" style="line-height:1.4em;"></vue-json-pretty>
-                        </v-list-item-content>
-                    </v-list-item>
-                </v-card>
-            </v-col>
-        </v-row>
+    <!--<v-main class="mt-10 grey lighten-4">-->
+    <v-main>
+        <v-toolbar class="grey lighten-4">
+            <v-row class="ml-5 mr-0 pr-0" align="end" justify="center">
+                <v-col cols="6">
+                    <v-select width="300" :hide-details="!templateCreated" messages="Page refresh may be required for rendering the new templates" :items="tmplNames" v-model="tmplName" label="Template name" :disabled="tmplNames.length==0">
+                        <template v-if="templateCreated" v-slot:message="{ message }">
+                            <span style="color:darkorange;font-weight:bold;">{{ message }}</span>
+                        </template>
+                    </v-select>
+                </v-col>
+                <v-col cols="2">
+                    <v-tooltip bottom>
+                        <template v-slot:activator="{ on, attrs }">
+                            <v-btn fab small icon v-on="on" v-bind="attrs" :disabled="!prjName" @click.stop="$refs.dialogCreateTemplate.show()"><v-icon dark>mdi-plus-box-multiple-outline</v-icon></v-btn>
+                        </template>
+                        <span>Create New Template...</span>
+                    </v-tooltip>
+                </v-col>
+            </v-row>
+        </v-toolbar>
+
+        <v-navigation-drawer app clipped right class="grey lighten-4">
+            <div class="pa-4">
+                <div class="overline mb-4">ANSWER DATA</div>
+                <vue-json-pretty :data="currentAnswer" style="line-height:1.4em;"></vue-json-pretty>
+            </div>
+        </v-navigation-drawer>
+
+        <v-fade-transition hide-on-leave>
+            <component :is="tmplComponent" @submit="submit" @updateAnswer="updateAnswer"/>
+        </v-fade-transition>
 
         <tutti-dialog ref="dialogCreateTemplate" maxWidth="400" title="Create New Template"
             :actions="[
@@ -53,18 +38,27 @@
                 { label: 'Cancel', color: 'grey darken-1', text: true }
             ]">
             <template v-slot:body>
-                <v-text-field autofocus v-model="newTemplateName" filled prepend-icon="mdi-pencil" label="Enter Template Name" :rules="[rules.required, rules.alphanumeric]"></v-text-field>
-                <v-autocomplete v-model="newTemplatePreset" :items="presetsList" dense filled prepend-icon="mdi-shape" label="Choose Preset Template" :rules="[rules.required]"></v-autocomplete>
+                <v-text-field autofocus v-model="newTemplateName" filled prepend-icon="mdi-pencil" label="Enter Template Name" :rules="rules.tmplName"></v-text-field>
+                <v-autocomplete v-model="newTemplatePreset" :items="presetsList" dense filled prepend-icon="mdi-shape" label="Choose Preset Template" :rules="rules.preset"></v-autocomplete>
             </template>
         </tutti-dialog>
-        <dialog-submit-answer ref="dlgSubmitAnswer" :answer="sentAnswer" />
 
+        <tutti-dialog ref="dialogSubmitAnswer" maxWidth="700"
+            :actions="[
+                { label: 'Close', color: 'indigo darken-1', text: true }
+            ]">
+            <template v-slot:title>
+                <v-icon class="mr-2" color="green">mdi-check-circle</v-icon>Answers are submitted successfully
+            </template>
+            <template v-slot:body>
+                <vue-json-pretty :data="sentAnswer"></vue-json-pretty>
+            </template>
+        </tutti-dialog>
     </v-main>
 </template>
 
 <script>
 import VueJsonPretty from 'vue-json-pretty/lib/vue-json-pretty'
-import DialogSubmitAnswer from './DialogSubmitAnswer.vue'
 import Dialog from '@/views/assets/Dialog.vue'
 import rules from '@/lib/input-rules'
 import 'vue-json-pretty/lib/styles.css'
@@ -72,50 +66,35 @@ import 'vue-json-pretty/lib/styles.css'
 export default {
     components: {
         VueJsonPretty,
-        DialogSubmitAnswer,
         TuttiDialog: Dialog
     },
     data: () => ({
-        templateName: null,
-        currentAnswer: {},
-        sentAnswer: {},
-        freeInput: "",
+        rules: {
+            tmplName: [rules.required, rules.alphanumeric],
+            preset: [rules.required]
+        },
 
-        newTemplateName: "",
-        newTemplatePreset: "",
-        presets: {},
+        tmplNames: [],
+        tmplName: null,
+        presets: [],
         templateCreated: false,
 
-        rules: rules,
+        // for answer input test
+        currentAnswer: {},
+        sentAnswer: {},
+
+        // for template creation
+        newTemplateName: "",
+        newTemplatePreset: [],
     }),
-    props: ["duct", "sharedProps","name"],
+    props: ["name", "duct", "prjName"],
     computed: {
-        project() { return this.sharedProps.project },
-
-        nanotaskTemplateComponent() {
-            if(this.project && this.project.name && this.templateName){
-                return require(`@/projects/${this.project.name}/templates/${this.templateName}/Main.vue`).default;
-            } else { return null }
+        tmplComponent() {
+            if(this.prjName && this.tmplName){ return require(`@/projects/${this.prjName}/templates/${this.tmplName}/Main.vue`).default; }
+            else { return null; }
         },
 
-        isTemplateSelectDisabled() {
-            return !this.project || !this.project.templates || Object.keys(this.project.templates).length==0
-        },
-        templateNames() {
-            if(this.project && this.project.templates) return Object.keys(this.project.templates);
-            else return [];
-        },
-
-        presetsList() {
-            var l = []
-            for(var i in this.presets){
-                l.push({
-                    text: `${this.presets[i][0]} - ${this.presets[i][1]}`,
-                    value: this.presets[i]
-                });
-            }
-            return l;
-        }
+        presetsList() { return this.presets.map((val) => ({ text: `${val[0]} - ${val[1]}`, value: val })); }
     },
     methods: {
         updateAnswer($event) {
@@ -126,39 +105,61 @@ export default {
                 tag: this.name,
                 eid: this.duct.EVENT.CREATE_TEMPLATES,
                 data: {
-                    "ProjectName": this.project.name,
+                    "ProjectName": this.prjName,
                     "TemplateNames": [this.newTemplateName],
                     "PresetEnvName": this.newTemplatePreset[0],
                     "PresetTemplateName": this.newTemplatePreset[1]
                 }
             });
             this.newTemplateName = "";
-            this.newTemplatePreset = "";
+            this.newTemplatePreset = [];
             this.templateCreated = true;
         },
-        submit($event) {
-            this.sentAnswer = $event;
-            this.$refs.dlgSubmitAnswer.shown = true;
-        },
-    },
-    watch: {
-        "project.name"() { this.templateName = null },
-        templateName() { this.currentAnswer = {} }
-    },
-    created() {
-        this.duct.invokeOrWaitForOpen(() => {
+        listTemplatePresets() {
             this.duct.sendMsg({
                 tag: this.name,
                 eid: this.duct.EVENT.LIST_TEMPLATE_PRESETS,
                 data: null
             });
-            this.duct.addEvtHandler({
+        },
+        listTemplates() {
+            this.tmplName = null;
+            this.duct.sendMsg({
                 tag: this.name,
+                eid: this.duct.EVENT.LIST_TEMPLATES,
+                data: { "ProjectName": this.prjName }
+            });
+        },
+
+        submit($event) {
+            this.sentAnswer = $event;
+            this.$refs.dialogSubmitAnswer.show();
+        },
+    },
+    watch: {
+        prjName() { this.listTemplates(); },
+        tmplName() { this.currentAnswer = {} }
+    },
+    created() {
+        this.duct.invokeOrWaitForOpen(() => {
+            this.duct.addTuttiEvtHandler({
                 eid: this.duct.EVENT.LIST_TEMPLATE_PRESETS,
-                handler: (rid, eid, data) => {
-                    this.$set(this, "presets", data["Data"]["Presets"]);
+                success: ({ data }) => {
+                    this.presets = data["Presets"];
                 }
             });
+            this.duct.addTuttiEvtHandler({
+                eid: this.duct.EVENT.LIST_TEMPLATES, 
+                success: ({ data }) => {
+                    this.tmplNames = data["Templates"];
+                },
+                error: ({ reason }) => {
+                    console.log(reason);
+                }
+            });
+
+            this.listTemplatePresets();
+            if(this.prjName) this.listTemplates();
         });
     }
 }

@@ -7,6 +7,7 @@ module.exports = {
     },
     configureWebpack: {
         resolve: { symlinks: false },
+        devtool: 'source-map',
         watch: true,
         watchOptions: {
             aggregateTimeout: 1000,

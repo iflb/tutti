@@ -10,7 +10,7 @@
                     <slot name="body"></slot>
                 </v-form>
             </v-card-text>
-            <div class="px-4 py-2">
+            <div class="px-4 py-2" v-if="$slots.bodyRaw">
                 <slot name="body-raw"></slot>
             </div>
             <v-card-actions>
@@ -26,6 +26,11 @@ export default {
         shown: false,
         valid: false,
     }),
+    methods: {
+        show() {
+            this.shown = true;
+        }
+    },
     props: ["title", "actions", "maxWidth", "persistent"]
 }
 </script>
