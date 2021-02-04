@@ -4,7 +4,9 @@
             <v-app-bar-nav-icon @click="drawer = !drawer"></v-app-bar-nav-icon>
             
             <v-toolbar-title>Tutti Management Console</v-toolbar-title>
+
             <v-spacer></v-spacer>
+
             <v-autocomplete v-model="prjName" :items="prjNames" label="Select existing project" hide-details cache-items solo-inverted hide-no-data dense rounded></v-autocomplete>
 
             <v-menu bottom left offset-y>
@@ -18,17 +20,8 @@
                 </v-list>
             </v-menu>
 
-            <tutti-dialog ref="dialogCreateProject" title="Create New Project" maxWidth="400"
-                :actions="[
-                    { label: 'Create', color: 'indigo darken-1', text: true, onclick: createProject },
-                    { label: 'Cancel', color: 'grey darken-1', text: true }
-                ]" >
-                <template v-slot:body>
-                    <v-text-field autofocus v-model="newProjectName" filled prepend-icon="mdi-pencil" label="Enter Project Name" :rules="[rules.required, rules.alphanumeric]"></v-text-field>
-                </template>
-            </tutti-dialog>
-
             <v-spacer></v-spacer>
+
             <v-menu offset-y v-if="srvStatusProfile">
                 <template v-slot:activator="{ on, attrs }">
                     <v-btn depressed :color="srvStatusProfile[srvStatus].btn.color" class="text-none" v-bind="attrs" v-on="on">
@@ -44,87 +37,82 @@
             </v-menu>
         </v-app-bar>
 
+
         <v-navigation-drawer v-model="drawer" app clipped left>
             <v-list nav dense>
                 <v-list-item-group active-class="indigo--text text--accent-4">
+
                     <v-list-item to="/console/dashboard/">
-                        <v-list-item-icon>
-                            <v-icon>mdi-view-dashboard</v-icon>
-                        </v-list-item-icon>
+                        <v-list-item-icon> <v-icon>mdi-view-dashboard</v-icon> </v-list-item-icon>
                         <v-list-item-title>Dashboard</v-list-item-title>
                     </v-list-item>
+
                 </v-list-item-group>
+
                 <v-list-item-group active-class="indigo--text text--accent-4">
                     <v-subheader>DESIGN & TEST</v-subheader>
+
                     <v-list-item to="/console/template/">
-                        <v-list-item-icon>
-                            <v-icon>mdi-iframe-outline</v-icon>
-                        </v-list-item-icon>
+                        <v-list-item-icon> <v-icon>mdi-iframe-outline</v-icon> </v-list-item-icon>
                         <v-list-item-title>Templates</v-list-item-title>
                     </v-list-item>
                
                     <v-list-item to="/console/flow/">
-                        <v-list-item-icon>
-                            <v-icon>mdi-transit-connection</v-icon>
-                        </v-list-item-icon>
+                        <v-list-item-icon> <v-icon>mdi-transit-connection</v-icon> </v-list-item-icon>
                         <v-list-item-title>Task Flow</v-list-item-title>
                     </v-list-item>
+
                 </v-list-item-group>
+
                 <v-list-item-group active-class="indigo--text text--accent-4">
                     <v-subheader>PUBLISH & COLLECT</v-subheader>
  
                     <v-list-item :href="`/vue/private-prod/${this.prjName}`" target="_blank">
-                        <v-list-item-icon>
-                            <v-icon>mdi-monitor</v-icon>
-                        </v-list-item-icon>
+                        <v-list-item-icon> <v-icon>mdi-monitor</v-icon> </v-list-item-icon>
                         <v-list-item-title>Task UI</v-list-item-title>
-                        <v-list-item-action>
-                            <v-icon small>mdi-launch</v-icon>
-                        </v-list-item-action>
+                        <v-list-item-action> <v-icon small>mdi-launch</v-icon> </v-list-item-action>
                     </v-list-item>
+
                     <v-list-item to="/console/answer/">
-                        <v-list-item-icon>
-                            <v-icon>mdi-database-arrow-left-outline</v-icon>
-                        </v-list-item-icon>
+                        <v-list-item-icon> <v-icon>mdi-database-arrow-left-outline</v-icon> </v-list-item-icon>
                         <v-list-item-title>Answers</v-list-item-title>
                     </v-list-item>
+
                     <v-list-group prepend-icon="mdi-account-group" :value="false">
-                        <template v-slot:activator><v-list-item-title>Worker Platforms</v-list-item-title></template>
+                        <template v-slot:activator> <v-list-item-title>Worker Platforms</v-list-item-title> </template>
+
                         <v-list-item to="/console/platform/mturk/">
-                            <v-list-item-icon><v-icon>mdi-amazon</v-icon></v-list-item-icon>
-                            <v-list-item-content>
+                            <v-list-item-icon> <v-icon>mdi-amazon</v-icon> </v-list-item-icon>
                             <v-list-item-title>Amazon MTurk</v-list-item-title>
-                            </v-list-item-content>
                         </v-list-item>
+
                         <v-list-item to="/console/platform/private/">
-                            <v-list-item-icon><v-icon>mdi-account-supervisor-circle</v-icon></v-list-item-icon>
-                            <v-list-item-content>
+                            <v-list-item-icon> <v-icon>mdi-account-supervisor-circle</v-icon> </v-list-item-icon>
                             <v-list-item-title>Partner-Sourcing</v-list-item-title>
-                            </v-list-item-content>
                         </v-list-item>
+
                     </v-list-group>
+
                 </v-list-item-group>
+
                 <v-list-item-group active-class="indigo--text text--accent-4">
                     <v-subheader>OTHERS</v-subheader>
+
                     <v-list-item to="/console/event/">
-                        <v-list-item-icon>
-                            <v-icon>mdi-lightning-bolt</v-icon>
-                        </v-list-item-icon>
+                        <v-list-item-icon> <v-icon>mdi-lightning-bolt</v-icon> </v-list-item-icon>
                         <v-list-item-title>Duct Events</v-list-item-title>
                     </v-list-item>
+
                     <v-list-item href="https://iflb.github.io/tutti/" target="_blank">
-                        <v-list-item-icon>
-                            <v-icon>mdi-file-document-outline</v-icon>
-                        </v-list-item-icon>
+                        <v-list-item-icon> <v-icon>mdi-file-document-outline</v-icon> </v-list-item-icon>
                         <v-list-item-title>Documentation</v-list-item-title>
-                        <v-list-item-action>
-                            <v-icon small>mdi-launch</v-icon>
-                        </v-list-item-action>
+                        <v-list-item-action> <v-icon small>mdi-launch</v-icon> </v-list-item-action>
                     </v-list-item>
 
                 </v-list-item-group>
             </v-list>
         </v-navigation-drawer>
+
 
         <transition name="fade" mode="out-in">
             <keep-alive>
@@ -138,6 +126,17 @@
             </keep-alive>
         </transition>
 
+
+        <tutti-dialog ref="dialogCreateProject" title="Create New Project" maxWidth="400"
+            :actions="[
+                { label: 'Create', color: 'indigo darken-1', text: true, onclick: createProject },
+                { label: 'Cancel', color: 'grey darken-1', text: true }
+            ]" >
+            <template v-slot:body>
+                <v-text-field autofocus v-model="newProjectName" filled prepend-icon="mdi-pencil" label="Enter Project Name" :rules="rules.createProject"></v-text-field>
+            </template>
+        </tutti-dialog>
+
         <tutti-snackbar color="success" :timeout="5000" :text="snackbarTexts.success" />
         
     </v-app>
@@ -148,6 +147,7 @@ import { DuctsLoader } from '@/lib/ducts-loader'
 import dateFormat from 'dateformat'
 import Snackbar from '@/views/assets/Snackbar.vue'
 import Dialog from '@/views/assets/Dialog.vue'
+import rules from '@/lib/input-rules'
 
 export default {
     components: { 
@@ -174,11 +174,7 @@ export default {
         newProjectName: "",
 
         rules: {
-            required: value => !!value || "This field is required",
-            alphanumeric: value => {
-                const pattern = /^[a-zA-Z0-9_-]*$/;
-                return pattern.test(value) || 'Alphabets, numbers, "_", or "-" is only allowed';
-            }
+            createProject: [rules.required, rules.alphanumeric]
         }
     }),
     watch: {
