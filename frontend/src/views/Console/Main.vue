@@ -120,7 +120,6 @@
                     v-if="duct"
                     :duct="duct"
                     :prj-name="prjName"
-                    :shared-props="sharedProps"
                     ref="child"
                 ></router-view>
             </keep-alive>
@@ -160,7 +159,7 @@ export default {
             success: ""
         },
         drawer: true,
-        name: "/console/",
+        //name: "/console/",
 
         lastPinged: "",
         srvStatus: "connecting",
@@ -169,8 +168,6 @@ export default {
         prjNames: [],
         prjName: "",
 
-        sharedProps: {},
-
         newProjectName: "",
 
         rules: {
@@ -178,9 +175,7 @@ export default {
         }
     }),
     watch: {
-        prjName (name) {
-            if(name){ localStorage.setItem("tuttiProject", name); } 
-        },
+        prjName (name) { if(name){ localStorage.setItem("tuttiProject", name); } },
     },
     methods: {
         createProject() {
@@ -194,13 +189,6 @@ export default {
         },
 
         setEventHandlers() {
-            this.duct.addTuttiEvtHandler({
-                eid: this.duct.EVENT.EVENT_HISTORY,
-                success: ({ data }) => {
-                    if("AllHistory" in data)    this.$set(this.sharedProps, "evtHistory", data["AllHistory"])
-                    else if("History" in data)  this.$set(this.sharedProps.evtHistory, data["EventId"], data["History"])
-                }
-            });
 
             this.duct.addTuttiEvtHandler({
                 eid: this.duct.EVENT.LIST_PROJECTS,

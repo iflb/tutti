@@ -1,47 +1,42 @@
 <template>
-    <v-main class="mt-10 grey lighten-4">
-        <v-row justify="center"><v-col cols="11">
-            <v-card class="pa-3">
-                <v-row class="d-flex">
-                    <v-col cols="3">
-                    <v-select hide-details :items="events" item-text="label" item-value="eid" label="Event" v-model="selectedEventId"></v-select>
-                    </v-col>
-                    <v-col cols="3">
-                    <v-combobox v-model="selectedEventArgs" @input.native="selectedEventArgs=$event.srcElement.value" :items="selectedEventArgsHistory" placeholder="Args separated by spaces"></v-combobox>
-                    </v-col>
-                </v-row>
-                <v-row class="d-flex">
-                    <v-col>
+    <v-main>
+        <v-navigation-drawer app clipped right class="grey lighten-4 pt-4" width="400">
+            <v-list>
+                <v-list-item class="py-2">
+                    <v-select outlined dense hide-details :items="events" item-text="label" item-value="eid" label="Event" v-model="eid"></v-select>
+                </v-list-item>
+                <v-list-item>
                     Requested JSON:
-                    <codemirror v-model="selectedEventArgs" :options="cmOptions"></codemirror>
-                    </v-col>
-                    <v-col>
+                </v-list-item>
+                <v-list-item>
+                    <v-select outlined dense v-model="queryHistoryItem" :items="queryHistory" :disabled="queryHistory.length==0" :placeholder="queryHistory.length>0 ? `Select from history ... (${queryHistory.length})` : 'No history found'"></v-select>
+                </v-list-item>
+                <v-list-item>
+                    <codemirror v-model="query" :options="cmOptions" width="100%"></codemirror>
+                </v-list-item>
+                <v-list-item>
                     <v-container>
-                    <v-btn color="primary" @keydown.enter="sendEvent" @click="sendEvent">Send</v-btn>
+                        <v-btn color="primary" @keydown.enter="sendEvent" @click="sendEvent">Send</v-btn>
                     </v-container>
-                    </v-col>
-                </v-row>
-            </v-card>
-        </v-col>
-        <v-col cols="11">
-            <v-card>
-                <v-card-title>
-                    Communication Logs
-                    <v-spacer></v-spacer>
-                    <v-text-field v-model="searchStr" append-icon="mdi-magnify" label="Search" single-line hide-details>
-                    </v-text-field>
-                </v-card-title>
-                <v-data-table :headers="logTableHeaders" :items="serverLogTableRows" :items-per-page="10" :search="searchStr">
-                    <template v-slot:item.sent="{ item }">
-                        {{ item.eid }}
-                        <vue-json-pretty :data="item.sent" :deep="1" style="font-size:0.6em;"></vue-json-pretty>
-                    </template>
-                    <template v-slot:item.received="{ item }">
-                        <vue-json-pretty :data="item.received" :deep="1" style="font-size:0.6em;"></vue-json-pretty>
-                    </template>
-                </v-data-table>
-            </v-card>
-        </v-col></v-row>
+                </v-list-item>
+            </v-list>
+        </v-navigation-drawer>
+
+        <v-card-title>
+            Tutti-Duct Event Logs (Advanced)
+            <v-spacer></v-spacer>
+            <v-text-field v-model="searchStr" append-icon="mdi-magnify" label="Search" single-line hide-details>
+            </v-text-field>
+        </v-card-title>
+        <v-data-table :headers="logTableHeaders" :items="serverLogTableRows" :items-per-page="10" :search="searchStr">
+            <template v-slot:item.sent="{ item }">
+                {{ item.eid }}
+                <vue-json-pretty :data="item.sent" :deep="1" style="font-size:0.6em;"></vue-json-pretty>
+            </template>
+            <template v-slot:item.received="{ item }">
+                <vue-json-pretty :data="item.received" :deep="1" style="font-size:0.6em;"></vue-json-pretty>
+            </template>
+        </v-data-table>
     </v-main>
 </template>
 
@@ -57,8 +52,8 @@ export default {
         codemirror
     },
     data: () => ({
-        selectedEventId: null,
-        selectedEventArgs: "",
+        eid: "",
+        query: "",
         events: [],
         logTableHeaders: [
             { text: "Request ID", value: "rid" },
@@ -76,7 +71,7 @@ export default {
             theme: 'base16-dark',
             indentWithTabs: true
         },
-        code: "hoge = 1"
+        queryHistoryItem: ""
     }),
     props: ["duct", "sharedProps","name"],
     computed: {
@@ -106,15 +101,9 @@ export default {
             }
             return rows;
         },
-        selectedEventArgsHistory() {
-            if(this.sharedProps.evtHistory
-                && this.selectedEventId
-                && this.selectedEventId.toString() in this.sharedProps.evtHistory) {
-                var _hist = this.sharedProps.evtHistory[this.selectedEventId.toString()];
-                return _hist.reverse();
-            } else {
-                return [];
-            }
+        queryHistory() {
+            try { return [ ...this.queryHistoryAll[this.eid.toString()] ].reverse(); }
+            catch { return []; }
         }
     },
     methods: {
@@ -130,20 +119,35 @@ export default {
             this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.EVENT_HISTORY, data: null });
         },
         sendEvent() {
-            const histEid = this.duct.EVENT.EVENT_HISTORY;
             var args;
-            try {
-                args = JSON.parse(this.selectedEventArgs);
-            } catch {
-                args = this.selectedEventArgs!=="" ? this.selectedEventArgs : null;
+            try { args = JSON.parse(this.query); }
+            catch { args = this.query!=="" ? this.query : null; }
+
+            this.duct.sendMsg({ tag: this.name, eid: this.eid, data: args });
+            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.EVENT_HISTORY, data: `${this.eid} ${this.query}`});
+            this.query = "";
+        }
+    },
+    watch: {
+        queryHistoryItem(val) {
+            if(val.length>0){
+                this.query = val.slice();
+                this.$nextTick(() => {
+                    this.queryHistoryItem = "";
+                });
             }
-            this.duct.sendMsg({ tag: this.name, eid: this.selectedEventId, data: args });
-            this.duct.sendMsg({ tag: this.name, eid: histEid, data: `${this.selectedEventId} ${this.selectedEventArgs}`});
-            this.selectedEventArgs = "";
         }
     },
     mounted() {
         this.duct.invokeOrWaitForOpen(() => {
+            this.duct.addTuttiEvtHandler({
+                eid: this.duct.EVENT.EVENT_HISTORY,
+                success: ({ data }) => {
+                    if("AllHistory" in data)    this.queryHistoryAll = data["AllHistory"];
+                    //else if("History" in data)  this.queryHistory = data["History"].reverse();
+                }
+            });
+
             this.loadEvents();
             this.getEventHistory();
         });
@@ -155,7 +159,11 @@ export default {
 .is-root, .is-root div {
     font-size: 9pt;
 }
+.vue-codemirror {
+    width: 100%;
+}
 .CodeMirror {
+    font-size: 12px;
     height: 150px;
 }
 </style>
