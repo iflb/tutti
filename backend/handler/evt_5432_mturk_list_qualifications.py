@@ -1,8 +1,7 @@
 from ducts.spi import EventHandler, Event
 from ifconf import configure_module, config_callback
 
-from handler import paths, common
-from handler.handler_output import handler_output, CommandError
+from handler.handler_output import handler_output
 
 class Handler(EventHandler):
     def __init__(self):

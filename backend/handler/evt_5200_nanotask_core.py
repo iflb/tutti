@@ -46,7 +46,7 @@ class Handler(EventHandler):
     async def get_nanotasks(self, ProjectName, TemplateName):
         nids = await self.r_nt.get_ids_for_pn_tn(ProjectName, TemplateName)
         ret = await asyncio.gather(*[self.r_nt.get(nid) for nid in nids])
-        return [dict(NanotaskId=nid, **r) for (nid,r) in zip(nids, ret)]
+        return [dict(NanotaskId=nid, **r) for (nid,r) in zip(nids, ret) if r]
 
     async def delete_nanotasks(self, NanotaskIds):
         await self.r_nt.delete_multi(NanotaskIds)

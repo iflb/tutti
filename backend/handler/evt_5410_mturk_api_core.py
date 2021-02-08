@@ -1,5 +1,7 @@
 from datetime import datetime
 
+import aiobotocore
+
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
 
@@ -19,8 +21,7 @@ class Handler(EventHandler):
         self.hits = []
 
     def setup(self, handler_spec, manager):
-        self.mturk = manager.load_helper_module('helper_mturk')
-        self.redis = manager.redis
+        self.r_mt = MTurkResource(manager.redis)
 
         handler_spec.set_description('Core event for boto3 execution')
         handler_spec.set_as_responsive()
@@ -29,15 +30,53 @@ class Handler(EventHandler):
     async def handle(self, event):
         pass
 
+    async def cache_get_access_key_id(self):
+        return await self.r_mt.get_access_key_id()
+    async def cache_get_secret_access_key(self):
+        return await self.r_mt.get_secret_access_key()
+    async def cache_get_is_sandbox(self):
+        return await self.r_mt.get_is_sandbox()
+    async def cache_get_hit_list(self):
+        return await self.r_mt.get_hits()
+    async def cache_set_hit_list(self, data):
+        await self.r_mt.set_hits(data)
+    async def cache_get_hit_type_ids(self):
+        return await self.r_mt.get_hit_type_ids()
+    async def cache_get_hit_type(self, HITTypeId):
+        return await self.r_mt.get_hit_type_params_for_htid(HITTypeId)
+    async def cache_set_hit_type(self, HITTypeId, Params):
+        await self.r_mt.set_hit_type_params_for_htid(HITTypeId, Params)
+
     async def exec_boto3(self, Method, Parameters=None):
         if Parameters is None:  Parameters = {}
 
-        async with await self.mturk.get_client_async(self.redis) as client:
+        async with await self._get_client_async() as client:
             namespace = {"client": client}
             exec("async def _func(**kwargs): return await client.{}(**kwargs)".format(Method), namespace)
             results = await namespace["_func"](**Parameters)
             self.map_nested_dicts_modify(results, lambda x: x.timestamp() if isinstance(x, datetime) else x)
             return results
+
+    async def _get_client_async(self, access_key_id=None, secret_access_key=None, region_name="us-east-1", sandbox=None):
+        try:
+            session = aiobotocore.get_session()
+            if not access_key_id:
+                access_key_id = await self.cache_get_access_key_id()
+            if not secret_access_key:
+                secret_access_key = await self.cache_get_secret_access_key()
+            if not sandbox:
+                sandbox = await self.cache_get_is_sandbox()
+    
+            if sandbox:  endpoint_url = "https://mturk-requester-sandbox.us-east-1.amazonaws.com"
+            else:        endpoint_url = "https://mturk-requester.us-east-1.amazonaws.com"
+
+            return session.create_client("mturk",
+                           aws_access_key_id = access_key_id,
+                           aws_secret_access_key = secret_access_key,
+                           region_name = region_name,
+                           endpoint_url = endpoint_url)
+        except Exception as e:
+            raise Exception(e)
 
     def map_nested_dicts_modify(self, ob, func):
         if isinstance(ob, dict):
@@ -56,3 +95,4 @@ class Handler(EventHandler):
                     for _v in v: self.map_nested_dicts_modify(_v, func)
                 else:
                     ob[i] = func(v)
+

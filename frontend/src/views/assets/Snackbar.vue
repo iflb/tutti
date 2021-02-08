@@ -9,11 +9,13 @@
 <script>
 export default {
     data: () => ({
-        shown: false
+        shown: false,
+        text: ""
     }),
-    props: ["text", "color", "timeout"],
-    watch: {
-        text() {
+    props: ["color", "timeout"],
+    methods: {
+        show(text){
+            this.text = text;
             this.shown = true;
         }
     }

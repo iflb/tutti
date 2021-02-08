@@ -69,10 +69,6 @@
 </template>
 
 <script>
-import RecursiveBatch from './RecursiveBatch.vue'
-import Arrow from './Arrow.vue'
-import DialogImport from './DialogImportNanotasks.vue'
-import DialogList from './DialogListNanotasks.vue'
 import { codemirror } from 'vue-codemirror'
 import 'codemirror/lib/codemirror.css'
 import 'codemirror/mode/python/python'
@@ -81,7 +77,13 @@ import 'codemirror/theme/base16-light.css'
 export default {
     name: "RecursiveBatch",
     props: ["duct", "name", "parentParams"],
-    components: { RecursiveBatch, Arrow, DialogImport, DialogList, codemirror },
+    components: {
+        RecursiveBatch: () => import("./RecursiveBatch"),
+        Arrow: () => import("./Arrow"),
+        DialogImport: () => import("./DialogImportNanotasks"),
+        DialogList: () => import("./DialogListNanotasks"),
+        codemirror
+    },
     data: () => ({
         color: "grey",
         cmOptions: {
@@ -124,7 +126,6 @@ export default {
                         this.nanotasks = data["Nanotasks"];
                 }
             });
-
             this.duct.addTuttiEvtHandler({
                 eid: this.duct.EVENT.UPLOAD_NANOTASKS,
                 success: ({ data }) => {
@@ -132,7 +133,13 @@ export default {
                         this.getNanotasks();
                 }
             });
-            
+            this.duct.addTuttiEvtHandler({
+                eid: this.duct.EVENT.DELETE_NANOTASKS,
+                success: () => {
+                    this.getNanotasks();
+                }
+            });
+
             if(!this.isBatch){ this.getNanotasks(); }
         });
 

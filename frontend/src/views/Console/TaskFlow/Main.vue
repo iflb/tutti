@@ -31,35 +31,25 @@
             </v-card>
         </v-col></v-row>
 
-        <tutti-snackbar v-for="type in Object.keys(snackbarTexts)" :key="type" :color="type" :text="snackbarTexts[type]" :timeout="2000" />
+        <tutti-snackbar ref="snackbarSuccess" color="success" :timeout="2000" />
+        <tutti-snackbar ref="snackbarError" color="error" :timeout="2000" />
 
     </v-main>
 </template>
 
 <script>
-import Arrow from './Arrow.vue'
-import RecursiveBatch from './RecursiveBatch.vue'
-import Snackbar from '@/views/assets/Snackbar.vue'
-
 export default {
     data: () => ({
-        snackbarTexts: {
-            success: "",
-            error: ""
-        },
         templateColor: "blue-grey lighten-4",
         flow: null,
     }),
     components: {
-        Arrow, RecursiveBatch,
-        TuttiSnackbar: Snackbar
+        Arrow: () => import("./Arrow"),
+        RecursiveBatch: () => import("./RecursiveBatch"),
+        TuttiSnackbar: () => import("@/views/assets/Snackbar")
     },
     props: ["duct", "prjName", "name"],
     methods: {
-        showSnackbar(info){
-            Object.assign(this.snackbar, info)
-            this.snackbar.visible = true
-        },
         loadFlow(){
             if(this.prjName){
                 this.duct.sendMsg({
@@ -79,10 +69,11 @@ export default {
                 eid: this.duct.EVENT.GET_PROJECT_SCHEME,
                 success: ({ data }) => {
                     this.flow = data["Flow"];
-                    this.snackbarTexts.success = "successfully loaded flow";
+                    console.log("hoge");
+                    this.$refs.snackbarSuccess.show("successfully loaded flow");
                 },
                 error: ({ data }) => {
-                    this.snackbarTexts.error = "Error in loading flow: " + data["Reason"];
+                    this.$refs.snackbarError.show("Error in loading flow: " + data["Reason"]);
                 }
             });
             this.loadFlow();

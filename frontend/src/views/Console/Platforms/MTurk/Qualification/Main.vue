@@ -8,7 +8,7 @@
             <v-col cols="10">
                 <v-data-table
                   :headers="qualHeaders"
-                  :items="quals"
+                  :items="qualsList"
                   :single-expand="false"
                   :expanded.sync="expanded"
                   item-key="name"
@@ -49,9 +49,9 @@
                 </v-data-table>
             </v-col>
 
-            <tutti-snackbar color="success" :timeout="3000" :text="snackbarTexts.success" />
-            <tutti-snackbar color="warning" :timeout="3000" :text="snackbarTexts.warning" />
-            <tutti-snackbar color="error" :timeout="3000" :text="snackbarTexts.error" />
+            <tutti-snackbar ref="snackbarSuccess" color="success" :timeout="3000" />
+            <tutti-snackbar ref="snackbarWarning" color="warning" :timeout="3000" />
+            <tutti-snackbar ref="snackbarError" color="error" :timeout="3000" />
 
             <tutti-dialog ref="dialogCreate" title="Create Qualification Type" maxWidth="500"
                 :actions="[
@@ -73,17 +73,14 @@
         </v-row>
 </template>
 <script>
-import Snackbar from '@/views/assets/Snackbar.vue'
-import Dialog from '@/views/assets/Dialog.vue'
-import VueJsonPretty from 'vue-json-pretty/lib/vue-json-pretty'
 import 'vue-json-pretty/lib/styles.css'
 import { stringifyUnixTime } from '@/lib/utils'
 
 export default {
     components: {
-        VueJsonPretty,
-        TuttiSnackbar: Snackbar,
-        TuttiDialog: Dialog
+        VueJsonPretty: () => import('vue-json-pretty/lib/vue-json-pretty'),
+        TuttiSnackbar: () => import('@/views/assets/Snackbar'),
+        TuttiDialog: () => import('@/views/assets/Dialog')
     },
     data: () => ({
         selectedQualTypes: [],
@@ -97,49 +94,32 @@ export default {
           { text: '', value: 'data-table-expand' },
         ],
         loadingQuals: false,
+        newQualParams: {
+            Name: "",
+            Description: "",
+            AutoGranted: false,
+            QualificationTypeStatus: "Active"
+        },
+        quals: {},
+
         button: {
             deleteQuals: {
                 loading: false,
                 disabled: false
             },
         },
-        snackbarTexts: {
-            success: "",
-            warning: "",
-            error: ""
-        },
-            newQualParams: {
-            Name: "",
-            Description: "",
-            AutoGranted: false,
-            QualificationTypeStatus: "Active"
-        }
     }),
     props: ["duct", "credentials", "sharedProps","name"],
 
     computed: {
-        quals() {
-            var q = []
-            if("mTurkQuals" in this.sharedProps) {
-                for(var qid in this.sharedProps.mTurkQuals){
-                    const _q = this.sharedProps.mTurkQuals[qid];
-                    const data = {
-                        "name": _q["Name"],
-                        "status": _q["QualificationTypeStatus"],
-                        "qualificationId": _q["QualificationTypeId"],
-                        "creationTime": stringifyUnixTime(_q["CreationTime"]),
-                        "detail": _q
-                    };
-                    q.push(data);
-                }
-            }
-            return q
-        },
         selectedQualTypeIds() {
             var qtids = [];
             for(var i in this.selectedQualTypes)
                 qtids.push(this.selectedQualTypes[i]["detail"]["QualificationTypeId"]);
             return qtids;
+        },
+        qualsList() {
+            return Object.entries(this.quals).map((val) => (val[1]));
         }
     },
     methods: {
@@ -180,74 +160,79 @@ export default {
         }
     },
     watch: {
-        credentials: {
-            handler() {
-                this._evtGetQualificationTypeIds();
-            },
-            deep: true
-        }
+        //credentials: {
+        //    handler() {
+        //        this._evtGetQualificationTypeIds();
+        //    },
+        //    deep: true
+        //}
     },
     mounted() {
         this.duct.invokeOrWaitForOpen(() => {
-            this.duct.addEvtHandler({ tag: this.name, eid: this.duct.EVENT.MTURK_LIST_QUALIFICATIONS,
-                handler: (rid, eid, data) => {
-                    if(data["Status"]=="error") return;
-
-                    var qids = [];
-                    this.$set(this.sharedProps, "mTurkQuals", {});
-                    for(var i in data["Data"]["QualificationTypes"]){
-                        const qtype = data["Data"]["QualificationTypes"][i];
-                        const qid = qtype["QualificationTypeId"];
-                        qids.push(qtype["QualificationTypeId"]);
-                        this.$set(this.sharedProps.mTurkQuals, qid, qtype);
+            this.duct.addTuttiEvtHandler({
+                eid: this.duct.EVENT.MTURK_LIST_QUALIFICATIONS,
+                success: ({ data }) => {
+                    this.quals = {};
+                    const qtypes = data["QualificationTypes"];
+                    for(const qtype of qtypes){
+                        this.$set(this.quals, qtype.QualificationTypeId, {
+                            "name": qtype["Name"],
+                            "status": qtype["QualificationTypeStatus"],
+                            "qualificationId": qtype["QualificationTypeId"],
+                            "creationTime": stringifyUnixTime(qtype["CreationTime"]),
+                            "detail": qtype
+                        });
                     }
+
                     this.selectedQualTypes = [];
                     this.loadingQuals = false;
-                    this._evtGetWorkersForQualificationTypeIds(qids);
+                    this._evtGetWorkersForQualificationTypeIds( Object.keys(this.quals) );
                 }
             });
 
-            this.duct.addEvtHandler({ tag: this.name, eid: this.duct.EVENT.MTURK_CREATE_QUALIFICATION,
-                handler: (rid, eid, data) => {
-                    if(data["Status"]=="Error") {
-                        this.snackbarTexts.error = "Error in creating a qualification";
-                    } else {
-                        this.snackbarTexts.success = "Successfully created a qualification";
-                        this._evtGetQualificationTypeIds();
+            this.duct.addTuttiEvtHandler({
+                eid: this.duct.EVENT.MTURK_CREATE_QUALIFICATION,
+                success: () => {
+                    this.$refs.snackbarSuccess.show("Successfully created a qualification");
+                    this._evtGetQualificationTypeIds();
+                },
+                error: ({ data }) => {
+                    this.$refs.snackbarError.show(`Error in creating a qualification: ${data["Reason"]}`);
+                }
+            });
+
+            this.duct.addTuttiEvtHandler({
+                eid: this.duct.EVENT.MTURK_LIST_WORKERS_WITH_QUALIFICATION_TYPE,
+                success: ({ data }) => {
+                    const qid = data["QualificationTypeId"];
+                    var quals = data["Results"];
+                    this.$set(this.quals[qid].detail, "workers", quals);
+                }
+            });
+
+            this.duct.addTuttiEvtHandler({
+                eid: this.duct.EVENT.MTURK_DELETE_QUALIFICATIONS,
+                success: ({ data }) => {
+                    const res = data["Results"];
+                    var cntSuccess = 0;
+                    for(var i in res) {
+                        if(("ResponseMetadata" in res[i]) && ("HTTPStatusCode" in res[i]["ResponseMetadata"]) && (res[i]["ResponseMetadata"]["HTTPStatusCode"]==200))
+                            cntSuccess++;
                     }
-                }
-            });
-
-            this.duct.addEvtHandler({ tag: this.name, eid: this.duct.EVENT.MTURK_LIST_WORKERS_WITH_QUALIFICATION_TYPE,
-                handler: (rid, eid, data) => {
-                    const qid = data["Data"]["Results"][0]["QualificationTypeId"];
-                    var quals = data["Data"]["Results"];
-                    this.$set(this.sharedProps.mTurkQuals[qid], "workers", quals);
-                }
-            });
-
-            this.duct.addEvtHandler({
-                tag: this.name, eid: this.duct.EVENT.MTURK_DELETE_QUALIFICATIONS,
-                handler: (rid, eid, data) => {
-                    if(data["Status"]=="Error") {
-                        this.snackbarTexts.error = "Errors occurred in deleting qualifications";
+                    if(cntSuccess==res.length) {
+                        this.$refs.snackbarSuccess.show(`Successfully deleted ${res.length} qualifications`);
                     } else {
-                        const res = data["Data"]["Results"];
-                        var cntSuccess = 0;
-                        for(var i in res) {
-                            if(("ResponseMetadata" in res[i]) && ("HTTPStatusCode" in res[i]["ResponseMetadata"]) && (res[i]["ResponseMetadata"]["HTTPStatusCode"]==200))
-                                cntSuccess++;
-                        }
-                        if(cntSuccess==res.length) {
-                            this.snackbarTexts.success = `Successfully deleted ${res.length} qualifications`;
-                        } else {
-                            this.snackbarTexts.warning = `Deleted ${cntSuccess} qualifications, but errors occurred in deleting ${res.length-cntSuccess} qualifications`;
-                        }
-
+                        this.$refs.snackbarSuccess.show(`Deleted ${cntSuccess} qualifications, but errors occurred in deleting ${res.length-cntSuccess} qualifications`);
                     }
+
                     this.button.deleteQuals.loading = false;
                     this.button.deleteQuals.disabled = false;
-                    this._evtGetQualificationTypeIds();
+                },
+                error: ({ data }) => {
+                    this.$refs.snackbarError.show(`Errors occurred in deleting qualifications: ${data["Reason"]}`);
+
+                    this.button.deleteQuals.loading = false;
+                    this.button.deleteQuals.disabled = false;
                 }
             });
 

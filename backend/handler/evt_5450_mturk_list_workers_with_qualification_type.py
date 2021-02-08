@@ -19,6 +19,7 @@ class Handler(EventHandler):
     @handler_output
     async def handle(self, event, output):
         if isinstance(event.data, dict):
+            output.set("QualificationTypeId", event.data["QualificationTypeId"])
             output.set("Results", await self.list_workers_with_qualification_type(**event.data))
         else:
             raise Exception("data needs to be JSON format")

@@ -127,7 +127,7 @@
                 <v-card-text>
                     <v-row>
                         <v-col cols="2"> <b>Project:</b> </v-col>
-                        <v-col cols="4"> <v-text-field outlined dense hide-details disabled v-model="sharedProps.project.name"></v-text-field> </v-col>
+                        <v-col cols="4"> <v-text-field outlined dense hide-details disabled v-model="prjName"></v-text-field> </v-col>
                     </v-row>
                 </v-card-text>
                 <v-card-text>
@@ -168,9 +168,9 @@
             <v-btn dark :loading="postingHITs" color="indigo" @click.stop="credentials.Sandbox ? postHITs() : confirmPostHITs();">Post HITs</v-btn>
         </v-col>
 
-        <tutti-snackbar color="success" :timeout="3000" :text="snackbarTexts.success" />
-        <tutti-snackbar color="warning" :timeout="3000" :text="snackbarTexts.warning" />
-        <tutti-snackbar color="error" :timeout="3000" :text="snackbarTexts.error" />
+        <tutti-snackbar color="success" :timeout="3000" ref="snackbarSuccess" />
+        <tutti-snackbar color="warning" :timeout="3000" ref="snackbarWarning" />
+        <tutti-snackbar color="error" :timeout="3000"   ref="snackbarError" />
 
         <v-dialog v-model="confirmingPostHITs" persistent max-width="500">
             <v-card>
@@ -194,7 +194,8 @@
 import Snackbar from '@/views/assets/Snackbar.vue'
 
 export default {
-    props: ["duct", "credentials", "sharedProps"],
+    name: "HIT-Create",
+    props: ["duct", "credentials", "prjName"],
     components: {
         TuttiSnackbar: Snackbar
     },
@@ -281,11 +282,6 @@ export default {
         confirmingPostHITs: false,
 
         postingHITs: false,
-        snackbarTexts: {
-            success: "",
-            warning: "",
-            error: ""
-        },
     }),
     computed: {
         numQualRequirements() {
@@ -326,11 +322,36 @@ export default {
             if(item.LocaleValues.length==0) delete item.LocaleValues;
         },
 
-        _evtMTurkHIT(data) {
+        _evtCreateHITType() {
             this.duct.sendMsg({
                 tag: "/console/platform/mturk/hit/create/",
-                eid: this.duct.EVENT.MTURK_HIT,
-                data: data
+                eid: this.duct.EVENT.MTURK_CREATE_HIT_TYPE,
+                data: { CreateHITTypeParams: this.attributes }
+            });
+        },
+        _evtCreateHITsWithHITType(HITTypeId) {
+            this.duct.sendMsg({
+                tag: "/console/platform/mturk/hit/create/",
+                eid: this.duct.EVENT.MTURK_CREATE_HITS_WITH_HIT_TYPE,
+                data: {
+                    ProjectName: this.prjName,
+                    NumHITs: this.numCreateHITs,
+                    CreateHITsWithHITTypeParams: { HITTypeId, ...this.createHITParams }
+                }
+            });
+        },
+        _evtGetQualificationTypeIds() {
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.MTURK_LIST_QUALIFICATIONS,
+                data: null
+            });
+        },
+        _evtGetHITTypes() {
+            this.duct.sendMsg({
+                tag: this.name,
+                eid: this.duct.EVENT.MTURK_GET_HIT_TYPES,
+                data: null
             });
         },
 
@@ -341,33 +362,17 @@ export default {
             this.attributes.AutoApprovalDelayInSeconds = parseInt(this.attributes.AutoApprovalDelayInSeconds);
             this.attributes.AssignmentDurationInSeconds = parseInt(this.attributes.AssignmentDurationInSeconds);
 
-            this._evtMTurkHIT({ "Command": "CreateHITType", "Params": this.attributes });
+            this._evtCreateHITType();
         },
 
-        createHITsForHITTypeId(htid) {
-            this._evtMTurkHIT({
-                "Command": "CreateHITWithHITType",
-                "ProjectName": this.sharedProps.project.name,
-                "Params": { "HITTypeId": htid, ...this.createHITParams },
-                "NumHITs": this.numCreateHITs
-            });
-        },
-        
         confirmPostHITs() {
             this.confirmingPostHITs = true;
         },
         postHITs() {
             this.postingHITs = true;
             if(this.createNew){ this.createHITType(); }
-            else { this.createHITsForHITTypeId(this.chosenExstHITTypeId); }
+            else { this._evtCreateHITsWithHITType(this.chosenExstHITTypeId); }
         },
-        _evtGetQualificationTypeIds() {
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.MTURK_LIST_QUALIFICATIONS,
-                data: null
-            });
-        }
     },
     watch: {
         chosenExstHITTypeId(value) {
@@ -381,33 +386,32 @@ export default {
     created() {
         this.createNew = true;
         this.duct.invokeOrWaitForOpen(() => {
-            this.duct.addEvtHandler({
-                tag: "/console/platform/mturk/hit/create/",
-                eid: this.duct.EVENT.MTURK_HIT,
-                handler: (rid, eid, data) => {
-                    if(data["Status"]=="Error") {
-                        this.postingHITs = false;
-                        this.snackbarTexts.error = "Error";
-                        console.log(data["Reason"]);
-                    }
-
-                    const command = data["Data"]["Command"];
-                    switch(command) {
-                        case "ListHITTypes": {
-                            this.exstHITTypes = data["Data"]["HITTypes"];
-                            break;
-                        }
-                        case "CreateHITType": {
-                            const htid = data["Data"]["HITTypeId"];
-                            this.createHITsForHITTypeId(htid);
-                            break;
-                        }
-                        case "CreateHITWithHITType": {
-                            this.postingHITs = false;
-                            this.snackbarTexts.success = "Successfully posted HITs";
-                            break;
-                        }
-                    }
+            this.duct.addTuttiEvtHandler({
+                eid: this.duct.EVENT.MTURK_GET_HIT_TYPES,
+                success: ({ data }) => {
+                    this.exstHITTypes = data["HITTypes"];
+                },
+                error: ({ data }) => {
+                    this.$refs.snackbarError.show(`Error in getting HIT types: ${data["Reason"]}`);
+                }
+            });
+            this.duct.addTuttiEvtHandler({
+                eid: this.duct.EVENT.MTURK_CREATE_HIT_TYPE,
+                success: ({ data }) => {
+                    this._evtCreateHITsWithHITType(data["HITTypeId"]);
+                },
+                error: ({ data }) => {
+                    this.$refs.snackbarError.show(`Error in creating HIT types: ${data["Reason"]}`);
+                }
+            });
+            this.duct.addTuttiEvtHandler({
+                eid: this.duct.EVENT.MTURK_CREATE_HITS_WITH_HIT_TYPE,
+                success: () => {
+                    this.postingHITs = false;
+                    this.$refs.snackbarSuccess.show("Successfully posted HITs");
+                },
+                error: ({ data }) => {
+                    this.$refs.snackbarError.show(`Error in posting HITs: ${data["Reason"]}`);
                 }
             });
 
@@ -426,7 +430,7 @@ export default {
                 }
             });
 
-            this._evtMTurkHIT({ "Command": "ListHITTypes" });
+            this._evtGetHITTypes();
             this._evtGetQualificationTypeIds();
         });
 

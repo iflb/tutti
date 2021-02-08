@@ -36,7 +36,6 @@
 
 <script>
 import Papa from 'papaparse'
-import VueJsonPretty from 'vue-json-pretty/lib/vue-json-pretty'
 
 export default {
     data: () => ({
@@ -52,7 +51,7 @@ export default {
     }),
     props: ["duct", "prjName", "template"],
     components: {
-        VueJsonPretty
+        VueJsonPretty: () => import('vue-json-pretty/lib/vue-json-pretty')
     },
     methods: {
         closeDialog() {

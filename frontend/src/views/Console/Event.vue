@@ -3,13 +3,13 @@
         <v-navigation-drawer app clipped right class="grey lighten-4 pt-4" width="400">
             <v-list>
                 <v-list-item class="py-2">
-                    <v-select outlined dense hide-details :items="events" item-text="label" item-value="eid" label="Event" v-model="eid"></v-select>
+                    <v-autocomplete outlined dense hide-details :items="events" item-text="label" item-value="eid" label="Event" v-model="eid"></v-autocomplete>
                 </v-list-item>
                 <v-list-item>
                     Requested JSON:
                 </v-list-item>
                 <v-list-item>
-                    <v-select outlined dense v-model="queryHistoryItem" :items="queryHistory" :disabled="queryHistory.length==0" :placeholder="queryHistory.length>0 ? `Select from history ... (${queryHistory.length})` : 'No history found'"></v-select>
+                    <v-autocomplete outlined dense v-model="queryHistoryItem" :items="queryHistory" :disabled="queryHistory.length==0" :placeholder="queryHistory.length>0 ? `Select from history ... (${queryHistory.length})` : 'No history found'"></v-autocomplete>
                 </v-list-item>
                 <v-list-item>
                     <codemirror v-model="query" :options="cmOptions" width="100%"></codemirror>
@@ -25,8 +25,7 @@
         <v-card-title>
             Tutti-Duct Event Logs (Advanced)
             <v-spacer></v-spacer>
-            <v-text-field v-model="searchStr" append-icon="mdi-magnify" label="Search" single-line hide-details>
-            </v-text-field>
+            <!--<v-text-field v-model="searchStr" append-icon="mdi-magnify" label="Search" single-line hide-details></v-text-field>-->
         </v-card-title>
         <v-data-table :headers="logTableHeaders" :items="serverLogTableRows" :items-per-page="10" :search="searchStr">
             <template v-slot:item.sent="{ item }">
@@ -41,14 +40,13 @@
 </template>
 
 <script>
-import VueJsonPretty from 'vue-json-pretty/lib/vue-json-pretty'
-import 'vue-json-pretty/lib/styles.css'
 import { codemirror } from 'vue-codemirror'
+import 'vue-json-pretty/lib/styles.css'
 import 'codemirror/lib/codemirror.css'
 
 export default {
     components: {
-        VueJsonPretty,
+        VueJsonPretty: () => import("vue-json-pretty/lib/vue-json-pretty"),
         codemirror
     },
     data: () => ({

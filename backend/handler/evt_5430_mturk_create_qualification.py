@@ -9,9 +9,8 @@ class Handler(EventHandler):
         super().__init__()
 
     def setup(self, handler_spec, manager):
-        self.namespace_redis = manager.load_helper_module('helper_redis_namespace')
         self.evt_boto3_mturk = manager.get_handler_for(manager.key_ids["BOTO3_MTURK"])[1]
-        handler_spec.set_description('テンプレート一覧を取得します。')
+        handler_spec.set_description('Creates a QualificationType.')
         handler_spec.set_as_responsive()
 
         return handler_spec

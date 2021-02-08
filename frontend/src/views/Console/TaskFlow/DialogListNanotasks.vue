@@ -1,94 +1,102 @@
 <template>
     <v-dialog v-model="show" max-width="1400">
-      <v-card>
-        <v-card-title class="headline">
-            <v-icon class="mr-2" color="indigo">mdi-database-check</v-icon>
-            Imported Nanotasks for '{{ template }}'
-            <v-spacer/>
-            <v-text-field v-model="search" append-icon="mdi-magnify" label="Search" single-line hide-details />
-        </v-card-title>
-        <v-card-text class="text-end">
-            <v-tooltip bottom v-if="selectedNanotaskIds.length>0">
-                <template v-slot:activator="{ on, attrs }">
-                    <v-btn v-bind="attrs" v-on="on" class="mx-3" dark color="grey darken-2" @click="$refs.dialogManageNumAssignments.shown=true"><v-icon>mdi-ticket-confirmation</v-icon></v-btn>
-                </template>
-                <span>Manage # of assignable tickets</span>
-            </v-tooltip>
-            <v-tooltip bottom v-if="selectedNanotaskIds.length>0">
-                <template v-slot:activator="{ on, attrs }">
-                    <v-btn v-bind="attrs" v-on="on" class="mx-3" dark color="error" @click="deleteNanotasks()"><v-icon>mdi-delete</v-icon></v-btn>
-                </template>
-                <span>Delete</span>
-            </v-tooltip>
-        </v-card-text>
-        <v-data-table
-            v-model="selectedNanotasks"
-            :loading="loading"
-            dense
-            :headers="headers"
-            :items="nanotasksFlat"
-            item-key="NanotaskId"
-            :search="search"
-            :footer-props="{
-              showFirstLastPage: true,
-              firstIcon: 'mdi-chevron-double-left',
-              lastIcon: 'mdi-chevron-double-right',
-              prevIcon: 'mdi-chevron-left',
-              nextIcon: 'mdi-chevron-right',
-              itemsPerPageOptions: [10,30,50,100,-1]
-            }"
-            show-select
-            sort-by="NanotaskId"
-            >
-            <template v-slot:item.GroundTruths="{ item }">
-                <v-simple-table dense>
-                    <template v-slot:default>
-                        <tbody>
-                            <tr v-for="(value, key) in item.GroundTruths" :key="key">
-                                <td style="width:100px"><b>{{ key }}</b></td>
-                                <td style="word-break:break-all">{{ value }}</td>
-                            </tr>
-                        </tbody>
+        <v-card>
+            <v-card-title class="headline">
+                <v-icon class="mr-2" color="indigo">mdi-database-check</v-icon>
+                Imported Nanotasks for '{{ template }}'
+                <v-spacer/>
+                <v-text-field v-model="search" append-icon="mdi-magnify" label="Search" single-line hide-details />
+            </v-card-title>
+            <v-card-text class="text-end">
+                <v-tooltip bottom v-if="selectedNanotaskIds.length>0">
+                    <template v-slot:activator="{ on, attrs }">
+                        <v-btn v-bind="attrs" v-on="on" class="mx-3" dark color="grey darken-2" @click="$refs.dialogManageNumAssignments.shown=true"><v-icon>mdi-ticket-confirmation</v-icon></v-btn>
                     </template>
-                </v-simple-table>
-            </template>
-            <template v-slot:item.Props="{ item }">
-                <v-simple-table dense>
-                    <template v-slot:default>
-                        <tbody>
-                            <tr v-for="(value, key) in item.Props" :key="key">
-                                <td style="width:100px"><b>{{ key }}</b></td>
-                                <td style="word-break:break-all">{{ value }}</td>
-                            </tr>
-                        </tbody>
+                    <span>Manage # of assignable tickets</span>
+                </v-tooltip>
+                <v-tooltip bottom v-if="selectedNanotaskIds.length>0">
+                    <template v-slot:activator="{ on, attrs }">
+                        <v-btn v-bind="attrs" v-on="on" class="mx-3" dark color="error" @click="$refs.dialogDelete.show()"><v-icon>mdi-delete</v-icon></v-btn>
                     </template>
-                </v-simple-table>
-            </template>
-            <template v-slot:item.Timestamp="{ item }">
-                {{ unixTimeToDatetimeString(item.Timestamp) }}
-            </template>
-        </v-data-table>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn text @click="closeDialog" >Close</v-btn>
-        </v-card-actions>
-      </v-card>
+                    <span>Delete</span>
+                </v-tooltip>
+            </v-card-text>
+            <v-data-table
+                v-model="selectedNanotasks"
+                :loading="loading"
+                dense
+                :headers="headers"
+                :items="nanotasksFlat"
+                item-key="NanotaskId"
+                :search="search"
+                :footer-props="{
+                  showFirstLastPage: true,
+                  firstIcon: 'mdi-chevron-double-left',
+                  lastIcon: 'mdi-chevron-double-right',
+                  prevIcon: 'mdi-chevron-left',
+                  nextIcon: 'mdi-chevron-right',
+                  itemsPerPageOptions: [10,30,50,100,-1]
+                }"
+                show-select
+                sort-by="NanotaskId"
+                >
+                <template v-slot:item.GroundTruths="{ item }">
+                    <v-simple-table dense>
+                        <template v-slot:default>
+                            <tbody>
+                                <tr v-for="(value, key) in item.GroundTruths" :key="key">
+                                    <td style="width:100px"><b>{{ key }}</b></td>
+                                    <td style="word-break:break-all">{{ value }}</td>
+                                </tr>
+                            </tbody>
+                        </template>
+                    </v-simple-table>
+                </template>
+                <template v-slot:item.Props="{ item }">
+                    <v-simple-table dense>
+                        <template v-slot:default>
+                            <tbody>
+                                <tr v-for="(value, key) in item.Props" :key="key">
+                                    <td style="width:100px"><b>{{ key }}</b></td>
+                                    <td style="word-break:break-all">{{ value }}</td>
+                                </tr>
+                            </tbody>
+                        </template>
+                    </v-simple-table>
+                </template>
+                <template v-slot:item.Timestamp="{ item }">
+                    {{ unixTimeToDatetimeString(item.Timestamp) }}
+                </template>
+            </v-data-table>
+            <v-card-actions>
+                <v-spacer></v-spacer>
+                <v-btn text @click="closeDialog" >Close</v-btn>
+            </v-card-actions>
+        </v-card>
 
-      <tutti-dialog ref="dialogManageNumAssignments" title="Manage NumAssignable" maxWidth="350"
-          :actions="[
-              { label: 'Confirm', color: 'indigo darken-1', text: true, onclick: updateNumAssignable },
-              { label: 'Cancel', color: 'grey darken-1', text: true }
-          ]" >
-          <template v-slot:body>
-            <v-select v-model="numAssignableMethod" :items="[{text:'Fixed value',value:'fixed',default:true},{text:'Increment by',value:'increment'}]" />
-            <v-text-field type="number" v-model.number="numAssignableValue" step="1" />
-          </template>
+        <tutti-dialog ref="dialogDelete" title="Delete Nanotasks" maxWidth="350"
+            :actions="[
+                { label: 'Delete', color: 'error', onclick: deleteNanotasks },
+                { label: 'Cancel', color: 'grey darken-1', text: true }
+            ]">
+            <template v-slot:body>
+                Are you sure you wish to delete the selected nanotasks? This operation cannot be undone.
+            </template>
+        </tutti-dialog>
+        <tutti-dialog ref="dialogManageNumAssignments" title="Manage NumAssignable" maxWidth="350"
+            :actions="[
+                { label: 'Confirm', color: 'indigo darken-1', text: true, onclick: updateNumAssignable },
+                { label: 'Cancel', color: 'grey darken-1', text: true }
+            ]" >
+            <template v-slot:body>
+                <v-select v-model="numAssignableMethod" :items="[{text:'Fixed value',value:'fixed',default:true},{text:'Increment by',value:'increment'}]" />
+                <v-text-field type="number" v-model.number="numAssignableValue" step="1" />
+            </template>
       </tutti-dialog>
     </v-dialog>
 </template>
 
 <script>
-import Dialog from '@/views/assets/Dialog.vue'
 export default {
     data: () => ({
         show: false,
@@ -101,7 +109,7 @@ export default {
     }),
     props: ["duct", "prjName", "template", "nanotasks"],
     components: {
-        TuttiDialog: Dialog
+        TuttiDialog: () => import('@/views/assets/Dialog')
     },
     computed: {
         headers() {
@@ -142,11 +150,8 @@ export default {
         deleteNanotasks() {
             this.duct.sendMsg({
                 tag: "recursive",
-                eid: this.duct.EVENT.NANOTASK,
+                eid: this.duct.EVENT.DELETE_NANOTASKS,
                 data: {
-                    "Command": "Delete",
-                    "ProjectName": this.prjName,
-                    "TemplateName": this.template,
                     "NanotaskIds": this.selectedNanotaskIds
                 }
             });
@@ -175,9 +180,8 @@ export default {
             if(this.show) {
                 this.duct.sendMsg({
                     tag: "recursive",
-                    eid: this.duct.EVENT.NANOTASK,
+                    eid: this.duct.EVENT.GET_NANOTASKS,
                     data: {
-                        "Command": "Get",
                         "ProjectName": this.prjName,
                         "TemplateName": this.template
                     }

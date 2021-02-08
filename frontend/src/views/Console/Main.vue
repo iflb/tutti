@@ -114,16 +114,14 @@
         </v-navigation-drawer>
 
 
-        <transition name="fade" mode="out-in">
-            <keep-alive>
-                <router-view app
-                    v-if="duct"
-                    :duct="duct"
-                    :prj-name="prjName"
-                    ref="child"
-                ></router-view>
-            </keep-alive>
-        </transition>
+        <keep-alive>
+            <router-view app
+                v-if="duct"
+                :duct="duct"
+                :prj-name="prjName"
+                ref="child"
+            ></router-view>
+        </keep-alive>
 
 
         <tutti-dialog ref="dialogCreateProject" title="Create New Project" maxWidth="400"
@@ -136,7 +134,7 @@
             </template>
         </tutti-dialog>
 
-        <tutti-snackbar color="success" :timeout="5000" :text="snackbarTexts.success" />
+        <tutti-snackbar color="success" :timeout="5000" ref="snackbarSuccess" />
         
     </v-app>
 </template>
@@ -155,11 +153,7 @@ export default {
     },
     data: () => ({
         duct: null,
-        snackbarTexts: {
-            success: ""
-        },
         drawer: true,
-        //name: "/console/",
 
         lastPinged: "",
         srvStatus: "connecting",
@@ -189,7 +183,6 @@ export default {
         },
 
         setEventHandlers() {
-
             this.duct.addTuttiEvtHandler({
                 eid: this.duct.EVENT.LIST_PROJECTS,
                 success: ({ data }) => {
@@ -197,11 +190,10 @@ export default {
                     this.prjName = localStorage.getItem("tuttiProject") || null;
                 }
             });
-
             this.duct.addTuttiEvtHandler({
                 eid: this.duct.EVENT.CREATE_PROJECT,
                 success: ({ data }) => {
-                    this.snackbarTexts.success = `Successfully created project '${data["ProjectName"]}'`;
+                    this.$refs.snackbarSuccess.show(`Successfully created project '${data["ProjectName"]}'`);
                     this.duct.sendMsg({
                         tag: this.name,
                         eid: this.duct.EVENT.LIST_PROJECTS
@@ -212,7 +204,6 @@ export default {
     },
 
     created: function(){
-
         new DuctsLoader().initDuct("guest").then( ({ loader, duct }) => {
             this.duct = duct;
 

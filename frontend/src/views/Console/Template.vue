@@ -58,15 +58,13 @@
 </template>
 
 <script>
-import VueJsonPretty from 'vue-json-pretty/lib/vue-json-pretty'
-import Dialog from '@/views/assets/Dialog.vue'
 import rules from '@/lib/input-rules'
 import 'vue-json-pretty/lib/styles.css'
 
 export default {
     components: {
-        VueJsonPretty,
-        TuttiDialog: Dialog
+        VueJsonPretty: () => import('vue-json-pretty/lib/vue-json-pretty'),
+        TuttiDialog: () => import('@/views/assets/Dialog.vue')
     },
     data: () => ({
         rules: {

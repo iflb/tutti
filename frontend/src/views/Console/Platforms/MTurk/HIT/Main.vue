@@ -88,28 +88,21 @@
             </v-col>
         </v-row>
 
-        <tutti-snackbar color="success" :timeout="3000" :text="snackbarTexts.success" />
-        <tutti-snackbar color="warning" :timeout="3000" :text="snackbarTexts.warning" />
-        <tutti-snackbar color="error" :timeout="3000" :text="snackbarTexts.error" />
+        <tutti-snackbar ref="snackbarSuccess" color="success" :timeout="3000" />
+        <tutti-snackbar ref="snackbarWarning" color="warning" :timeout="3000" />
+        <tutti-snackbar ref="snackbarError" color="error" :timeout="3000" />
     </div>
 </template>
 <script>
-import VueJsonPretty from 'vue-json-pretty/lib/vue-json-pretty'
 import 'vue-json-pretty/lib/styles.css'
-import Snackbar from '@/views/assets/Snackbar.vue'
 import { stringifyUnixTime } from '@/lib/utils'
 
 export default {
     components: {
-        VueJsonPretty,
-        TuttiSnackbar: Snackbar
+        VueJsonPretty: () => import('vue-json-pretty/lib/vue-json-pretty'),
+        TuttiSnackbar: () => import('@/views/assets/Snackbar')
     },
     data: () => ({
-        snackbarTexts: {
-            success: "",
-            warning: "",
-            error: ""
-        },
         selectedHITTypes: [],
         search: "",
         expanded: [],
@@ -148,7 +141,7 @@ export default {
             },
         },
     }),
-    props: ["duct", "credentials", "name"],
+    props: ["duct", "prjName", "credentials", "name"],
 
     computed: {
         selectedHITIds() {
@@ -192,9 +185,8 @@ export default {
             this.loadingHITs = true;
             this.duct.sendMsg({
                 tag: this.name,
-                eid: this.duct.EVENT.MTURK_HIT,
+                eid: this.duct.EVENT.MTURK_LIST_HITS,
                 data: {
-                    "Command": "List",
                     "Cached": cached
                 }
             });
@@ -202,98 +194,71 @@ export default {
     },
 
     watch: {
-        credentials: {
-            handler() {
-                this._evtListHITs(true);
-            },
-            deep: true
-        }
+        //credentials: {
+        //    handler() {
+        //        this._evtListHITs(true);
+        //    },
+        //    deep: true
+        //}
     },
-    mounted() {
+    created() {
         this.duct.invokeOrWaitForOpen(() => {
-            this.duct.addEvtHandler({
-                tag: this.name, eid: this.duct.EVENT.MTURK_HIT,
-                handler: (rid, eid, data) => {
-                    if(data["Status"]=="Error") return;
+            this.duct.addTuttiEvtHandler({
+                eid: this.duct.EVENT.MTURK_LIST_HITS,
+                success: ({ data }) => {
+                    this.loadingHITs = false;
+                    this.listLastRetrieved = stringifyUnixTime(data["Results"]["LastRetrieved"]);
+                    const hits = data["Results"]["HITTypes"];
 
-                    const command = data["Data"]["Command"];
-                    switch(command) {
-                        case "List": {
-                            this.loadingHITs = false;
-                            this.listLastRetrieved = stringifyUnixTime(data["Data"]["Result"]["LastRetrieved"]);
-                            const hits = data["Data"]["Result"]["HITTypes"];
-                            this.hitTypes = [];
-                            for(var i in hits){
-                                this.hitTypes.push({
-                                    id: i,
-                                    groupId: hits[i]["HITGroupId"],
-                                    title: hits[i]["Props"]["Title"],
-                                    project_names: hits[i]["ProjectNames"],
-                                    reward: hits[i]["Props"]["Reward"],
-                                    creation_time: stringifyUnixTime(hits[i]["CreationTime"]),
-                                    expiration_time: stringifyUnixTime(hits[i]["Expiration"]),
-                                    num_hits: hits[i]["Count"],
-                                    num_assignable: hits[i]["HITStatusCount"]["Assignable"],
-                                    num_reviewable: hits[i]["HITStatusCount"]["Reviewable"],
-                                    detail: hits[i]
-                                });
-                            }
-                            this.selectedHITTypes = [];
-                            break;
-                        }
+                    this.hitTypes = [];
+                    for(var i in hits){
+                        this.hitTypes.push({
+                            id: i,
+                            groupId: hits[i]["HITGroupId"],
+                            title: hits[i]["Props"]["Title"],
+                            project_names: hits[i]["ProjectNames"],
+                            reward: hits[i]["Props"]["Reward"],
+                            creation_time: stringifyUnixTime(hits[i]["CreationTime"]),
+                            expiration_time: stringifyUnixTime(hits[i]["Expiration"]),
+                            num_hits: hits[i]["Count"],
+                            num_assignable: hits[i]["HITStatusCount"]["Assignable"],
+                            num_reviewable: hits[i]["HITStatusCount"]["Reviewable"],
+                            detail: hits[i]
+                        });
                     }
+                    this.selectedHITTypes = [];
                 }
             });
 
-            this.duct.addEvtHandler({
-                tag: this.name, eid: this.duct.EVENT.MTURK_EXPIRE_HITS,
-                handler: (rid, eid, data) => {
-                    if(data["Status"]=="Error") {
-                        this.snackbarTexts.error = "Errors occurred in expiring HITs";
-                    } else {
-                        const res = data["Data"]["Results"];
+            for(const opr of ["expire", "delete"]){
+                this.duct.addTuttiEvtHandler({
+                    eid: this.duct.EVENT[`MTURK_${opr.toUpperCase()}_HITS`],
+                    success: ({ data }) => {
                         var cntSuccess = 0;
-                        for(var i in res) {
-                            if(("ResponseMetadata" in res[i]) && ("HTTPStatusCode" in res[i]["ResponseMetadata"]) && (res[i]["ResponseMetadata"]["HTTPStatusCode"]==200))
+                        for(const res of data["Results"]) {
+                            if(("ResponseMetadata" in res) && ("HTTPStatusCode" in res["ResponseMetadata"]) && (res["ResponseMetadata"]["HTTPStatusCode"]==200))
                                 cntSuccess++;
                         }
-                        if(cntSuccess==res.length) {
-                            this.snackbarTexts.success = `Successfully expired ${res.length} HITs`;
+                        if(cntSuccess==data["Results"].length) {
+                            this.$refs.snackbarSuccess.show(`${opr[0].toUpperCase()+opr.slice(1)}d ${cntSuccess} HITs`);
                         } else {
-                            this.snackbarTexts.warning = `Expired ${cntSuccess} HITs, but errors occurred in expiring ${res.length-cntSuccess} HITs`;
+                            this.$refs.snackbarWarning.show(`${opr[0].toUpperCase()+opr.slice(1)}d ${cntSuccess} HITs, but errors occurred in ${opr.slice(0,-1)}ing ${data["Results"].length-cntSuccess} HITs`);
                         }
 
+                        this.button[`${opr}HITs`].loading = false;
+                        this.button[`${opr}HITs`].disabled = false;
+                        this._evtListHITs(false);
+                    },
+                    error: ({ data }) => {
+                        this.$refs.snackbarError.show(`Errors occurred in ${opr.slice(0,-1)}ing HITs: ${data["Reason"]}`);
+
+                        this.button[`${opr}HITs`].loading = false;
+                        this.button[`${opr}HITs`].disabled = false;
+                        this._evtListHITs(false);
                     }
-                    this.button.expireHITs.loading = false;
-                    this.button.expireHITs.disabled = false;
-                    this._evtListHITs(false);
-                }
-            });
+                });
+            }
 
-            this.duct.addEvtHandler({
-                tag: this.name, eid: this.duct.EVENT.MTURK_DELETE_HITS,
-                handler: (rid, eid, data) => {
-                    if(data["Status"]=="Error") {
-                        this.snackbarTexts.error = "Errors occurred in deleting HITs";
-                    } else {
-                        const res = data["Data"]["Results"];
-                        var cntSuccess = 0;
-                        for(var i in res) {
-                            if(("ResponseMetadata" in res[i]) && ("HTTPStatusCode" in res[i]["ResponseMetadata"]) && (res[i]["ResponseMetadata"]["HTTPStatusCode"]==200))
-                                cntSuccess++;
-                        }
-                        if(cntSuccess==res.length) {
-                            this.snackbarTexts.success = `Successfully deleted ${res.length} HITs`;
-                        } else {
-                            this.snackbarTexts.warning = `Deleted ${cntSuccess} HITs, but errors occurred in deleting ${res.length-cntSuccess} HITs`;
-                        }
-
-                    }
-                    this.button.deleteHITs.loading = false;
-                    this.button.deleteHITs.disabled = false;
-                    this._evtListHITs(false);
-                }
-            });
             this._evtListHITs(true);
         });
     }

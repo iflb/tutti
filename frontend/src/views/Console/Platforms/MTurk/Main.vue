@@ -31,9 +31,9 @@
             </v-system-bar>
         </div>
 
-        <v-slide-x-transition hide-on-leave>
-            <router-view :duct="duct" :shared-props="sharedProps" :credentials="credentials"></router-view>
-        </v-slide-x-transition>
+        <keep-alive :exclude="['HIT-Create']">
+            <router-view :duct="duct" :prjName="prjName" :credentials="credentials"></router-view>
+        </keep-alive>
     </v-main>
 </template>
 <script>
@@ -42,13 +42,12 @@ export default {
         credentials: null,
         loadingCredentials: false
     }),
-    props: ["duct", "sharedProps"],
+    props: ["duct", "prjName"],
     methods: {
-        onReceiveCredentials(rid, eid, data) {
+        onReceiveCredentials({ data }) {
             this.loadingCredentials = false;
-            this.credentials = data["Data"]["Results"];
+            this.credentials = data["Results"];
         },
-
         getCredentials() {
             this.loadingCredentials = true;
             this.duct.sendMsg({
@@ -66,13 +65,40 @@ export default {
             });
         }
     },
-    mounted() {
+    created() {
         this.duct.invokeOrWaitForOpen(() => {
-            const credEvtNames = ["MTURK_GET_CREDENTIALS", "MTURK_SET_CREDENTIALS", "MTURK_CLEAR_CREDENTIALS", "MTURK_SET_SANDBOX"];
-            for(var i in credEvtNames)  this.duct.addEvtHandler({ tag: "", eid: this.duct.EVENT[credEvtNames[i]], handler: this.onReceiveCredentials });
+            const credEvtNames = [
+                "MTURK_GET_CREDENTIALS",
+                "MTURK_SET_CREDENTIALS",
+                "MTURK_CLEAR_CREDENTIALS",
+                "MTURK_SET_SANDBOX"
+            ];
+            for(const e of credEvtNames) {
+                this.duct.addTuttiEvtHandler({
+                    eid: this.duct.EVENT[e],
+                    success: this.onReceiveCredentials
+                });
+            }
 
             this.getCredentials();
         });
     }
 }
 </script>
+<style>
+.fade-enter-active,
+.fade-leave-active {
+  transition-duration: 0.5s;
+  transition-property: opacity;
+  transition-timing-function: ease-in;
+}
+
+.fade-enter-active {
+  transition-duration: 0.5s;
+}
+
+.fade-enter,
+.fade-leave-active {
+  opacity: 0
+}
+</style>
