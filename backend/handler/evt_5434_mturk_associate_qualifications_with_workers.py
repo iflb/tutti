@@ -14,7 +14,7 @@ class Handler(EventHandler):
         super().__init__()
 
     def setup(self, handler_spec, manager):
-        self.evt_boto3_mturk = manager.get_handler_for(manager.key_ids["BOTO3_MTURK"])[1]
+        self.evt_mturk_api_core = manager.get_handler_for(manager.key_ids["MTURK_API_CORE"])[1]
 
         handler_spec.set_description('テンプレート一覧を取得します。')
         handler_spec.set_as_responsive()
@@ -26,5 +26,5 @@ class Handler(EventHandler):
         output.set("Results", await self.associate_qualifications_with_workers(**event.data))
 
     async def associate_qualifications_with_workers(self, QualificationTypeId, WorkerIds, IntegerValue, SendNotification):
-        tasks = [self.evt_boto3_mturk.exec_boto3("associate_qualification_with_worker", {"QualificationTypeId":QualificationTypeId, "WorkerId": wid, "IntegerValue": IntegerValue, "SendNotification": SendNotification}) for wid in WorkerIds]
+        tasks = [self.evt_mturk_api_core.exec_boto3("associate_qualification_with_worker", {"QualificationTypeId":QualificationTypeId, "WorkerId": wid, "IntegerValue": IntegerValue, "SendNotification": SendNotification}) for wid in WorkerIds]
         return await asyncio.gather(*tasks)

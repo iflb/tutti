@@ -10,7 +10,7 @@ class Handler(EventHandler):
 
     def setup(self, handler_spec, manager):
         self.namespace_redis = manager.load_helper_module('helper_redis_namespace')
-        self.evt_boto3_mturk = manager.get_handler_for(manager.key_ids["BOTO3_MTURK"])[1]
+        self.evt_mturk_api_core = manager.get_handler_for(manager.key_ids["MTURK_API_CORE"])[1]
         handler_spec.set_description('テンプレート一覧を取得します。')
         handler_spec.set_as_responsive()
 
@@ -18,6 +18,6 @@ class Handler(EventHandler):
 
     @handler_output
     async def handle(self, event, output):
-        output.set("Results", await self.evt_boto3_mturk.exec_boto3("update_qualification_type", **event.data))
+        output.set("Results", await self.evt_mturk_api_core.exec_boto3("update_qualification_type", **event.data))
 
         
