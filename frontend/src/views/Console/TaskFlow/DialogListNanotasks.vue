@@ -8,6 +8,7 @@
                 <v-text-field v-model="search" append-icon="mdi-magnify" label="Search" single-line hide-details />
             </v-card-title>
             <v-card-text class="text-end">
+                {{ selectedNanotasks }}
                 <v-tooltip bottom v-if="selectedNanotaskIds.length>0">
                     <template v-slot:activator="{ on, attrs }">
                         <v-btn v-bind="attrs" v-on="on" class="mx-3" dark color="grey darken-2" @click="$refs.dialogManageNumAssignments.shown=true"><v-icon>mdi-ticket-confirmation</v-icon></v-btn>
@@ -155,6 +156,7 @@ export default {
                     "NanotaskIds": this.selectedNanotaskIds
                 }
             });
+            this.selectedNanotasks = [];
         },
         updateNumAssignable() {
             for(var i in this.selectedNanotaskIds) {
