@@ -51,13 +51,7 @@ export default {
     props: ["duct", "prjName", "name"],
     methods: {
         loadFlow(){
-            if(this.prjName){
-                this.duct.sendMsg({
-                    tag: this.name,
-                    eid: this.duct.EVENT.GET_PROJECT_SCHEME,
-                    data: { "ProjectName": this.prjName, "Cached": false }
-                });
-            }
+            if(this.prjName)  this.duct.controllers.resource.getProjectScheme(this.prjName, false);
         }
     },
     watch: {

@@ -99,34 +99,14 @@ export default {
             this.currentAnswer = $event;
         },
         createTemplate() {
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.CREATE_TEMPLATES,
-                data: {
-                    "ProjectName": this.prjName,
-                    "TemplateNames": [this.newTemplateName],
-                    "PresetEnvName": this.newTemplatePreset[0],
-                    "PresetTemplateName": this.newTemplatePreset[1]
-                }
-            });
+            this.duct.controllers.resource.createTemplates(this.prjName, [this.newTemplateName], this.newTemplatePreset[0], this.newTemplatePreset[1]);
             this.newTemplateName = "";
             this.newTemplatePreset = [];
             this.templateCreated = true;
         },
-        listTemplatePresets() {
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.LIST_TEMPLATE_PRESETS,
-                data: null
-            });
-        },
         listTemplates() {
             this.tmplName = null;
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.LIST_TEMPLATES,
-                data: { "ProjectName": this.prjName }
-            });
+            if(this.prjName) this.duct.controllers.resource.listTemplates(this.prjName);
         },
 
         submit($event) {
@@ -156,8 +136,8 @@ export default {
                 }
             });
 
-            this.listTemplatePresets();
-            if(this.prjName) this.listTemplates();
+            this.duct.controllers.resource.listTemplatePresets();
+            this.listTemplates();
         });
     }
 }

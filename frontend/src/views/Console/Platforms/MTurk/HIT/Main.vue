@@ -28,7 +28,7 @@
                         <template v-slot:top>
                             <v-card-title>
                                 HITs
-                                <v-btn icon @click="_evtListHITs(false)"><v-icon>mdi-refresh</v-icon></v-btn>
+                                <v-btn icon @click="listHITs(false)"><v-icon>mdi-refresh</v-icon></v-btn>
                                 <v-spacer></v-spacer>
                                 <v-spacer></v-spacer>
                                 <v-text-field v-model="search" append-icon="mdi-magnify" label="Search" single-line hide-details></v-text-field>
@@ -164,42 +164,24 @@ export default {
             return `${hours}:${("00"+minutes).slice(-2)}:${("00"+seconds).slice(-2)}`;
         },
         expireHITs(){
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.MTURK_EXPIRE_HITS,
-                data: {
-                    "HITIds": this.selectedHITIds
-                }
-            });
+            this.duct.controllers.mturk.expireHITs(this.selectedHITIds);
         },
         deleteHITs(){
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.MTURK_DELETE_HITS,
-                data: {
-                    "HITIds": this.selectedHITIds
-                }
-            });
+            this.duct.controllers.mturk.deleteHITs(this.selectedHITIds);
         },
-        _evtListHITs(cached){
+        listHITs(cached){
             this.loadingHITs = true;
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.MTURK_LIST_HITS,
-                data: {
-                    "Cached": cached
-                }
-            });
+            this.duct.controllers.mturk.listHITs(cached);
         }
     },
 
     watch: {
-        //credentials: {
-        //    handler() {
-        //        this._evtListHITs(true);
-        //    },
-        //    deep: true
-        //}
+        credentials: {
+            handler() {
+                this.listHITs(true);
+            },
+            deep: true
+        }
     },
     created() {
         this.duct.invokeOrWaitForOpen(() => {
@@ -247,19 +229,19 @@ export default {
 
                         this.button[`${opr}HITs`].loading = false;
                         this.button[`${opr}HITs`].disabled = false;
-                        this._evtListHITs(false);
+                        this.listHITs(false);
                     },
                     error: ({ data }) => {
                         this.$refs.snackbarError.show(`Errors occurred in ${opr.slice(0,-1)}ing HITs: ${data["Reason"]}`);
 
                         this.button[`${opr}HITs`].loading = false;
                         this.button[`${opr}HITs`].disabled = false;
-                        this._evtListHITs(false);
+                        this.listHITs(false);
                     }
                 });
             }
 
-            this._evtListHITs(true);
+            this.listHITs(true);
         });
     }
 }

@@ -60,18 +60,14 @@ export default {
             this.show = false;
         },
         importNanotasks() {
-            this.duct.sendMsg({
-                tag: "recursive",
-                eid: this.duct.EVENT.UPLOAD_NANOTASKS,
-                data: {
-                    "ProjectName":   this.prjName,
-                    "TemplateName":  this.template,
-                    "Nanotasks": this.contents["Nanotasks"],
-                    "NumAssignable": this.contents["Settings"]["NumAssignable"],
-                    "Priority": this.contents["Settings"]["Priority"],
-                    "TagName": this.contents["Settings"]["TagName"],
-                }
-            });
+            this.duct.controllers.resource.uploadNanotasks(
+                this.prjName,
+                this.template,
+                this.contents["Nanotasks"],
+                this.contents["Settings"]["NumAssignable"],
+                this.contents["Settings"]["Priority"],
+                this.contents["Settings"]["TagName"],      
+            );
             this.closeDialog();
         },
         async getFileContent (file) {

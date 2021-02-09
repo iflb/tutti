@@ -149,13 +149,7 @@ export default {
             return `${years}-${month}-${day} ${hours}:${minutes}:${seconds}`;
         },
         deleteNanotasks() {
-            this.duct.sendMsg({
-                tag: "recursive",
-                eid: this.duct.EVENT.DELETE_NANOTASKS,
-                data: {
-                    "NanotaskIds": this.selectedNanotaskIds
-                }
-            });
+            this.duct.controllers.resource.deleteNanotasks(this.selectedNanotaskIds);
             this.selectedNanotasks = [];
         },
         updateNumAssignable() {
@@ -166,29 +160,13 @@ export default {
                 else if(this.numAssignableMethod=="increment")
                     numAssignable = this.selectedNanotasks[i]["NumAssignable"] + this.numAssignableValue;
 
-                this.duct.sendMsg({
-                    tag: "recursive",
-                    eid: this.duct.EVENT.UPDATE_NANOTASK_NUM_ASSIGNABLE,
-                    data: {
-                        "NanotaskId": this.selectedNanotasks[i]["NanotaskId"],
-                        "NumAssignable": numAssignable
-                    }
-                });
+                this.duct.controllers.resource.updateNanotaskNumAssignable(this.selectedNanotasks[i]["NanotaskId"], numAssignable);
             }
         }
     },
     watch: {
         show() {
-            if(this.show) {
-                this.duct.sendMsg({
-                    tag: "recursive",
-                    eid: this.duct.EVENT.GET_NANOTASKS,
-                    data: {
-                        "ProjectName": this.prjName,
-                        "TemplateName": this.template
-                    }
-                });
-            }
+            if(this.show)  this.duct.controllers.resource.getNanotasks(this.prjName, this.template);
         },
         nanotasks() {
             this.loading = false;

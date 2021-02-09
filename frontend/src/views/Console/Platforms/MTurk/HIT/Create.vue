@@ -309,7 +309,7 @@ export default {
             window.open(url, "_blank");
         },
 
-        pushQualRequirements() { this.attributes.QualificationRequirements.push(Object.assign({}, this.defaultQualRequirements)); },
+        pushQualRequirements() { this.attributes.QualificationRequirements.push( Object.assign({}, this.defaultQualRequirements) ); },
         popQualRequirements()  { this.attributes.QualificationRequirements.pop(); },
 
         numLocaleValues(item)  { return (item && item.LocaleValues) ? item.LocaleValues.length : 0; },
@@ -322,39 +322,9 @@ export default {
             if(item.LocaleValues.length==0) delete item.LocaleValues;
         },
 
-        _evtCreateHITType() {
-            this.duct.sendMsg({
-                tag: "/console/platform/mturk/hit/create/",
-                eid: this.duct.EVENT.MTURK_CREATE_HIT_TYPE,
-                data: { CreateHITTypeParams: this.attributes }
-            });
+        createHITsWithHITType(HITTypeId) {
+            this.duct.controllers.mturk.createHITsWithHITType( this.prjName, this.numCreateHITs, { HITTypeId, ...this.createHITParams } )
         },
-        _evtCreateHITsWithHITType(HITTypeId) {
-            this.duct.sendMsg({
-                tag: "/console/platform/mturk/hit/create/",
-                eid: this.duct.EVENT.MTURK_CREATE_HITS_WITH_HIT_TYPE,
-                data: {
-                    ProjectName: this.prjName,
-                    NumHITs: this.numCreateHITs,
-                    CreateHITsWithHITTypeParams: { HITTypeId, ...this.createHITParams }
-                }
-            });
-        },
-        _evtGetQualificationTypeIds() {
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.MTURK_LIST_QUALIFICATIONS,
-                data: null
-            });
-        },
-        _evtGetHITTypes() {
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.MTURK_GET_HIT_TYPES,
-                data: null
-            });
-        },
-
         createHITType() {
             var qrs = this.attributes.QualificationRequirements;
             for(const i in qrs) for(const j in qrs[i]["IntegerValues"]) qrs[i]["IntegerValues"][j] = parseInt(qrs[i]["IntegerValues"][j]);
@@ -362,7 +332,7 @@ export default {
             this.attributes.AutoApprovalDelayInSeconds = parseInt(this.attributes.AutoApprovalDelayInSeconds);
             this.attributes.AssignmentDurationInSeconds = parseInt(this.attributes.AssignmentDurationInSeconds);
 
-            this._evtCreateHITType();
+            this.duct.controllers.mturk.createHITType(this.attributes)
         },
 
         confirmPostHITs() {
@@ -371,7 +341,7 @@ export default {
         postHITs() {
             this.postingHITs = true;
             if(this.createNew){ this.createHITType(); }
-            else { this._evtCreateHITsWithHITType(this.chosenExstHITTypeId); }
+            else { this.createHITsWithHITType(this.chosenExstHITTypeId); }
         },
     },
     watch: {
@@ -398,7 +368,7 @@ export default {
             this.duct.addTuttiEvtHandler({
                 eid: this.duct.EVENT.MTURK_CREATE_HIT_TYPE,
                 success: ({ data }) => {
-                    this._evtCreateHITsWithHITType(data["HITTypeId"]);
+                    this.createHITsWithHITType(data["HITTypeId"]);
                 },
                 error: ({ data }) => {
                     this.$refs.snackbarError.show(`Error in creating HIT types: ${data["Reason"]}`);
@@ -430,8 +400,8 @@ export default {
                 }
             });
 
-            this._evtGetHITTypes();
-            this._evtGetQualificationTypeIds();
+            this.duct.controllers.mturk.getHITTypes();
+            this.duct.controllers.mturk.listQualifications();
         });
 
     }

@@ -14,5 +14,4 @@ class Handler(EventHandler):
 
     @handler_output
     async def handle(self, event, output):
-        if event.data is None:  event.data = {}
-        output.set("HITTypes", await self.evt_mturk_api_hit_core.get_hit_types(**event.data))
+        output.set("HITTypes", await self.evt_mturk_api_hit_core.get_hit_types(**event.data or {}))

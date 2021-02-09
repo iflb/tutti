@@ -113,16 +113,13 @@ export default {
             }
             this.events = events
         },
-        getEventHistory() {
-            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.EVENT_HISTORY, data: null });
-        },
         sendEvent() {
             var args;
             try { args = JSON.parse(this.query); }
             catch { args = this.query!=="" ? this.query : null; }
 
             this.duct.sendMsg({ tag: this.name, eid: this.eid, data: args });
-            this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.EVENT_HISTORY, data: `${this.eid} ${this.query}`});
+            this.duct.controllers.resource.setEventHistory(this.end, this.query);
             this.query = "";
         }
     },
@@ -147,7 +144,7 @@ export default {
             });
 
             this.loadEvents();
-            this.getEventHistory();
+            this.duct.controllers.resource.getEventHistory();
         });
     }
 }

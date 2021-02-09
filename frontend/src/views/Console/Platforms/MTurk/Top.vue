@@ -7,16 +7,10 @@
             <v-col cols="5">
                 <div class="text-h3">Amazon Mechanical Turk</div>
                 <v-row class="mt-4">
-                    <v-btn class="ma-2" color="indigo" outlined
-                        @click="credentials && credentials.Sandbox ?
-                                windowOpen('https://workersandbox.mturk.com', '_blank') :
-                                windowOpen('https://worker.mturk.com', '_blank');">
+                    <v-btn class="ma-2" color="indigo" outlined :href="(credentials && credentials.Sandbox) ? 'https://workersandbox.mturk.com' : 'https://worker.mturk.com'" target="_blank">
                         <v-icon>mdi-account-group</v-icon>Workers
                     </v-btn>
-                    <v-btn class="ma-2" color="indigo" outlined
-                        @click="credentials && credentials.Sandbox ?
-                                windowOpen('https://requestersandbox.mturk.com', '_blank') :
-                                windowOpen('https://requester.mturk.com', '_blank');">
+                    <v-btn class="ma-2" color="indigo" outlined :href="(credentials && credentials.Sandbox) ? 'https://requestersandbox.mturk.com' : 'https://requester.mturk.com'" target="_blank">
                         <v-icon>mdi-account-circle</v-icon>Requesters
                     </v-btn>
                 </v-row>
@@ -89,12 +83,10 @@
     </div>
 </template>
 <script>
-import Dialog from '@/views/assets/Dialog.vue'
-
 export default {
-    props: ["duct", "sharedProps", "credentials", "name"],
+    props: ["duct", "credentials", "name"],
     components: {
-        TuttiDialog: Dialog
+        TuttiDialog: () => import('@/views/assets/Dialog')
     },
     data: () => ({
         newCredentials: {
@@ -103,23 +95,11 @@ export default {
         }
     }),
     methods: {
-        windowOpen(url, target){
-            window.open(url, target);
-        },
-
         setCredentials() {
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.MTURK_SET_CREDENTIALS,
-                data: this.newCredentials
-            });
+            this.duct.controllers.mturk.setCredentials(...this.newCredentials);
         },
         clearCredentials() {
-            this.duct.sendMsg({
-                tag: "",
-                eid: this.duct.EVENT["MTURK_CLEAR_CREDENTIALS"],
-                data: null
-            });
+            this.duct.controllers.mturk.clearCredentials();
         }
     }
 }

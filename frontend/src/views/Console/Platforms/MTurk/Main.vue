@@ -50,19 +50,11 @@ export default {
         },
         getCredentials() {
             this.loadingCredentials = true;
-            this.duct.sendMsg({
-                tag: "",
-                eid: this.duct.EVENT["MTURK_GET_CREDENTIALS"],
-                data: null
-            });
+            this.duct.controllers.mturk.getCredentials();
         },
         setSandbox(Enabled) {
             this.loadingCredentials = true;
-            this.duct.sendMsg({
-                tag: "",
-                eid: this.duct.EVENT["MTURK_SET_SANDBOX"],
-                data: { Enabled }
-            });
+            this.duct.controllers.mturk.setSandbox(Enabled);
         }
     },
     created() {

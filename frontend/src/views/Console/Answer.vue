@@ -54,24 +54,15 @@ export default {
     methods: {
         listTemplates() {
             this.tmplName = null;
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.LIST_TEMPLATES,
-                data: { "ProjectName": this.prjName }
-            });
+            this.duct.controllers.resource.listTemplates(this.prjName);
         }
     },
     watch: {
-        prjName() { this.listTemplates(); },
+        prjName() {
+            this.listTemplates();
+        },
         tmplName() {
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.GET_ANSWERS_FOR_TEMPLATE,
-                data: {
-                    "ProjectName": this.prjName,
-                    "TemplateName": this.tmplName
-                }
-            })
+            this.duct.controllers.resource.getAnswersForTemplate(this.prjName, this.tmplName);
         },
         answers(val) {
             const ansAll = val;

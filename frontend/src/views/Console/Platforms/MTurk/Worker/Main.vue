@@ -9,7 +9,7 @@
                 </v-tooltip>
                 <v-tooltip top>
                     <template #activator="{ on, attrs }">
-                        <v-btn v-bind="attrs" v-on="on" class="mx-2" dark color="indigo" @click="$refs.dialogAssociateQuals.shown=true; if(!quals) _evtListQuals();"><v-icon>mdi-account-star</v-icon></v-btn>
+                        <v-btn v-bind="attrs" v-on="on" class="mx-2" dark color="indigo" @click="$refs.dialogAssociateQuals.shown=true; if(!quals) listQualifications();"><v-icon>mdi-account-star</v-icon></v-btn>
                     </template>
                     <span>Grant qualification</span>
                 </v-tooltip>
@@ -30,7 +30,7 @@
                     <template v-slot:top>
                         <v-card-title>
                             Workers
-                            <v-btn icon @click="_evtListWorkers()"><v-icon>mdi-refresh</v-icon></v-btn>
+                            <v-btn icon @click="listWorkers()"><v-icon>mdi-refresh</v-icon></v-btn>
                             <!--<v-btn icon @click="$refs.dlgCreate.shown=true"><v-icon>mdi-plus</v-icon></v-btn>-->
                             <v-spacer></v-spacer>
                             <v-text-field v-model="search" append-icon="mdi-magnify" label="Search" single-line hide-details></v-text-field>
@@ -162,55 +162,23 @@ export default {
             var dt = new Date(unixTime*1000);
             return dt.toLocaleDateString() + " " + dt.toLocaleTimeString();
         },
-        deleteQuals() {
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.MTURK_DELETE_QUALIFICATIONS,
-                data: {
-                    "QualificationTypeIds": this.selectedQualTypeIds
-                }
-            });
-        },
         associateQuals() {
-            this._evtAssociateQuals();
+            this.duct.controllers.mturk.associateQualificationsWithWorkers(this.newAssociateQual);
         },
-        _evtListWorkers() {
+        listWorkers() {
             this.loadingWorkers = true;
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.LIST_WORKERS,
-                data: { "Platform": "MTurk" }
-            });
+            this.duct.controllers.mturk.listWorkers();
         },
-        _evtSendEmail() {
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.MTURK_NOTIFY_WORKERS,
-                data: { ...this.email, "WorkerIds": this.sendEmailWorkerIds }
-            });
+        listQualifications() {
+            this.duct.controllers.mturk.listQualifications();
         },
-        _evtListQuals() {
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.MTURK_LIST_QUALIFICATIONS,
-                data: null
-            });
-        },
-        _evtAssociateQuals() {
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.MTURK_ASSOCIATE_QUALIFICATIONS_WITH_WORKERS,
-                data: this.newAssociateQual
-            });
-        },
-
         sendEmail() {
-            this._evtSendEmail();
+            this.duct.controllers.mturk.notifyWorkers(this.email.Subject, this.email.MessageText, this.sendEmailWorkerIds);
         }
     },
     watch: {
         credentials: {
-            handler() { this._evtListWorkers(); },
+            handler() { this.listWorkers(); },
             deep: true
         },
         selectedWorkerIds() {
@@ -240,7 +208,7 @@ export default {
                 }
             });
 
-            this._evtListWorkers();
+            this.listWorkers();
         });
     }
 }

@@ -2,7 +2,7 @@
         <v-row class="my-10" justify="center">
             <v-col class="text-right" cols="10">
                 <v-btn :loading="button.deleteQuals.loading" :disabled="button.deleteQuals.disabled" class="mx-2" dark
-                       color="error" v-if="selectedQualTypeIds.length>0" @click="button.deleteQuals.loading=true; deleteQuals()">Delete ({{ selectedQualTypeIds.length }})</v-btn>
+                       color="error" v-if="selectedQualTypeIds.length>0" @click="button.deleteQuals.loading=true; deleteQualifications()">Delete ({{ selectedQualTypeIds.length }})</v-btn>
                 <v-btn class="mx-2" dark color="indigo" @click="$refs.dialogCreate.shown=true">Create Qualification...</v-btn>
             </v-col>
             <v-col cols="10">
@@ -24,7 +24,7 @@
                     <template v-slot:top>
                         <v-card-title>
                             Qualifications
-                            <v-btn icon @click="_evtGetQualificationTypeIds()"><v-icon>mdi-refresh</v-icon></v-btn>
+                            <v-btn icon @click="getQualificationTypeIds()"><v-icon>mdi-refresh</v-icon></v-btn>
                             <!--<v-btn icon @click="$refs.dlgCreate.shown=true"><v-icon>mdi-plus</v-icon></v-btn>-->
                             <v-spacer></v-spacer>
                             <v-text-field v-model="search" append-icon="mdi-magnify" label="Search" single-line hide-details></v-text-field>
@@ -123,49 +123,21 @@ export default {
         }
     },
     methods: {
-        deleteQuals() {
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.MTURK_DELETE_QUALIFICATIONS,
-                data: {
-                    "QualificationTypeIds": this.selectedQualTypeIds
-                }
-            });
+        deleteQualifications() {
+            this.duct.controllers.mturk.deleteQualifications( this.selectedQualTypeIds );
         },
-        _evtGetQualificationTypeIds() {
+        getQualificationTypeIds() {
             this.loadingQuals = true;
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.MTURK_LIST_QUALIFICATIONS,
-                data: null
-            });
+            this.duct.controllers.mturk.listQualifications();
         },
         _evtGetWorkersForQualificationTypeIds(qids){
             for(var i in qids){
-                this.duct.sendMsg({
-                    tag: this.name,
-                    eid: this.duct.EVENT.MTURK_LIST_WORKERS_WITH_QUALIFICATION_TYPE,
-                    data: {
-                        "QualificationTypeId": qids[i]
-                    }
-                });
+                this.duct.controllers.mturk.listWorkersWithQualificationType(qids[i]);
             }
         },
         createQualificationType() {
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.MTURK_CREATE_QUALIFICATION,
-                data: this.newQualParams
-            });
+            this.duct.controllers.mturk.createQualification(this.newQualParams);
         }
-    },
-    watch: {
-        //credentials: {
-        //    handler() {
-        //        this._evtGetQualificationTypeIds();
-        //    },
-        //    deep: true
-        //}
     },
     mounted() {
         this.duct.invokeOrWaitForOpen(() => {
@@ -194,7 +166,7 @@ export default {
                 eid: this.duct.EVENT.MTURK_CREATE_QUALIFICATION,
                 success: () => {
                     this.$refs.snackbarSuccess.show("Successfully created a qualification");
-                    this._evtGetQualificationTypeIds();
+                    this.getQualificationTypeIds();
                 },
                 error: ({ data }) => {
                     this.$refs.snackbarError.show(`Error in creating a qualification: ${data["Reason"]}`);
@@ -236,7 +208,7 @@ export default {
                 }
             });
 
-            this._evtGetQualificationTypeIds();
+            this.getQualificationTypeIds();
         });
     }
 }

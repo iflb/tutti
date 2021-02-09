@@ -32,14 +32,7 @@ export default {
     }),
     methods: {
         setAccount() {
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.MTURK_SET_CREDENTIALS,
-                data: {
-                    "AccessKeyId": this.accessKeyId,
-                    "SecretAccessKey": this.secretAccessKey
-                }
-            });
+            this.duct.controllers.mturk.setCredentials(this.accessKeyId, this.secretAccessKey);
             this.shown = false;
         }
     }

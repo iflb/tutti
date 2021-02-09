@@ -172,15 +172,7 @@ export default {
         prjName (name) { if(name){ localStorage.setItem("tuttiProject", name); } },
     },
     methods: {
-        createProject() {
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.CREATE_PROJECT,
-                data: {
-                    "ProjectName": this.newProjectName
-                }
-            });
-        },
+        createProject() { this.duct.controllers.resource.createProject(this.newProjectName); },
 
         setEventHandlers() {
             this.duct.addTuttiEvtHandler({
@@ -194,10 +186,7 @@ export default {
                 eid: this.duct.EVENT.CREATE_PROJECT,
                 success: ({ data }) => {
                     this.$refs.snackbarSuccess.show(`Successfully created project '${data["ProjectName"]}'`);
-                    this.duct.sendMsg({
-                        tag: this.name,
-                        eid: this.duct.EVENT.LIST_PROJECTS
-                    });
+                    this.duct.controllers.resource.listProjects();
                 }
             });
         }
@@ -235,7 +224,7 @@ export default {
                 this.lastPinged = dateFormat(new Date(), "HH:MM:ss")
 
                 this.setEventHandlers();
-                this.duct.sendMsg({ tag: this.name, eid: this.duct.EVENT.LIST_PROJECTS });
+                this.duct.controllers.resource.listProjects();
             });
             duct._connection_listener.on(["onclose", "onerror"], () => { this.srvStatus = "disconnected"; } );
 

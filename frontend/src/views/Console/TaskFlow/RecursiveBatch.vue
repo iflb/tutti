@@ -108,15 +108,6 @@ export default {
         depth() { return this.parentParams.depth; },
         isLast() { return this.parentParams.isLast; },
     },
-    methods: {
-        getNanotasks() {
-            this.duct.sendMsg({
-                tag: this.name,
-                eid: this.duct.EVENT.GET_NANOTASKS,
-                data: { "ProjectName": this.prjName, "TemplateName": this.node.name }
-            });
-        }
-    },
     created() {
         this.duct.invokeOrWaitForOpen(() => {
             this.duct.addTuttiEvtHandler({
@@ -130,17 +121,17 @@ export default {
                 eid: this.duct.EVENT.UPLOAD_NANOTASKS,
                 success: ({ data }) => {
                     if(data["ProjectName"]==this.prjName && data["TemplateName"]==this.node.name)
-                        this.getNanotasks();
+                        this.duct.controllers.resource.getNanotasks();
                 }
             });
             this.duct.addTuttiEvtHandler({
                 eid: this.duct.EVENT.DELETE_NANOTASKS,
                 success: () => {
-                    this.getNanotasks();
+                    this.duct.controllers.resource.getNanotasks();
                 }
             });
 
-            if(!this.isBatch){ this.getNanotasks(); }
+            if(!this.isBatch){ this.duct.controllers.resource.getNanotasks(); }
         });
 
     }
