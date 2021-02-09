@@ -185,59 +185,52 @@ export default {
     },
     created() {
         this.duct.invokeOrWaitForOpen(() => {
-            this.duct.addTuttiEvtHandler({
-                eid: this.duct.EVENT.MTURK_LIST_HITS,
-                success: ({ data }) => {
-                    this.loadingHITs = false;
-                    this.listLastRetrieved = stringifyUnixTime(data["Results"]["LastRetrieved"]);
-                    const hits = data["Results"]["HITTypes"];
+            this.duct.eventListeners.mturk.on("listHITs").then( (data) => {
+                this.loadingHITs = false;
+                this.listLastRetrieved = stringifyUnixTime(data["Results"]["LastRetrieved"]);
+                const hits = data["Results"]["HITTypes"];
 
-                    this.hitTypes = [];
-                    for(var i in hits){
-                        this.hitTypes.push({
-                            id: i,
-                            groupId: hits[i]["HITGroupId"],
-                            title: hits[i]["Props"]["Title"],
-                            project_names: hits[i]["ProjectNames"],
-                            reward: hits[i]["Props"]["Reward"],
-                            creation_time: stringifyUnixTime(hits[i]["CreationTime"]),
-                            expiration_time: stringifyUnixTime(hits[i]["Expiration"]),
-                            num_hits: hits[i]["Count"],
-                            num_assignable: hits[i]["HITStatusCount"]["Assignable"],
-                            num_reviewable: hits[i]["HITStatusCount"]["Reviewable"],
-                            detail: hits[i]
-                        });
-                    }
-                    this.selectedHITTypes = [];
+                this.hitTypes = [];
+                for(var i in hits){
+                    this.hitTypes.push({
+                        id: i,
+                        groupId: hits[i]["HITGroupId"],
+                        title: hits[i]["Props"]["Title"],
+                        project_names: hits[i]["ProjectNames"],
+                        reward: hits[i]["Props"]["Reward"],
+                        creation_time: stringifyUnixTime(hits[i]["CreationTime"]),
+                        expiration_time: stringifyUnixTime(hits[i]["Expiration"]),
+                        num_hits: hits[i]["Count"],
+                        num_assignable: hits[i]["HITStatusCount"]["Assignable"],
+                        num_reviewable: hits[i]["HITStatusCount"]["Reviewable"],
+                        detail: hits[i]
+                    });
                 }
+                this.selectedHITTypes = [];
             });
 
             for(const opr of ["expire", "delete"]){
-                this.duct.addTuttiEvtHandler({
-                    eid: this.duct.EVENT[`MTURK_${opr.toUpperCase()}_HITS`],
-                    success: ({ data }) => {
-                        var cntSuccess = 0;
-                        for(const res of data["Results"]) {
-                            if(("ResponseMetadata" in res) && ("HTTPStatusCode" in res["ResponseMetadata"]) && (res["ResponseMetadata"]["HTTPStatusCode"]==200))
-                                cntSuccess++;
-                        }
-                        if(cntSuccess==data["Results"].length) {
-                            this.$refs.snackbarSuccess.show(`${opr[0].toUpperCase()+opr.slice(1)}d ${cntSuccess} HITs`);
-                        } else {
-                            this.$refs.snackbarWarning.show(`${opr[0].toUpperCase()+opr.slice(1)}d ${cntSuccess} HITs, but errors occurred in ${opr.slice(0,-1)}ing ${data["Results"].length-cntSuccess} HITs`);
-                        }
-
-                        this.button[`${opr}HITs`].loading = false;
-                        this.button[`${opr}HITs`].disabled = false;
-                        this.listHITs(false);
-                    },
-                    error: ({ data }) => {
-                        this.$refs.snackbarError.show(`Errors occurred in ${opr.slice(0,-1)}ing HITs: ${data["Reason"]}`);
-
-                        this.button[`${opr}HITs`].loading = false;
-                        this.button[`${opr}HITs`].disabled = false;
-                        this.listHITs(false);
+                this.duct.eventListeners.mturk.on(`${opr}HITs`).then((data) => {
+                    var cntSuccess = 0;
+                    for(const res of data["Results"]) {
+                        if(("ResponseMetadata" in res) && ("HTTPStatusCode" in res["ResponseMetadata"]) && (res["ResponseMetadata"]["HTTPStatusCode"]==200))
+                            cntSuccess++;
                     }
+                    if(cntSuccess==data["Results"].length) {
+                        this.$refs.snackbarSuccess.show(`${opr[0].toUpperCase()+opr.slice(1)}d ${cntSuccess} HITs`);
+                    } else {
+                        this.$refs.snackbarWarning.show(`${opr[0].toUpperCase()+opr.slice(1)}d ${cntSuccess} HITs, but errors occurred in ${opr.slice(0,-1)}ing ${data["Results"].length-cntSuccess} HITs`);
+                    }
+
+                    this.button[`${opr}HITs`].loading = false;
+                    this.button[`${opr}HITs`].disabled = false;
+                    this.listHITs(false);
+                }).then((data) => {
+                    this.$refs.snackbarError.show(`Errors occurred in ${opr.slice(0,-1)}ing HITs: ${data["Reason"]}`);
+
+                    this.button[`${opr}HITs`].loading = false;
+                    this.button[`${opr}HITs`].disabled = false;
+                    this.listHITs(false);
                 });
             }
 

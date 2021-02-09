@@ -141,71 +141,57 @@ export default {
     },
     mounted() {
         this.duct.invokeOrWaitForOpen(() => {
-            this.duct.addTuttiEvtHandler({
-                eid: this.duct.EVENT.MTURK_LIST_QUALIFICATIONS,
-                success: ({ data }) => {
-                    this.quals = {};
-                    const qtypes = data["QualificationTypes"];
-                    for(const qtype of qtypes){
-                        this.$set(this.quals, qtype.QualificationTypeId, {
-                            "name": qtype["Name"],
-                            "status": qtype["QualificationTypeStatus"],
-                            "qualificationId": qtype["QualificationTypeId"],
-                            "creationTime": stringifyUnixTime(qtype["CreationTime"]),
-                            "detail": qtype
-                        });
-                    }
-
-                    this.selectedQualTypes = [];
-                    this.loadingQuals = false;
-                    this._evtGetWorkersForQualificationTypeIds( Object.keys(this.quals) );
+            this.duct.eventListeners.mturk.on("listQualifications").then((data) => {
+                this.quals = {};
+                const qtypes = data["QualificationTypes"];
+                for(const qtype of qtypes){
+                    this.$set(this.quals, qtype.QualificationTypeId, {
+                        "name": qtype["Name"],
+                        "status": qtype["QualificationTypeStatus"],
+                        "qualificationId": qtype["QualificationTypeId"],
+                        "creationTime": stringifyUnixTime(qtype["CreationTime"]),
+                        "detail": qtype
+                    });
                 }
+
+                this.selectedQualTypes = [];
+                this.loadingQuals = false;
+                this._evtGetWorkersForQualificationTypeIds( Object.keys(this.quals) );
             });
 
-            this.duct.addTuttiEvtHandler({
-                eid: this.duct.EVENT.MTURK_CREATE_QUALIFICATION,
-                success: () => {
-                    this.$refs.snackbarSuccess.show("Successfully created a qualification");
-                    this.getQualificationTypeIds();
-                },
-                error: ({ data }) => {
-                    this.$refs.snackbarError.show(`Error in creating a qualification: ${data["Reason"]}`);
-                }
+            this.duct.eventListeners.mturk.on("createQualification").then(() => {
+                this.$refs.snackbarSuccess.show("Successfully created a qualification");
+                this.getQualificationTypeIds();
+            }).catch((data) => {
+                this.$refs.snackbarError.show(`Error in creating a qualification: ${data["Reason"]}`);
             });
 
-            this.duct.addTuttiEvtHandler({
-                eid: this.duct.EVENT.MTURK_LIST_WORKERS_WITH_QUALIFICATION_TYPE,
-                success: ({ data }) => {
-                    const qid = data["QualificationTypeId"];
-                    var quals = data["Results"];
-                    this.$set(this.quals[qid].detail, "workers", quals);
-                }
+            this.duct.eventListeners.mturk.on("listWorkersWithQualificationType").then((data) => {
+                const qid = data["QualificationTypeId"];
+                var quals = data["Results"];
+                this.$set(this.quals[qid].detail, "workers", quals);
             });
 
-            this.duct.addTuttiEvtHandler({
-                eid: this.duct.EVENT.MTURK_DELETE_QUALIFICATIONS,
-                success: ({ data }) => {
-                    const res = data["Results"];
-                    var cntSuccess = 0;
-                    for(var i in res) {
-                        if(("ResponseMetadata" in res[i]) && ("HTTPStatusCode" in res[i]["ResponseMetadata"]) && (res[i]["ResponseMetadata"]["HTTPStatusCode"]==200))
-                            cntSuccess++;
-                    }
-                    if(cntSuccess==res.length) {
-                        this.$refs.snackbarSuccess.show(`Successfully deleted ${res.length} qualifications`);
-                    } else {
-                        this.$refs.snackbarSuccess.show(`Deleted ${cntSuccess} qualifications, but errors occurred in deleting ${res.length-cntSuccess} qualifications`);
-                    }
-
-                    this.button.deleteQuals.loading = false;
-                    this.button.deleteQuals.disabled = false;
-                },
-                error: ({ data }) => {
-                    this.$refs.snackbarError.show(`Errors occurred in deleting qualifications: ${data["Reason"]}`);
-
-                    this.button.deleteQuals.loading = false;
-                    this.button.deleteQuals.disabled = false;
+            this.duct.eventListeners.mturk.on("deleteQualifications").then((data) => {
+                const res = data["Results"];
+                var cntSuccess = 0;
+                for(var i in res) {
+                    if(("ResponseMetadata" in res[i]) && ("HTTPStatusCode" in res[i]["ResponseMetadata"]) && (res[i]["ResponseMetadata"]["HTTPStatusCode"]==200))
+                        cntSuccess++;
                 }
+                if(cntSuccess==res.length) {
+                    this.$refs.snackbarSuccess.show(`Successfully deleted ${res.length} qualifications`);
+                } else {
+                    this.$refs.snackbarSuccess.show(`Deleted ${cntSuccess} qualifications, but errors occurred in deleting ${res.length-cntSuccess} qualifications`);
+                }
+
+                this.button.deleteQuals.loading = false;
+                this.button.deleteQuals.disabled = false;
+            }).catch((data) => {
+                this.$refs.snackbarError.show(`Errors occurred in deleting qualifications: ${data["Reason"]}`);
+
+                this.button.deleteQuals.loading = false;
+                this.button.deleteQuals.disabled = false;
             });
 
             this.getQualificationTypeIds();

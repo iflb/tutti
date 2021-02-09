@@ -5,12 +5,15 @@ window.ducts.tutti._local = window.ducts.tutti._local || {};
 window.ducts.tutti.Duct = class extends window.ducts.Duct {
 
     constructor(wsd) {
-	    super(wsd );
+	    super(wsd);
 
         this.controllers = {
             resource: new window.ducts.tutti.ResourceController(this),
             mturk: new window.ducts.tutti.MTurkController(this)
-        }
+        };
+        this.eventListeners = {
+            mturk: new window.ducts.tutti.MTurkEventListener()
+        };
 
         this.sendMsg = ({ tag, eid, data }) => {
             const rid = this.next_rid( );
@@ -62,14 +65,16 @@ window.ducts.tutti.Duct = class extends window.ducts.Duct {
 
         this.onOpenHandlers = [];
         this.addOnOpenHandler = (handler) => {
-            this.onOpenHandlers.push(handler );
+            this.onOpenHandlers.push(handler);
         };
 
         this._connection_listener.on("onopen", () => {
+            this.setupHandlers(this);
             for(var i in this.onOpenHandlers){
                 this.onOpenHandlers[i]( );
             }
         } );
+
 
     }
 
@@ -86,7 +91,7 @@ window.ducts.tutti.Duct = class extends window.ducts.Duct {
     }
  
     _onopen(self, event) {
-	    super._onopen(self, event );
+	    super._onopen( self, event );
         self.addEvtHandler({
             tag: "",
 	        eid: self.EVENT.APP_WSD,
@@ -96,7 +101,120 @@ window.ducts.tutti.Duct = class extends window.ducts.Duct {
         } );
 	    self.send( self.next_rid(), self.EVENT.APP_WSD, null );
     }
+
+    // FIXME:: needs a protocol
+    _handleMTurk(self, name, data) {
+        if(data["Status"]=="Success") {
+            for(const func of self.eventListeners.mturk[name].success)  func(data["Data"]);
+        }
+        else
+            for(const func of self.eventListeners.mturk[name].error)  func(data);
+    }
+    _handleResource(self, name, data) {
+        if(data["Status"]=="Success")
+            for(const func of self.eventListeners.resource[name].success)  func(data["Data"]);
+        else
+            for(const func of self.eventListeners.resource[name].error)  func(data);
+    }
+
+    setupHandlers(self) {
+        self.setEventHandler( self.EVENT.MTURK_GET_CREDENTIALS,
+                              (rid, eid, data) => { self._handleMTurk(self, "getCredentials", data); } );
+
+        self.setEventHandler( self.EVENT.MTURK_SET_CREDENTIALS,
+                              (rid, eid, data) => { self._handleMTurk(self, "setCredentials", data); } );
+
+        self.setEventHandler( self.EVENT.MTURK_CLEAR_CREDENTIALS,
+                              (rid, eid, data) => { self._handleMTurk(self, "clearCredentials", data); } );
+
+        self.setEventHandler( self.EVENT.MTURK_SET_SANDBOX,
+                              (rid, eid, data) => { self._handleMTurk(self, "setSandbox", data); } );
+
+        self.setEventHandler( self.EVENT.MTURK_GET_HIT_TYPES,
+                              (rid, eid, data) => { self._handleMTurk(self, "getHITTypes", data); } );
+
+        self.setEventHandler( self.EVENT.MTURK_CREATE_HIT_TYPE,
+                              (rid, eid, data) => { self._handleMTurk(self, "createHITType", data); } );
+
+        self.setEventHandler( self.EVENT.MTURK_CREATE_HITS_WITH_HIT_TYPE,
+                              (rid, eid, data) => { self._handleMTurk(self, "createHITsWithHITType", data); } );
+
+        self.setEventHandler( self.EVENT.MTURK_LIST_QUALIFICATIONS,
+                              (rid, eid, data) => { self._handleMTurk(self, "listQualifications", data); } );
+
+        self.setEventHandler( self.EVENT.MTURK_LIST_HITS,
+                              (rid, eid, data) => { self._handleMTurk(self, "listHITs", data); } );
+
+        self.setEventHandler( self.EVENT.MTURK_EXPIRE_HITS,
+                              (rid, eid, data) => { self._handleMTurk(self, "expireHITs", data); } );
+
+        self.setEventHandler( self.EVENT.MTURK_DELETE_HITS,
+                              (rid, eid, data) => { self._handleMTurk(self, "deleteHITs", data); } );
+
+        self.setEventHandler( self.EVENT.MTURK_CREATE_QUALIFICATION,
+                              (rid, eid, data) => { self._handleMTurk(self, "createQualification", data); } );
+
+        self.setEventHandler( self.EVENT.MTURK_LIST_WORKERS_WITH_QUALIFICATION_TYPE,
+                              (rid, eid, data) => { self._handleMTurk(self, "listWorkersWithQualificationType", data); } );
+
+        self.setEventHandler( self.EVENT.MTURK_DELETE_QUALIFICATIONS,
+                              (rid, eid, data) => { self._handleMTurk(self, "deleteQualifications", data); } );
+
+        //self.setEventHandler( self.EVENT.MTURK_, (rid, eid, data) => { self._handleMTurk(self, "", data); } );
+    }
 };
+
+window.ducts.tutti.DuctEventListener = class extends window.ducts.DuctEventListener {  // overrides the "extended" class
+    
+    constructor() {
+        super();
+	    this.on =
+	        (names) => (new Promise((resolve, reject) => {
+	    	        for(let name of (names instanceof Array) ? names : [names]) {
+	    	            if (!(name in this)) {
+	    	        	    throw new ReferenceError('['+name+'] is not defined in '+this.constructor.name);
+	    	            } 
+
+                        // if the listener is an empty object (= no handler is registered yet), then initialize it
+                        if(this[name] && Object.keys(this[name]).length === 0 && this[name].constructor === Object)  this[name] = { success: [], error: [] };
+                        
+	    	            this[name].success.push(resolve);
+	    	            this[name].error.push(reject);
+	    	        }
+	            })
+            );
+    }
+};
+
+//window.ducts.tutti.MTurkEvent = class extends window.ducts.DuctMessageEvent {
+//
+//    constructor(rid, eid, data) {
+//	    super(rid, eid, data);
+//    }
+//
+//};
+
+window.ducts.tutti.MTurkEventListener = class extends window.ducts.tutti.DuctEventListener {
+    constructor() {
+        super();
+
+        this.getCredentials = {};
+        this.setCredentials = {};
+        this.clearCredentials = {};
+        this.setSandbox = {};
+        this.getHITTypes = {};
+        this.createHITType = {};
+        this.createHITsWithHITType = {};
+        this.listQualifications = {};
+        this.listHITs = {};
+        this.expireHITs = {};
+        this.deleteHITs = {};
+        this.createQualification = {};
+        this.listWorkersWithQualificationType = {};
+        this.deleteQualifications = {};
+        //this. = {};
+    }
+}
 
 window.ducts.tutti.MTurkController = class {
     constructor( duct ){
