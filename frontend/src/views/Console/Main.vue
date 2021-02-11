@@ -81,12 +81,12 @@
                     <v-list-group prepend-icon="mdi-account-group" :value="false">
                         <template v-slot:activator> <v-list-item-title>Worker Platforms</v-list-item-title> </template>
 
-                        <v-list-item to="/console/platform/mturk/">
+                        <v-list-item class="pl-6" to="/console/platform/mturk/">
                             <v-list-item-icon> <v-icon>mdi-amazon</v-icon> </v-list-item-icon>
                             <v-list-item-title>Amazon MTurk</v-list-item-title>
                         </v-list-item>
 
-                        <v-list-item to="/console/platform/private/">
+                        <v-list-item class="pl-6" to="/console/platform/private/">
                             <v-list-item-icon> <v-icon>mdi-account-supervisor-circle</v-icon> </v-list-item-icon>
                             <v-list-item-title>Partner-Sourcing</v-list-item-title>
                         </v-list-item>
@@ -217,14 +217,19 @@ export default {
                 }
             }
 
+            this.duct.logger = new window.ducts.tutti.DuctEventLogger(this.duct, 1000);
+
             duct.addOnOpenHandler(() => {
                 this.srvStatus = "connected"
                 this.lastPinged = dateFormat(new Date(), "HH:MM:ss")
+
 
                 this.setEventHandlers();
                 this.duct.controllers.resource.listProjects();
             });
             duct._connection_listener.on(["onclose", "onerror"], () => { this.srvStatus = "disconnected"; } );
+
+            console.log(this.duct.logger.log);
 
             loader.openDuct();
         });

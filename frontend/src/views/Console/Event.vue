@@ -55,7 +55,6 @@ export default {
         events: [],
         logTableHeaders: [
             { text: "Request ID", value: "rid" },
-            { text: "Tag", value: "tag" },
             { text: "Sent Message", value: "sent" },
             { text: "Received Message", value: "received" },
         ],
@@ -69,36 +68,11 @@ export default {
             theme: 'base16-dark',
             indentWithTabs: true
         },
-        queryHistoryItem: ""
+        queryHistoryItem: "",
+        serverLogTableRows: []
     }),
-    props: ["duct", "sharedProps","name"],
+    props: ["duct", "name"],
     computed: {
-        serverLogTableRows() {
-            var rows = [];
-            if(this.duct){
-                const sentAll = this.duct.log.sent;
-                for(const i in sentAll){
-                    const s = sentAll[i];
-                    if(s.eid=="1010") continue;
-
-                    const rid = s.rid;
-                    const tag = s.tag;
-                    const sent = s.data;
-                    const eid = `${Object.keys(this.duct.EVENT).find(key => this.duct.EVENT[key] === s.eid)} (${s.eid})`;
-                    const received = null;
-                    rows.unshift({ rid, tag, eid, sent, received })
-                }
-    
-                const receivedAll = this.duct.log.received;
-                for(const i in receivedAll){
-                    const r = receivedAll[i];
-                    const rid = r.rid;
-                    var row = rows.find(e => e.rid==rid);
-                    if(row) row.received = r.data;
-                }
-            }
-            return rows;
-        },
         queryHistory() {
             try { return [ ...this.queryHistoryAll[this.eid.toString()] ].reverse(); }
             catch { return []; }
@@ -118,8 +92,8 @@ export default {
             try { args = JSON.parse(this.query); }
             catch { args = this.query!=="" ? this.query : null; }
 
-            this.duct.sendMsg({ tag: this.name, eid: this.eid, data: args });
-            this.duct.controllers.resource.setEventHistory(this.end, this.query);
+            this.duct.send(this.duct.next_rid(), this.eid, args);
+            this.duct.controllers.resource.setEventHistory(this.eid, this.query);
             this.query = "";
         }
     },
@@ -142,12 +116,28 @@ export default {
             });
             this.duct.eventListeners.resource.on("setEventHistory", {
                 success: (data) => {
-                    this.queryHistory = data["History"].reverse();
+                    this.$set(this.queryHistoryAll, data["EventId"], data["History"].reverse());
                 }
             });
 
             this.loadEvents();
             this.duct.controllers.resource.getEventHistory();
+
+            setInterval(() => {
+                var rows = [];
+                const ductLog = this.duct.logger.log;
+                for(const rid in ductLog){
+                    if( ductLog[rid].eid <= 1010 )  continue;
+
+                    rows.unshift({
+                        rid: rid,
+                        eid: `${Object.keys(this.duct.EVENT).find(key => this.duct.EVENT[key] === ductLog[rid].eid)} (${ductLog[rid].eid})`,
+                        sent: ductLog[rid].sent,
+                        received: ductLog[rid].received[0]
+                    });
+                }
+                this.serverLogTableRows = rows;
+            }, 1000);
         });
     }
 }

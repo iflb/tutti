@@ -21,14 +21,14 @@ class HandlerOutput:
         self.status = HandlerOutputStatus.Success
         self.reason = None
         self.timestamp_req = time.time()
-        self.data = {}
+        self.contents = {}
 
     def set_error_status(self, reason):
         self.status = HandlerOutputStatus.Error
         self.reason = reason
 
     def set(self, key, val):
-        self.data[key] = val
+        self.contents[key] = val
 
     def dict(self):
         ret = {
@@ -37,7 +37,7 @@ class HandlerOutput:
                 "Requested": self.timestamp_req
             }
         }
-        if len(self.data)>0:  ret["Data"] = self.data
+        if len(self.contents)>0:  ret["Contents"] = self.contents
         if self.status==HandlerOutputStatus.Error:
             ret["Reason"] = self.reason
         ret["Timestamp"]["Responded"] = time.time()

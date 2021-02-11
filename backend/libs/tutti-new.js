@@ -7,6 +7,8 @@ window.ducts.tutti.Duct = class extends window.ducts.Duct {
     constructor() {
 	    super();
 
+        this.onOpenHandlers = [];
+
         this.controllers = {
             resource: new window.ducts.tutti.ResourceController(this),
             mturk: new window.ducts.tutti.MTurkController(this)
@@ -16,29 +18,25 @@ window.ducts.tutti.Duct = class extends window.ducts.Duct {
             mturk: new window.ducts.tutti.MTurkEventListener()
         };
 
-        this.sendMsg = ({ tag, eid, data }) => {
-            const rid = this.next_rid( );
-            if(typeof data === "string") { data = data.split(" ") }
-            this.send( rid, eid, data)
-            this.log.sent.push({ tag, rid, eid, data })
-        }
-
-        this.log = {
-            sent: [],
-            received: []
-        }
-        this.onOpenHandlers = [];
-
-        this.catchall_event_handler = (rid, eid, data) => {
-            if(eid>=1000) this.log.received.push({ rid, eid, data })
-        }
+        this.send = 
+            (rid, eid, data) => {
+                console.log(rid, eid, data);
+                if(this.logger) this.logger.addSent(rid, eid, data);
+                return super._send(this, rid, eid, data);
+            }
 
         this.addOnOpenHandler = (handler) => { this.onOpenHandlers.push(handler); };
     }
 
+    _onmessage(self, event) {
+        const [rid, eid, data] = self.decode(MessagePack.Buffer.from(event.source.data));
+        if(self.logger) self.logger.addReceived(rid, eid, data);
+        super._onmessage( self, event );
+    }
+
     invokeOrWaitForOpen(f) {
-        if(this.state==window.ducts.State.OPEN_CONNECTED) f( );
-        else this.addOnOpenHandler(f );
+        if(this.state==window.ducts.State.OPEN_CONNECTED) f();
+        else this.addOnOpenHandler(f);
     }
  
     _onopen(self, event) {
@@ -53,14 +51,14 @@ window.ducts.tutti.Duct = class extends window.ducts.Duct {
     // FIXME:: needs a protocol
     _handleMTurk(self, name, data) {
         if(data["Status"]=="Success") {
-            for(const func of self.eventListeners.mturk[name].success)  func(data["Data"]);
+            for(const func of self.eventListeners.mturk[name].success)  func(data["Contents"]);
         } else {
             for(const func of self.eventListeners.mturk[name].error)  func(data);
         }
     }
     _handleResource(self, name, data) {
         if(data["Status"]=="Success")
-            for(const func of self.eventListeners.resource[name].success)  func(data["Data"]);
+            for(const func of self.eventListeners.resource[name].success)  func(data["Contents"]);
         else
             for(const func of self.eventListeners.resource[name].error)  func(data);
     }
@@ -69,8 +67,8 @@ window.ducts.tutti.Duct = class extends window.ducts.Duct {
         self.setEventHandler( self.EVENT.EVENT_HISTORY,
                               (rid, eid, data) => {
                                   // FIXME
-                                  if("AllHistory" in data["Data"])  self._handleResource(self, "getEventHistory", data);
-                                  else if("History" in data["Data"])  self._handleResource(self, "setEventHistory", data);
+                                  if("AllHistory" in data["Contents"])  self._handleResource(self, "getEventHistory", data);
+                                  else if("History" in data["Contents"])  self._handleResource(self, "setEventHistory", data);
                               });
         self.setEventHandler( self.EVENT.LIST_PROJECTS,
                               (rid, eid, data) => { self._handleResource(self, "listProjects", data); } );
@@ -94,9 +92,9 @@ window.ducts.tutti.Duct = class extends window.ducts.Duct {
                               (rid, eid, data) => { self._handleResource(self, "deleteNanotasks", data); } );
         self.setEventHandler( self.EVENT.SESSION,
                               (rid, eid, data) => {
-                                  if(data["Data"]["Command"]=="Create") self._handleResource(self, "createSession", data);
-                                  else if(data["Data"]["Command"]=="Get") self._handleResource(self, "getTemplateNode", data);
-                                  else if(data["Data"]["Command"]=="SetAnswer") self._handleResource(self, "setAnswer", data);
+                                  if(data["Contents"]["Command"]=="Create") self._handleResource(self, "createSession", data);
+                                  else if(data["Contents"]["Command"]=="Get") self._handleResource(self, "getTemplateNode", data);
+                                  else if(data["Contents"]["Command"]=="SetAnswer") self._handleResource(self, "setAnswer", data);
                               } );
         self.setEventHandler( self.EVENT.CHECK_PLATFORM_WORKER_ID_EXISTENCE_FOR_PROJECT,
                               (rid, eid, data) => { self._handleResource(self, "checkPlatformWorkerIdExistenceForProject", data); } );
@@ -141,7 +139,7 @@ window.ducts.tutti.Duct = class extends window.ducts.Duct {
         self.setEventHandler( self.EVENT.LIST_WORKERS,
                               (rid, eid, data) => {
                                   // FIXME
-                                  if(data["Data"]["Platform"]=="MTurk") self._handleMTurk(self, "listWorkers", data);
+                                  if(data["Contents"]["Platform"]=="MTurk") self._handleMTurk(self, "listWorkers", data);
                                   else self._handleResource(self, "listWorkers", data);
                               });
 
@@ -152,6 +150,34 @@ window.ducts.tutti.Duct = class extends window.ducts.Duct {
                               (rid, eid, data) => { self._handleMTurk(self, "deleteQualifications", data); } );
     }
 };
+
+window.ducts.tutti.DuctEventLogger = class {
+    constructor(duct, dataSizeLimit) {
+        this._duct = duct;
+        this.log = [];
+        this.dataSizeLimit = dataSizeLimit || 3000;
+    }
+
+    addSent(rid, eid, data) {
+        this.log[rid] = { eid, sent: this._skipLargeData(data), received: [] };
+    }
+
+    addReceived(rid, eid, data) {
+        if(!(rid in this.log))  throw new ReferenceError(`request id ${rid} (eid: ${eid}) is not found in the log`);
+        if(this.log[rid].eid != eid)  throw new ReferenceError(`event id ${eid} does not correspond to the log`);
+
+        data["Contents"] = this._skipLargeData(data["Contents"]);
+        this.log[rid].received.push(data);
+    }
+
+    _skipLargeData(data) {
+        for(const key in data) {
+            if(typeof data[key] === 'object')
+                data[key] = (JSON.stringify(data[key]).length <= this.dataSizeLimit) ? data[key] : "[log skipped]";
+        }
+        return data;
+    }
+}
 
 window.ducts.tutti.DuctEventListener = class extends window.ducts.DuctEventListener {
     
@@ -306,7 +332,7 @@ window.ducts.tutti.ResourceController = class {
             };
         this.setEventHistory =
             ( eid, query ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.EVENT_HISTORY, [this.eid, this.query] );
+                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.EVENT_HISTORY, [eid, query] );
             };
 
         this.listProjects =
