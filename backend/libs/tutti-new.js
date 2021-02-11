@@ -12,6 +12,7 @@ window.ducts.tutti.Duct = class extends window.ducts.Duct {
             mturk: new window.ducts.tutti.MTurkController(this)
         };
         this.eventListeners = {
+            resource: new window.ducts.tutti.ResourceEventListener(),
             mturk: new window.ducts.tutti.MTurkEventListener()
         };
 
@@ -106,9 +107,9 @@ window.ducts.tutti.Duct = class extends window.ducts.Duct {
     _handleMTurk(self, name, data) {
         if(data["Status"]=="Success") {
             for(const func of self.eventListeners.mturk[name].success)  func(data["Data"]);
-        }
-        else
+        } else {
             for(const func of self.eventListeners.mturk[name].error)  func(data);
+        }
     }
     _handleResource(self, name, data) {
         if(data["Status"]=="Success")
@@ -118,6 +119,42 @@ window.ducts.tutti.Duct = class extends window.ducts.Duct {
     }
 
     setupHandlers(self) {
+        self.setEventHandler( self.EVENT.EVENT_HISTORY,
+                              (rid, eid, data) => {
+                                  // FIXME
+                                  if("AllHistory" in data["Data"])  self._handleResource(self, "getEventHistory", data);
+                                  else if("History" in data["Data"])  self._handleResource(self, "setEventHistory", data);
+                              });
+        self.setEventHandler( self.EVENT.LIST_PROJECTS,
+                              (rid, eid, data) => { self._handleResource(self, "listProjects", data); } );
+        self.setEventHandler( self.EVENT.CREATE_PROJECT,
+                              (rid, eid, data) => { self._handleResource(self, "createProject", data); } );
+        self.setEventHandler( self.EVENT.GET_PROJECT_SCHEME,
+                              (rid, eid, data) => { self._handleResource(self, "getProjectScheme", data); } );
+        self.setEventHandler( self.EVENT.CREATE_TEMPLATES,
+                              (rid, eid, data) => { self._handleResource(self, "createTemplates", data); } );
+        self.setEventHandler( self.EVENT.LIST_TEMPLATE_PRESETS,
+                              (rid, eid, data) => { self._handleResource(self, "listTemplatePresets", data); } );
+        self.setEventHandler( self.EVENT.LIST_TEMPLATES,
+                              (rid, eid, data) => { self._handleResource(self, "listTemplates", data); } );
+        self.setEventHandler( self.EVENT.GET_ANSWERS_FOR_TEMPLATE,
+                              (rid, eid, data) => { self._handleResource(self, "getAnswersForTemplate", data); } );
+        self.setEventHandler( self.EVENT.GET_NANOTASKS,
+                              (rid, eid, data) => { self._handleResource(self, "getNanotasks", data); } );
+        self.setEventHandler( self.EVENT.UPLOAD_NANOTASKS,
+                              (rid, eid, data) => { self._handleResource(self, "uploadNanotasks", data); } );
+        self.setEventHandler( self.EVENT.DELETE_NANOTASKS,
+                              (rid, eid, data) => { self._handleResource(self, "deleteNanotasks", data); } );
+        self.setEventHandler( self.EVENT.SESSION,
+                              (rid, eid, data) => {
+                                  if(data["Data"]["Command"]=="Create") self._handleResource(self, "createSession", data);
+                                  else if(data["Data"]["Command"]=="Get") self._handleResource(self, "getTemplateNode", data);
+                                  else if(data["Data"]["Command"]=="SetAnswer") self._handleResource(self, "setAnswer", data);
+                              } );
+        self.setEventHandler( self.EVENT.CHECK_PLATFORM_WORKER_ID_EXISTENCE_FOR_PROJECT,
+                              (rid, eid, data) => { self._handleResource(self, "checkPlatformWorkerIdExistenceForProject", data); } );
+
+
         self.setEventHandler( self.EVENT.MTURK_GET_CREDENTIALS,
                               (rid, eid, data) => { self._handleMTurk(self, "getCredentials", data); } );
 
@@ -154,45 +191,65 @@ window.ducts.tutti.Duct = class extends window.ducts.Duct {
         self.setEventHandler( self.EVENT.MTURK_CREATE_QUALIFICATION,
                               (rid, eid, data) => { self._handleMTurk(self, "createQualification", data); } );
 
+        self.setEventHandler( self.EVENT.LIST_WORKERS,
+                              (rid, eid, data) => {
+                                  // FIXME
+                                  if(data["Data"]["Platform"]=="MTurk") self._handleMTurk(self, "listWorkers", data);
+                                  else self._handleResource(self, "listWorkers", data);
+                              });
+
         self.setEventHandler( self.EVENT.MTURK_LIST_WORKERS_WITH_QUALIFICATION_TYPE,
                               (rid, eid, data) => { self._handleMTurk(self, "listWorkersWithQualificationType", data); } );
 
         self.setEventHandler( self.EVENT.MTURK_DELETE_QUALIFICATIONS,
                               (rid, eid, data) => { self._handleMTurk(self, "deleteQualifications", data); } );
-
-        //self.setEventHandler( self.EVENT.MTURK_, (rid, eid, data) => { self._handleMTurk(self, "", data); } );
     }
 };
 
-window.ducts.tutti.DuctEventListener = class extends window.ducts.DuctEventListener {  // overrides the "extended" class
+window.ducts.tutti.DuctEventListener = class extends window.ducts.DuctEventListener {
     
     constructor() {
         super();
 	    this.on =
-	        (names) => (new Promise((resolve, reject) => {
+	        (names, { success, error }) => {
 	    	        for(let name of (names instanceof Array) ? names : [names]) {
 	    	            if (!(name in this)) {
-	    	        	    throw new ReferenceError('['+name+'] is not defined in '+this.constructor.name);
+	    	        	    throw new ReferenceError('['+name+'] is not defined');
 	    	            } 
 
                         // if the listener is an empty object (= no handler is registered yet), then initialize it
                         if(this[name] && Object.keys(this[name]).length === 0 && this[name].constructor === Object)  this[name] = { success: [], error: [] };
                         
-	    	            this[name].success.push(resolve);
-	    	            this[name].error.push(reject);
+	    	            this[name].success.push(success);
+	    	            this[name].error.push(error);
 	    	        }
-	            })
-            );
+            }
     }
 };
 
-//window.ducts.tutti.MTurkEvent = class extends window.ducts.DuctMessageEvent {
-//
-//    constructor(rid, eid, data) {
-//	    super(rid, eid, data);
-//    }
-//
-//};
+window.ducts.tutti.ResourceEventListener = class extends window.ducts.tutti.DuctEventListener {
+    constructor() {
+        super();
+
+        this.getEventHistory = {};
+        this.setEventHistory = {};
+        this.listProjects = {};
+        this.createProject = {};
+        this.getProjectScheme = {};
+        this.createTemplates = {};
+        this.listTemplatePresets = {};
+        this.listTemplates = {};
+        this.getAnswersForTemplate = {};
+        this.getNanotasks = {};
+        this.uploadNanotasks = {};
+        this.deleteNanotasks = {};
+
+        this.getTemplateNode = {};
+        this.setAnswer = {};
+        this.createSession = {};
+        this.checkPlatformWorkerIdExistenceForProject = {};
+    }
+}
 
 window.ducts.tutti.MTurkEventListener = class extends window.ducts.tutti.DuctEventListener {
     constructor() {
@@ -210,9 +267,9 @@ window.ducts.tutti.MTurkEventListener = class extends window.ducts.tutti.DuctEve
         this.expireHITs = {};
         this.deleteHITs = {};
         this.createQualification = {};
+        this.listWorkers = {};
         this.listWorkersWithQualificationType = {};
         this.deleteQualifications = {};
-        //this. = {};
     }
 }
 
@@ -289,14 +346,6 @@ window.ducts.tutti.MTurkController = class {
             ( Cached ) => {
                 return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_LIST_HITS, { Cached } );
             };
-        //this. =
-        //    (  ) => {
-        //        return this._duct.send( this._duct.next_rid(), this._duct.EVENT., {  } );
-        //    };
-        //this. =
-        //    (  ) => {
-        //        return this._duct.send( this._duct.next_rid(), this._duct.EVENT., {  } );
-        //    };
     }
 }
 
@@ -306,11 +355,11 @@ window.ducts.tutti.ResourceController = class {
 
         this.getEventHistory =
             () => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.EVENT_HISTORY );
+                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.EVENT_HISTORY, null );
             };
         this.setEventHistory =
             ( eid, query ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.EVENT_HISTORY, `${this.eid} ${this.query}` );
+                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.EVENT_HISTORY, [this.eid, this.query] );
             };
 
         this.listProjects =
@@ -357,14 +406,23 @@ window.ducts.tutti.ResourceController = class {
             ( ProjectName, TemplateName, Nanotasks, NumAssignable, Priority, TagName ) => {
                 return this._duct.send( this._duct.next_rid(), this._duct.EVENT.UPLOAD_NANOTASKS, { ProjectName, TemplateName, Nanotasks, NumAssignable, Priority, TagName } );
             };
-        //this. =
-        //    (  ) => {
-        //        return this._duct.send( this._duct.next_rid(), this._duct.EVENT., {  } );
-        //    };
-        //this. =
-        //    (  ) => {
-        //        return this._duct.send( this._duct.next_rid(), this._duct.EVENT., {  } );
-        //    };
+        this.getTemplateNode =
+            ( Target, WorkSessionId, NodeSessionId ) => {
+                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.SESSION, { Command: "Get", Target, WorkSessionId, NodeSessionId } );
+            };
+        this.createSession =
+            ( ProjectName, PlatformWorkerId, ClientToken, Platform ) => {
+                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.SESSION, { Command: "Create", ProjectName, PlatformWorkerId, ClientToken, Platform } );
+            };
+        this.setAnswer =
+            ( WorkSessionId, NodeSessionId, Answer ) => {
+                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.SESSION, { Command: "SetAnswer", WorkSessionId, NodeSessionId, Answer } );
+            };
+        this.checkPlatformWorkerIdExistenceForProject =
+            ( ProjectName, Platform, PlatformWorkerId ) => {
+                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.CHECK_PLATFORM_WORKER_ID_EXISTENCE_FOR_PROJECT, { ProjectName, Platform, PlatformWorkerId } );
+            };
+                
     }
     
 }

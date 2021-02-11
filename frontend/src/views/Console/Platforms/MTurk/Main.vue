@@ -45,7 +45,6 @@ export default {
     props: ["duct", "prjName"],
     methods: {
         onReceiveCredentials({ data }) {
-            console.log("onreceive", data);
             this.loadingCredentials = false;
             this.credentials = data["Results"];
         },
@@ -54,23 +53,19 @@ export default {
             this.duct.controllers.mturk.getCredentials();
         },
         setSandbox(Enabled) {
-            console.log("setsandbox");
             this.loadingCredentials = true;
             this.duct.controllers.mturk.setSandbox(Enabled);
         }
     },
     created() {
         this.duct.invokeOrWaitForOpen(() => {
-            this.duct.eventListeners.mturk.on([
-                "getCredentials",
-                "setCredentials",
-                "clearCredentials",
-                "setSandbox"
-            ]).then( (data) => { console.log(data); this.onReceiveCredentials({ data }); } )
-            .catch( (hoge, fuga) => { console.log(hoge, fuga); });
+            this.duct.eventListeners.mturk.on([ "getCredentials", "setCredentials", "clearCredentials", "setSandbox" ], {
+                success: (data) => {
+                    this.onReceiveCredentials({ data });
+                }
+            });
 
-            //this.getCredentials();
-            this.setSandbox();
+            this.getCredentials();
         });
     }
 }

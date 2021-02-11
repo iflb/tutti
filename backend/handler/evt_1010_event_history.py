@@ -33,7 +33,6 @@ class Handler(EventHandler):
             event_key = self.namespace_redis.key_event_query(eid)
             query = " ".join(args)
 
-            logger.debug(query)
             if query!="" and query!="null":
                 cnt = await self.redis.execute("LLEN", event_key)
                 lremcnt = await self.redis.execute("LREM", event_key, 1, query)

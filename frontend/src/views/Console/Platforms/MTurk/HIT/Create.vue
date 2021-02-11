@@ -357,33 +357,44 @@ export default {
         this.createNew = true;
         this.duct.invokeOrWaitForOpen(() => {
 
-            this.duct.eventListeners.mturk.on("getHITTypes").then((data) => {
-                this.exstHITTypes = data["HITTypes"];
-            }).catch((data) => {
-                this.$refs.snackbarError.show(`Error in getting HIT types: ${data["Reason"]}`);
-            });
-
-            this.duct.eventListeners.mturk.on("createHITType").then((data) => {
-                this.createHITsWithHITType(data["HITTypeId"]);
-            }).catch((data) => {
-                this.$refs.snackbarError.show(`Error in creating HIT types: ${data["Reason"]}`);
-            });
-
-            this.duct.eventListeners.mturk.on("createHITsWithHITType").then(() => {
-                this.postingHITs = false;
-                this.$refs.snackbarSuccess.show("Successfully posted HITs");
-            }).catch((data) => {
-                this.$refs.snackbarError.show(`Error in posting HITs: ${data["Reason"]}`);
-            });
-
-            this.duct.eventListeners.mturk.on("listQualifications").then((data) => {
-                var ret = [];
-                for(var i in data["QualificationTypes"]) {
-                    const id = data["QualificationTypes"][i]["QualificationTypeId"];
-                    const name = data["QualificationTypes"][i]["Name"];
-                    ret.push({ id, name });
+            this.duct.eventListeners.mturk.on("getHITTypes", {
+                success: (data) => {
+                    this.exstHITTypes = data["HITTypes"];
+                },
+                error: (data) => {
+                    this.$refs.snackbarError.show(`Error in getting HIT types: ${data["Reason"]}`);
                 }
-                this.customQualIds = ret;
+            });
+
+            this.duct.eventListeners.mturk.on("createHITType", {
+                success: (data) => {
+                    this.createHITsWithHITType(data["HITTypeId"]);
+                },
+                error: (data) => {
+                    this.$refs.snackbarError.show(`Error in creating HIT types: ${data["Reason"]}`);
+                }
+            });
+
+            this.duct.eventListeners.mturk.on("createHITsWithHITType", {
+                success: () => {
+                    this.postingHITs = false;
+                    this.$refs.snackbarSuccess.show("Successfully posted HITs");
+                },
+                error: (data) => {
+                    this.$refs.snackbarError.show(`Error in posting HITs: ${data["Reason"]}`);
+                }
+            });
+
+            this.duct.eventListeners.mturk.on("listQualifications", {
+                success: (data) => {
+                    var ret = [];
+                    for(var i in data["QualificationTypes"]) {
+                        const id = data["QualificationTypes"][i]["QualificationTypeId"];
+                        const name = data["QualificationTypes"][i]["Name"];
+                        ret.push({ id, name });
+                    }
+                    this.customQualIds = ret;
+                }
             });
 
             this.duct.controllers.mturk.getHITTypes();

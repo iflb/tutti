@@ -2,9 +2,9 @@
     <div class="mt-10">
         <v-row justify="center">
             <v-col cols="10" class="text-right">
-                <v-btn :loading="button.expireHITs.loading" :disabled="button.expireHITs.disabled" class="mx-2" dark
+                <v-btn :loading="button.expireHITs.loading" :disabled="button.expireHITs.loading" class="mx-2" dark
                        color="warning" v-if="selectedHITIds.length>0" @click="button.expireHITs.loading=true; expireHITs()">Expire ({{ selectedHITIds.length }})</v-btn>
-                <v-btn :loading="button.deleteHITs.loading" :disabled="button.deleteHITs.disabled" class="mx-2" dark
+                <v-btn :loading="button.deleteHITs.loading" :disabled="button.deleteHITs.loading" class="mx-2" dark
                        color="error" v-if="selectedHITIds.length>0" @click="button.deleteHITs.loading=true; deleteHITs()">Delete ({{ selectedHITIds.length }})</v-btn>
                 <v-btn class="mx-2" dark color="indigo" to="/console/platform/mturk/hit/create/">Create HITs...</v-btn>
             </v-col>
@@ -133,11 +133,9 @@ export default {
         button: {
             expireHITs: {
                 loading: false,
-                disabled: false
             },
             deleteHITs: {
                 loading: false,
-                disabled: false
             },
         },
     }),
@@ -164,9 +162,11 @@ export default {
             return `${hours}:${("00"+minutes).slice(-2)}:${("00"+seconds).slice(-2)}`;
         },
         expireHITs(){
+            this.button.expireHITs.loading = false;
             this.duct.controllers.mturk.expireHITs(this.selectedHITIds);
         },
         deleteHITs(){
+            this.button.deleteHITs.loading = false;
             this.duct.controllers.mturk.deleteHITs(this.selectedHITIds);
         },
         listHITs(cached){
@@ -185,52 +185,50 @@ export default {
     },
     created() {
         this.duct.invokeOrWaitForOpen(() => {
-            this.duct.eventListeners.mturk.on("listHITs").then( (data) => {
-                this.loadingHITs = false;
-                this.listLastRetrieved = stringifyUnixTime(data["Results"]["LastRetrieved"]);
-                const hits = data["Results"]["HITTypes"];
+            this.duct.eventListeners.mturk.on("listHITs", {
+                success: (data) => {
+                    this.loadingHITs = false;
+                    this.listLastRetrieved = stringifyUnixTime(data["Results"]["LastRetrieved"]);
+                    const hits = data["Results"]["HITTypes"];
 
-                this.hitTypes = [];
-                for(var i in hits){
-                    this.hitTypes.push({
-                        id: i,
-                        groupId: hits[i]["HITGroupId"],
-                        title: hits[i]["Props"]["Title"],
-                        project_names: hits[i]["ProjectNames"],
-                        reward: hits[i]["Props"]["Reward"],
-                        creation_time: stringifyUnixTime(hits[i]["CreationTime"]),
-                        expiration_time: stringifyUnixTime(hits[i]["Expiration"]),
-                        num_hits: hits[i]["Count"],
-                        num_assignable: hits[i]["HITStatusCount"]["Assignable"],
-                        num_reviewable: hits[i]["HITStatusCount"]["Reviewable"],
-                        detail: hits[i]
-                    });
+                    this.hitTypes = [];
+                    for(var i in hits){
+                        this.hitTypes.push({
+                            id: i,
+                            groupId: hits[i]["HITGroupId"],
+                            title: hits[i]["Props"]["Title"],
+                            project_names: hits[i]["ProjectNames"],
+                            reward: hits[i]["Props"]["Reward"],
+                            creation_time: stringifyUnixTime(hits[i]["CreationTime"]),
+                            expiration_time: stringifyUnixTime(hits[i]["Expiration"]),
+                            num_hits: hits[i]["Count"],
+                            num_assignable: hits[i]["HITStatusCount"]["Assignable"],
+                            num_reviewable: hits[i]["HITStatusCount"]["Reviewable"],
+                            detail: hits[i]
+                        });
+                    }
+                    this.selectedHITTypes = [];
                 }
-                this.selectedHITTypes = [];
             });
 
             for(const opr of ["expire", "delete"]){
-                this.duct.eventListeners.mturk.on(`${opr}HITs`).then((data) => {
-                    var cntSuccess = 0;
-                    for(const res of data["Results"]) {
-                        if(("ResponseMetadata" in res) && ("HTTPStatusCode" in res["ResponseMetadata"]) && (res["ResponseMetadata"]["HTTPStatusCode"]==200))
-                            cntSuccess++;
-                    }
-                    if(cntSuccess==data["Results"].length) {
-                        this.$refs.snackbarSuccess.show(`${opr[0].toUpperCase()+opr.slice(1)}d ${cntSuccess} HITs`);
-                    } else {
-                        this.$refs.snackbarWarning.show(`${opr[0].toUpperCase()+opr.slice(1)}d ${cntSuccess} HITs, but errors occurred in ${opr.slice(0,-1)}ing ${data["Results"].length-cntSuccess} HITs`);
-                    }
+                this.duct.eventListeners.mturk.on(`${opr}HITs`, {
+                    success: (data) => {
+                        const cntSuccess = data["Results"].reduce((cnt,res) => ((("ResponseMetadata" in res) && ("HTTPStatusCode" in res["ResponseMetadata"]) && (res["ResponseMetadata"]["HTTPStatusCode"]==200)) ? cnt+1 : cnt));
 
-                    this.button[`${opr}HITs`].loading = false;
-                    this.button[`${opr}HITs`].disabled = false;
-                    this.listHITs(false);
-                }).then((data) => {
-                    this.$refs.snackbarError.show(`Errors occurred in ${opr.slice(0,-1)}ing HITs: ${data["Reason"]}`);
+                        if(cntSuccess==data["Results"].length) {
+                            this.$refs.snackbarSuccess.show(`${opr[0].toUpperCase()+opr.slice(1)}d ${cntSuccess} HITs`);
+                        } else {
+                            this.$refs.snackbarWarning.show(`${opr[0].toUpperCase()+opr.slice(1)}d ${cntSuccess} HITs, but errors occurred in ${opr.slice(0,-1)}ing ${data["Results"].length-cntSuccess} HITs`);
+                        }
 
-                    this.button[`${opr}HITs`].loading = false;
-                    this.button[`${opr}HITs`].disabled = false;
-                    this.listHITs(false);
+                        this.listHITs(false);
+                    },
+                    error: (data) => {
+                        this.$refs.snackbarError.show(`Errors occurred in ${opr.slice(0,-1)}ing HITs: ${data["Reason"]}`);
+
+                        this.listHITs(false);
+                    }
                 });
             }
 

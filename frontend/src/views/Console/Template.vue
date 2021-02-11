@@ -120,18 +120,16 @@ export default {
     },
     created() {
         this.duct.invokeOrWaitForOpen(() => {
-            this.duct.setTuttiEventHandler(this.duct.EVENT.CREATE_TEMPLATES, () => {
-                this.listTemplates();
+            this.duct.eventListeners.resource.on("createTemplates", {
+                success: this.listTemplates
             });
-            this.duct.addTuttiEvtHandler({
-                eid: this.duct.EVENT.LIST_TEMPLATE_PRESETS,
-                success: ({ data }) => {
+            this.duct.eventListeners.resource.on("listTemplatePresets", {
+                success: (data) => {
                     this.presets = data["Presets"];
                 }
             });
-            this.duct.addTuttiEvtHandler({
-                eid: this.duct.EVENT.LIST_TEMPLATES, 
-                success: ({ data }) => {
+            this.duct.eventListeners.resource.on("listTemplates", {
+                success: (data) => {
                     this.tmplNames = data["Templates"];
                 }
             });

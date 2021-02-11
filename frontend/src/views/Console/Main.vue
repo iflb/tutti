@@ -175,16 +175,14 @@ export default {
         createProject() { this.duct.controllers.resource.createProject(this.newProjectName); },
 
         setEventHandlers() {
-            this.duct.addTuttiEvtHandler({
-                eid: this.duct.EVENT.LIST_PROJECTS,
-                success: ({ data }) => {
+            this.duct.eventListeners.resource.on("listProjects", {
+                success: (data) => {
                     this.prjNames = data["Projects"].map((value) => (value.name));
                     this.prjName = localStorage.getItem("tuttiProject") || null;
                 }
             });
-            this.duct.addTuttiEvtHandler({
-                eid: this.duct.EVENT.CREATE_PROJECT,
-                success: ({ data }) => {
+            this.duct.eventListeners.resource.on("createProject", {
+                success: (data) => {
                     this.$refs.snackbarSuccess.show(`Successfully created project '${data["ProjectName"]}'`);
                     this.duct.controllers.resource.listProjects();
                 }

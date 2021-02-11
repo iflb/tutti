@@ -188,23 +188,24 @@ export default {
     },
     mounted() {
         this.duct.invokeOrWaitForOpen(() => {
-            this.duct.addEvtHandler({ tag: this.name, eid: this.duct.EVENT.LIST_WORKERS,
-                handler: (rid, eid, data) => {
+            this.duct.eventListeners.mturk.on("listWorkers", {
+                success: (data) => {
                     this.loadingWorkers = false;
-                    if(data["Status"]=="error") return;
 
                     var workers = [];
-                    for(var wid in data["Data"]["Workers"]) {
-                        data["Data"]["Workers"][wid]["Timestamp"] = stringifyUnixTime(data["Data"]["Workers"][wid]["Timestamp"]);
-                        workers.push({ wid, ...data["Data"]["Workers"][wid] });
+                    for(var wid in data["Workers"]) {
+                        data["Workers"][wid]["Timestamp"] = stringifyUnixTime(data["Workers"][wid]["Timestamp"]);
+                        workers.push({ wid, ...data["Workers"][wid] });
                     }
                     this.workers = workers;
+                },
+                error: (data) => {
+                    console.log("error", data);
                 }
             });
-            this.duct.addEvtHandler({ tag: this.name, eid: this.duct.EVENT.MTURK_LIST_QUALIFICATIONS,
-                handler: (rid, eid, data) => {
-                    if(data["Status"]=="error") return;
-                    this.quals = data["Data"]["QualificationTypes"];
+            this.duct.eventListeners.mturk.on("listQualifications", {
+                success: (data) => {
+                    this.quals = data["QualificationTypes"];
                 }
             });
 

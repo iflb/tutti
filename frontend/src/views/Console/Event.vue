@@ -135,11 +135,14 @@ export default {
     },
     mounted() {
         this.duct.invokeOrWaitForOpen(() => {
-            this.duct.addTuttiEvtHandler({
-                eid: this.duct.EVENT.EVENT_HISTORY,
-                success: ({ data }) => {
-                    if("AllHistory" in data)    this.queryHistoryAll = data["AllHistory"];
-                    //else if("History" in data)  this.queryHistory = data["History"].reverse();
+            this.duct.eventListeners.resource.on("getEventHistory", {
+                success: (data) => {
+                    this.queryHistoryAll = data["AllHistory"];
+                }
+            });
+            this.duct.eventListeners.resource.on("setEventHistory", {
+                success: (data) => {
+                    this.queryHistory = data["History"].reverse();
                 }
             });
 

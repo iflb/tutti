@@ -28,6 +28,7 @@ class Handler(EventHandler):
     @handler_output
     async def handle(self, event, output):
         if event.data is None:  event.data = {}
+        output.set("Platform", event.data["Platform"])
         output.set("Workers", await self.list_workers(**event.data))
 
     async def list_workers(self, Platform=None, ProjectName=None):

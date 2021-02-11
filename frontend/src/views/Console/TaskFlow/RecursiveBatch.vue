@@ -108,30 +108,32 @@ export default {
         depth() { return this.parentParams.depth; },
         isLast() { return this.parentParams.isLast; },
     },
+    methods: {
+        getNanotasks() {
+            this.duct.controllers.resource.getNanotasks(this.prjName, this.node.name);
+        }
+    },
     created() {
         this.duct.invokeOrWaitForOpen(() => {
-            this.duct.addTuttiEvtHandler({
-                eid: this.duct.EVENT.GET_NANOTASKS,
-                success: ({ data }) => {
+            this.duct.eventListeners.resource.on("getNanotasks", {
+                success: (data) => {
                     if(data["ProjectName"]==this.prjName && data["TemplateName"]==this.node.name)
                         this.nanotasks = data["Nanotasks"];
                 }
             });
-            this.duct.addTuttiEvtHandler({
-                eid: this.duct.EVENT.UPLOAD_NANOTASKS,
-                success: ({ data }) => {
+            this.duct.eventListeners.resource.on("uploadNanotasks", {
+                success: (data) => {
                     if(data["ProjectName"]==this.prjName && data["TemplateName"]==this.node.name)
-                        this.duct.controllers.resource.getNanotasks();
+                        this.getNanotasks();
                 }
             });
-            this.duct.addTuttiEvtHandler({
-                eid: this.duct.EVENT.DELETE_NANOTASKS,
+            this.duct.eventListeners.resource.on("deleteNanotasks", {
                 success: () => {
-                    this.duct.controllers.resource.getNanotasks();
+                    this.getNanotasks();
                 }
             });
 
-            if(!this.isBatch){ this.duct.controllers.resource.getNanotasks(); }
+            if(!this.isBatch){ this.getNanotasks(); }
         });
 
     }

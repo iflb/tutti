@@ -86,16 +86,14 @@ export default {
     },
     created() {
         this.duct.invokeOrWaitForOpen(() => {
-            this.duct.addTuttiEvtHandler({
-                eid: this.duct.EVENT.LIST_TEMPLATES, 
-                success: ({ data }) => {
+            this.duct.eventListeners.resource.on("listTemplates", {
+                success: (data) => {
                     this.tmplNames = data["Templates"];
                 }
             });
 
-            this.duct.addTuttiEvtHandler({
-                eid: this.duct.EVENT.GET_ANSWERS_FOR_TEMPLATE, 
-                success: ({ data }) => {
+            this.duct.eventListeners.resource.on("getAnswersForTemplate", {
+                success: (data) => {
                     this.answers = data["Answers"];
                 }
             });

@@ -59,14 +59,12 @@ export default {
     },
     created() {
         this.duct.invokeOrWaitForOpen(() => {
-            this.duct.addTuttiEvtHandler({
-                eid: this.duct.EVENT.GET_PROJECT_SCHEME,
-                success: ({ data }) => {
+            this.duct.eventListeners.resource.on("getProjectScheme", {
+                success: (data) => {
                     this.flow = data["Flow"];
-                    console.log("hoge");
                     this.$refs.snackbarSuccess.show("successfully loaded flow");
                 },
-                error: ({ data }) => {
+                error: (data) => {
                     this.$refs.snackbarError.show("Error in loading flow: " + data["Reason"]);
                 }
             });
