@@ -4,7 +4,7 @@ export class DuctsLoader {
             window.ducts = {};
             window.ducts.user = user;
             window.ducts.context_url = '/ducts';
-            window.ducts.libs_plugin = [window.ducts.context_url + '/libs/tutti-new.js'];
+            window.ducts.libs_plugin = [window.ducts.context_url + '/libs/tutti.js'];
 
             window.ducts.main = () => {
                 window.ducts.app = {}

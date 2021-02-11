@@ -217,7 +217,7 @@ export default {
                 }
             }
 
-            this.duct.logger = new window.ducts.tutti.DuctEventLogger(this.duct, 1000);
+            this.duct.logger = new window.ducts.tutti.DuctEventLogger(this.duct);
 
             duct.addOnOpenHandler(() => {
                 this.srvStatus = "connected"
