@@ -450,15 +450,15 @@ class NodeSessionResource(RedisResource):
         ns["Expired"] = 1
         await self.update(id, ns)
 
-class AnswerResource(RedisResource):
+class ResponseResource(RedisResource):
     def __init__(self, redis):
-        super().__init__(redis, "Answer", "NS")
+        super().__init__(redis, "Response", "NS")
         self.key_counter = None
         self.r_nt = NanotaskResource(redis)
         self.res_ns = NodeSessionResource(redis)
 
-    def key_ids_for_nid(self,nid):      return f"AnswerIds/{nid}"
-    def key_ids_for_pn_tn(self,pn,tn):  return f"AnswerIds/PRJ:{pn}/TMPL:{tn}"
+    def key_ids_for_nid(self,nid):      return f"ResponseIds/{nid}"
+    def key_ids_for_pn_tn(self,pn,tn):  return f"ResponseIds/PRJ:{pn}/TMPL:{tn}"
 
     @classmethod
     def create_instance(cls, wsid, wid, nid, answer):

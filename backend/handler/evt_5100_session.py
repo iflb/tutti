@@ -14,7 +14,7 @@ from handler.redis_resource import (WorkerResource,
                                     NanotaskResource,
                                     WorkSessionResource,
                                     NodeSessionResource,
-                                    AnswerResource)
+                                    ResponseResource)
 
 class Handler(EventHandler):
     def __init__(self):
@@ -25,7 +25,7 @@ class Handler(EventHandler):
         self.r_nt = NanotaskResource(manager.redis)
         self.r_ws = WorkSessionResource(manager.redis)
         self.r_ns = NodeSessionResource(manager.redis)
-        self.r_ans = AnswerResource(manager.redis)
+        self.r_resp = ResponseResource(manager.redis)
         self.redis = manager.redis
 
         self.evt_project = manager.get_handler_for(manager.key_ids["PROJECT_CORE"])[1]
@@ -139,7 +139,7 @@ class Handler(EventHandler):
                 if (nsid := await self.r_ns.get_id_for_wsid_by_index(wsid, -1)):
                     out_nsid = nsid
                     out_ns = await self.r_ns.get(nsid)
-                    out_ans = await self.r_ans.get(nsid)
+                    out_ans = await self.r_resp.get(nsid)
                     if (nid := out_ns["NanotaskId"]) and (nid not in await self.r_nt.get_ids_assigned_for_pn_tn_wid(pn,out_ns["NodeName"],wid)):
                         # mark current node session Expired=True
                         await self.r_ns.set_expired(out_nsid)
@@ -170,7 +170,7 @@ class Handler(EventHandler):
                             out_ns = await self.r_ns.get(ns["NextId"])
                             await self.r_ns.add_id_to_history_for_wsid(wsid, out_nsid)
                             if out_ns["IsTemplateNode"] and out_ns["Expired"]==0:
-                                out_ans = await self.r_ans.get(ns["NextId"])
+                                out_ans = await self.r_resp.get(ns["NextId"])
                                 break
                             else:
                                 nsid = out_nsid
@@ -196,7 +196,7 @@ class Handler(EventHandler):
                             out_ns = await self.r_ns.get(ns["PrevId"])
                             await self.r_ns.add_id_to_history_for_wsid(wsid, out_nsid)
                             if out_ns["IsTemplateNode"] and out_ns["Expired"]==0:
-                                out_ans = await self.r_ans.get(ns["PrevId"])
+                                out_ans = await self.r_resp.get(ns["PrevId"])
                                 break
                             else:
                                 nsid = out_nsid
@@ -221,7 +221,7 @@ class Handler(EventHandler):
             output.set("HasPrevTemplate", (await self._get_neighboring_template_node_session(out_ns, "prev") is not None))
             output.set("HasNextTemplate", (await self._get_neighboring_template_node_session(out_ns, "next") is not None))
 
-        elif command=="SetAnswer":
+        elif command=="SetResponse":
             if not event.data["NodeSessionId"]:  raise Exception(f"node session ID cannot be null")
 
             wsid = event.data["WorkSessionId"]
@@ -232,9 +232,9 @@ class Handler(EventHandler):
             wid = ns["WorkerId"]
             nid = ns["NanotaskId"]
 
-            answer = AnswerResource.create_instance(wsid, wid, nid, event.data["Answer"])
-            await self.r_ans.add(nsid, answer)
-            output.set("SentAnswer", answer)
+            response = ResponseResource.create_instance(wsid, wid, nid, event.data["Answers"])
+            await self.r_resp.add(nsid, response)
+            output.set("SentResponse", response)
 
             scheme = await self.evt_project_scheme.get_project_scheme(ProjectName=pn)
             node = scheme.flow.get_node_by_name(ns["NodeName"])
@@ -247,7 +247,7 @@ class Handler(EventHandler):
             wkr_context = WorkerContext(event.session.redis, wid, pn)
             ws_context = WorkSessionContext(event.session.redis, wsid, pn)
             if callable(node.on_submit):
-                node.on_submit(wkr_context, ws_context, answer["Answers"], ref)
+                node.on_submit(wkr_context, ws_context, response["Answers"], ref)
             await wkr_context._register_new_members_to_redis()
             await ws_context._register_new_members_to_redis()
 

@@ -73,9 +73,9 @@
                         <v-list-item-action> <v-icon small>mdi-launch</v-icon> </v-list-item-action>
                     </v-list-item>
 
-                    <v-list-item to="/console/answer/">
+                    <v-list-item to="/console/response/">
                         <v-list-item-icon> <v-icon>mdi-comment-check-outline</v-icon> </v-list-item-icon>
-                        <v-list-item-title>Answers</v-list-item-title>
+                        <v-list-item-title>Responses</v-list-item-title>
                     </v-list-item>
 
                     <v-list-group prepend-icon="mdi-account-group" :value="false">

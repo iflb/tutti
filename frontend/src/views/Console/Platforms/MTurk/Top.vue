@@ -96,7 +96,7 @@ export default {
     }),
     methods: {
         setCredentials() {
-            this.duct.controllers.mturk.setCredentials(...this.newCredentials);
+            this.duct.controllers.mturk.setCredentials(this.newCredentials.AccessKeyId, this.newCredentials.SecretAccessKey);
         },
         clearCredentials() {
             this.duct.controllers.mturk.clearCredentials();

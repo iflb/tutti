@@ -33,7 +33,7 @@
                 <vue-json-pretty :data="item.sent" :deep="1" style="font-size:0.6em;"></vue-json-pretty>
             </template>
             <template v-slot:item.received="{ item }">
-                <vue-json-pretty :data="item.received" :deep="1" style="font-size:0.6em;"></vue-json-pretty>
+                <vue-json-pretty :data="item.received" :deep="2" style="font-size:0.6em;"></vue-json-pretty>
             </template>
         </v-data-table>
     </v-main>

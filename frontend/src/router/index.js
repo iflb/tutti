@@ -60,8 +60,8 @@ const routes = [
                 ]
             },
             {
-                path: "answer",
-                component: () => import("@/views/Console/Answer"),
+                path: "response",
+                component: () => import("@/views/Console/Response"),
                 props: getPropsForRoute
             },
             {

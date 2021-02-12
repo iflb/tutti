@@ -82,8 +82,8 @@ window.ducts.tutti.Duct = class extends window.ducts.Duct {
                               (rid, eid, data) => { self._handleResource(self, "listTemplatePresets", data); } );
         self.setEventHandler( self.EVENT.LIST_TEMPLATES,
                               (rid, eid, data) => { self._handleResource(self, "listTemplates", data); } );
-        self.setEventHandler( self.EVENT.GET_ANSWERS_FOR_TEMPLATE,
-                              (rid, eid, data) => { self._handleResource(self, "getAnswersForTemplate", data); } );
+        self.setEventHandler( self.EVENT.GET_RESPONSES_FOR_TEMPLATE,
+                              (rid, eid, data) => { self._handleResource(self, "getResponsesForTemplate", data); } );
         self.setEventHandler( self.EVENT.GET_NANOTASKS,
                               (rid, eid, data) => { self._handleResource(self, "getNanotasks", data); } );
         self.setEventHandler( self.EVENT.UPLOAD_NANOTASKS,
@@ -96,7 +96,7 @@ window.ducts.tutti.Duct = class extends window.ducts.Duct {
                               (rid, eid, data) => {
                                   if(data["Contents"]["Command"]=="Create") self._handleResource(self, "createSession", data);
                                   else if(data["Contents"]["Command"]=="Get") self._handleResource(self, "getTemplateNode", data);
-                                  else if(data["Contents"]["Command"]=="SetAnswer") self._handleResource(self, "setAnswer", data);
+                                  else if(data["Contents"]["Command"]=="SetResponse") self._handleResource(self, "setResponse", data);
                               } );
         self.setEventHandler( self.EVENT.CHECK_PLATFORM_WORKER_ID_EXISTENCE_FOR_PROJECT,
                               (rid, eid, data) => { self._handleResource(self, "checkPlatformWorkerIdExistenceForProject", data); } );
@@ -213,14 +213,14 @@ window.ducts.tutti.ResourceEventListener = class extends window.ducts.tutti.Duct
         this.createTemplates = {};
         this.listTemplatePresets = {};
         this.listTemplates = {};
-        this.getAnswersForTemplate = {};
+        this.getResponsesForTemplate = {};
         this.getNanotasks = {};
         this.uploadNanotasks = {};
         this.deleteNanotasks = {};
         this.updateNanotaskNumAssignable = {};
 
         this.getTemplateNode = {};
-        this.setAnswer = {};
+        this.setResponse = {};
         this.createSession = {};
         this.checkPlatformWorkerIdExistenceForProject = {};
     }
@@ -349,9 +349,9 @@ window.ducts.tutti.ResourceController = class {
             ( ProjectName ) => {
                 return this._duct.send( this._duct.next_rid(), this._duct.EVENT.LIST_TEMPLATES, { ProjectName } );
             };
-        this.getAnswersForTemplate =
+        this.getResponsesForTemplate =
             ( ProjectName, TemplateName ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.GET_ANSWERS_FOR_TEMPLATE, { ProjectName, TemplateName } );
+                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.GET_RESPONSES_FOR_TEMPLATE, { ProjectName, TemplateName } );
             };
         this.createTemplates =
             ( ProjectName, TemplateNames, PresetEnvName, PresetTemplateName ) => {
@@ -389,9 +389,9 @@ window.ducts.tutti.ResourceController = class {
             ( ProjectName, PlatformWorkerId, ClientToken, Platform ) => {
                 return this._duct.send( this._duct.next_rid(), this._duct.EVENT.SESSION, { Command: "Create", ProjectName, PlatformWorkerId, ClientToken, Platform } );
             };
-        this.setAnswer =
-            ( WorkSessionId, NodeSessionId, Answer ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.SESSION, { Command: "SetAnswer", WorkSessionId, NodeSessionId, Answer } );
+        this.setResponse =
+            ( WorkSessionId, NodeSessionId, Answers ) => {
+                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.SESSION, { Command: "SetResponse", WorkSessionId, NodeSessionId, Answers } );
             };
         this.checkPlatformWorkerIdExistenceForProject =
             ( ProjectName, Platform, PlatformWorkerId ) => {

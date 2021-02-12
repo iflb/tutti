@@ -43,7 +43,7 @@
             </template>
         </tutti-dialog>
 
-        <tutti-dialog ref="dialogSubmitAnswer" maxWidth="700"
+        <tutti-dialog ref="dialogSubmitResponse" maxWidth="700"
             :actions="[
                 { label: 'Close', color: 'indigo darken-1', text: true }
             ]">
@@ -111,7 +111,7 @@ export default {
 
         submit($event) {
             this.sentAnswer = $event;
-            this.$refs.dialogSubmitAnswer.show();
+            this.$refs.dialogSubmitResponse.show();
         },
     },
     watch: {

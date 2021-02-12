@@ -160,7 +160,7 @@ export default {
         },
         submit($event) {
             Object.assign(this.answer, $event);
-            this.duct.controllers.resource.setAnswer(this.wsid, this.nsid, this.answer);
+            this.duct.controllers.resource.setResponse(this.wsid, this.nsid, this.answer);
         },
         logout() {
             localStorage.removeItem("workerId");
@@ -265,7 +265,7 @@ export default {
                             console.error(data["Reason"]);
                         }
                     });
-                    this.duct.eventListeners.resource.on("setAnswer", {
+                    this.duct.eventListeners.resource.on("setResponse", {
                         success: () => {
                             this.answer = {}
                             this.getTemplate("NEXT");
