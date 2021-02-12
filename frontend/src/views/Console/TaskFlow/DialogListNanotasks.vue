@@ -40,11 +40,11 @@
                 show-select
                 sort-by="NanotaskId"
                 >
-                <template v-slot:item.GroundTruths="{ item }">
+                <template v-slot:item.ReferenceAnswers="{ item }">
                     <v-simple-table dense>
                         <template v-slot:default>
                             <tbody>
-                                <tr v-for="(value, key) in item.GroundTruths" :key="key">
+                                <tr v-for="(value, key) in item.ReferenceAnswers" :key="key">
                                     <td style="width:100px"><b>{{ key }}</b></td>
                                     <td style="word-break:break-all">{{ value }}</td>
                                 </tr>
@@ -114,13 +114,13 @@ export default {
     computed: {
         headers() {
             return [
-                { text: "NanotaskId",    value: "NanotaskId",    width: "10%" },
-                { text: "Tag",           value: "Tag",           width: "10%" },
-                { text: "NumAssignable", value: "NumAssignable", width: "1%" },
-                { text: "Priority",      value: "Priority",      width: "1%" },
-                { text: "GroundTruths",  value: "GroundTruths",  width: "20%" },
-                { text: "Props",         value: "Props",         width: "40%" },
-                { text: "Timestamp",     value: "Timestamp",     width: "15%" }
+                { text: "NanotaskId",        value: "NanotaskId",        width: "10%" },
+                { text: "Tag",               value: "Tag",               width: "10%" },
+                { text: "NumAssignable",     value: "NumAssignable",     width: "1%" },
+                { text: "Priority",          value: "Priority",          width: "1%" },
+                { text: "ReferenceAnswers",  value: "ReferenceAnswers",  width: "20%" },
+                { text: "Props",             value: "Props",             width: "40%" },
+                { text: "Timestamp",         value: "Timestamp",         width: "15%" }
             ];
         },
         nanotasksFlat() {
@@ -148,7 +148,7 @@ export default {
             return `${years}-${month}-${day} ${hours}:${minutes}:${seconds}`;
         },
         deleteNanotasks() {
-            this.duct.controllers.resource.deleteNanotasks(this.selectedNanotaskIds);
+            this.duct.controllers.resource.deleteNanotasks(this.prjName, this.template, this.selectedNanotaskIds);
             this.selectedNanotasks = [];
         },
         updateNumAssignable() {
@@ -159,7 +159,7 @@ export default {
                 else if(this.numAssignableMethod=="increment")
                     numAssignable = this.selectedNanotasks[i]["NumAssignable"] + this.numAssignableValue;
 
-                this.duct.controllers.resource.updateNanotaskNumAssignable(this.selectedNanotasks[i]["NanotaskId"], numAssignable);
+                this.duct.controllers.resource.updateNanotaskNumAssignable(this.prjName, this.template, this.selectedNanotasks[i]["NanotaskId"], numAssignable);
             }
         }
     },

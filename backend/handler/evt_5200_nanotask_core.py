@@ -30,14 +30,14 @@ class Handler(EventHandler):
             _num_assignable = nt["NumAssignable"] if "NumAssignable" in nt else NumAssignable
             _priority = nt["Priority"] if "Priority" in nt else Priority
             _props = nt["Props"] if "Props" in nt else None
-            _gt = nt["GroundTruths"] if "GroundTruths" in nt else None
+            _ref = nt["ReferenceAnswers"] if "ReferenceAnswers" in nt else None
             params = {
                 "pn": ProjectName,
                 "tn": TemplateName,
                 "tag": TagName, 
                 "num_assignable": _num_assignable,
                 "priority": _priority,
-                "gt": _gt,
+                "ref": _ref,
                 "props": _props
             }
             tasks.append(self.r_nt.add(NanotaskResource.create_instance(**params)))
@@ -48,10 +48,10 @@ class Handler(EventHandler):
         ret = await asyncio.gather(*[self.r_nt.get(nid) for nid in nids])
         return [dict(NanotaskId=nid, **r) for (nid,r) in zip(nids, ret) if r]
 
-    async def delete_nanotasks(self, NanotaskIds):
+    async def delete_nanotasks(self, ProjectName, TemplateName, NanotaskIds):
         await self.r_nt.delete_multi(NanotaskIds)
 
-    async def update_nanotask_num_assignable(self, NanotaskId, NumAssignable):
+    async def update_nanotask_num_assignable(self, ProjectName, TemplateName, NanotaskId, NumAssignable):
         nt = await self.r_nt.get(NanotaskId)
         nt["NumAssignable"] = NumAssignable
         await self.r_nt.update(NanotaskId, nt)

@@ -21,3 +21,5 @@ class Handler(EventHandler):
     @handler_output
     async def handle(self, event, output):
         await self.evt_nanotask.delete_nanotasks(**event.data)
+        output.set("ProjectName", event.data["ProjectName"])
+        output.set("TemplateName", event.data["TemplateName"])

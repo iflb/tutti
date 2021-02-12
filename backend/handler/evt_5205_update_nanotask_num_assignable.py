@@ -25,3 +25,5 @@ class Handler(EventHandler):
 
         kwargs2 = {k:event.data[k] for k in ["NanotaskId"] if k in event.data}
         await self.evt_nanotask.update_nanotask_assignability_status(**kwargs2)
+        output.set("ProjectName", event.data["ProjectName"])
+        output.set("TemplateName", event.data["TemplateName"])

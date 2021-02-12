@@ -20,7 +20,6 @@ window.ducts.tutti.Duct = class extends window.ducts.Duct {
 
         this.send = 
             (rid, eid, data) => {
-                console.log(rid, eid, data);
                 if(this.logger) this.logger.addSent(rid, eid, data);
                 return super._send(this, rid, eid, data);
             }
@@ -91,6 +90,8 @@ window.ducts.tutti.Duct = class extends window.ducts.Duct {
                               (rid, eid, data) => { self._handleResource(self, "uploadNanotasks", data); } );
         self.setEventHandler( self.EVENT.DELETE_NANOTASKS,
                               (rid, eid, data) => { self._handleResource(self, "deleteNanotasks", data); } );
+        self.setEventHandler( self.EVENT.UPDATE_NANOTASK_NUM_ASSIGNABLE,
+                              (rid, eid, data) => { self._handleResource(self, "updateNanotaskNumAssignable", data); } );
         self.setEventHandler( self.EVENT.SESSION,
                               (rid, eid, data) => {
                                   if(data["Contents"]["Command"]=="Create") self._handleResource(self, "createSession", data);
@@ -216,6 +217,7 @@ window.ducts.tutti.ResourceEventListener = class extends window.ducts.tutti.Duct
         this.getNanotasks = {};
         this.uploadNanotasks = {};
         this.deleteNanotasks = {};
+        this.updateNanotaskNumAssignable = {};
 
         this.getTemplateNode = {};
         this.setAnswer = {};
@@ -368,12 +370,12 @@ window.ducts.tutti.ResourceController = class {
                 return this._duct.send( this._duct.next_rid(), this._duct.EVENT.GET_NANOTASKS, { ProjectName, TemplateName } );
             };
         this.deleteNanotasks =
-            ( NanotaskIds ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.DELETE_NANOTASKS, { NanotaskIds } );
+            ( ProjectName, TemplateName, NanotaskIds ) => {
+                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.DELETE_NANOTASKS, { ProjectName, TemplateName, NanotaskIds } );
             };
         this.updateNanotaskNumAssignable =
-            ( NanotaskId, NumAssignable ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.UPDATE_NANOTASK_NUM_ASSIGNABLE, { NanotaskId, NumAssignable } );
+            ( ProjectName, TemplateName, NanotaskId, NumAssignable ) => {
+                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.UPDATE_NANOTASK_NUM_ASSIGNABLE, { ProjectName, TemplateName, NanotaskId, NumAssignable } );
             };
         this.uploadNanotasks =
             ( ProjectName, TemplateName, Nanotasks, NumAssignable, Priority, TagName ) => {

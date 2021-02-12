@@ -125,14 +125,14 @@ class NanotaskResource(RedisResource):
     def key_ids_assignable_for_pn_tn_wid(self,pn,tn,wid):  return f"NanotaskIdsAssignable/PRJ:{pn}/TMPL:{tn}/{wid}"
 
     @classmethod
-    def create_instance(cls, pn, tn, tag, num_assignable, priority, gt, props):
+    def create_instance(cls, pn, tn, tag, num_assignable, priority, ref, props):
         return {
             "ProjectName": pn,
             "TemplateName": tn,
             "Tag": tag,
             "NumAssignable": num_assignable,
             "Priority": priority,
-            "GroundTruths": gt,
+            "ReferenceAnswers": ref,
             "Props": props
         }
 

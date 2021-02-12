@@ -9,7 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from libs.scheme.flow import SessionEndException, UnskippableNodeException
-from libs.scheme.client import WorkerClient, WorkSessionClient
+from libs.scheme.context import WorkerContext, WorkSessionContext
 from handler.redis_resource import (WorkerResource,
                                     NanotaskResource,
                                     WorkSessionResource,
@@ -41,11 +41,11 @@ class Handler(EventHandler):
         pn = scheme.flow.pn
 
         prev_nsid = nsid
-        wkr_client = await WorkerClient(self.redis, wid, pn)._load_for_read(flow)
-        ws_client = await WorkSessionClient(self.redis, wsid, pn)._load_for_read(flow)
+        wkr_context = await WorkerContext(self.redis, wid, pn)._load_for_read(flow)
+        ws_context = await WorkSessionContext(self.redis, wsid, pn)._load_for_read(flow)
 
         try_skip = False
-        while (next_node := next_node.forward(wkr_client, ws_client, try_skip=try_skip)):
+        while (next_node := next_node.forward(wkr_context, ws_context, try_skip=try_skip)):
             try_skip = False
             if next_node.is_template():
                 has_nanotasks = await self.r_nt.check_id_exists_for_pn_tn(pn, next_node.name)
@@ -240,16 +240,16 @@ class Handler(EventHandler):
             node = scheme.flow.get_node_by_name(ns["NodeName"])
             if nid:
                 nt = await self.r_nt.get(nid)
-                gt = nt["GroundTruths"]
+                ref = nt["ReferenceAnswers"]
             else:
-                gt = None
+                ref = None
             
-            wkr_client = WorkerClient(event.session.redis, wid, pn)
-            ws_client = WorkSessionClient(event.session.redis, wsid, pn)
+            wkr_context = WorkerContext(event.session.redis, wid, pn)
+            ws_context = WorkSessionContext(event.session.redis, wsid, pn)
             if callable(node.on_submit):
-                node.on_submit(wkr_client, ws_client, answer["Answers"], gt)
-            await wkr_client._register_new_members_to_redis()
-            await ws_client._register_new_members_to_redis()
+                node.on_submit(wkr_context, ws_context, answer["Answers"], ref)
+            await wkr_context._register_new_members_to_redis()
+            await ws_context._register_new_members_to_redis()
 
         else:
             raise Exception("unknown command '{}'".format(command))

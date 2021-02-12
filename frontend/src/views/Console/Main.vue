@@ -74,7 +74,7 @@
                     </v-list-item>
 
                     <v-list-item to="/console/answer/">
-                        <v-list-item-icon> <v-icon>mdi-database-arrow-left-outline</v-icon> </v-list-item-icon>
+                        <v-list-item-icon> <v-icon>mdi-comment-check-outline</v-icon> </v-list-item-icon>
                         <v-list-item-title>Answers</v-list-item-title>
                     </v-list-item>
 
@@ -228,8 +228,6 @@ export default {
                 this.duct.controllers.resource.listProjects();
             });
             duct._connection_listener.on(["onclose", "onerror"], () => { this.srvStatus = "disconnected"; } );
-
-            console.log(this.duct.logger.log);
 
             loader.openDuct();
         });

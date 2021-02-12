@@ -1,7 +1,7 @@
 import json
 from handler.redis_resource import NodeSessionResource
 
-class ClientBase:
+class ContextBase:
     def __init__(self, redis, resource, id, pn):
         self.id = id
         self.redis = redis
@@ -10,10 +10,10 @@ class ClientBase:
         self.pn = pn
         self.members = {}
         self._cnt = {}
-        self._path_member_names = f"{self.resource}Client/{pn}/{self.id}/ClientMeta/MemberNames"
+        self._path_member_names = f"{self.resource}Context/{pn}/{self.id}/ContextMeta/MemberNames"
         self.r_ns = NodeSessionResource(redis)
 
-    def _path_member(self, name):  return f"{self.resource}Client/{self.pn}/{self.id}/ClientMeta/Members/{name}"
+    def _path_member(self, name):  return f"{self.resource}Context/{self.pn}/{self.id}/ContextMeta/Members/{name}"
 
     async def _load_for_read(self, flow):
         await self._load_cnt(flow)
@@ -48,7 +48,7 @@ class ClientBase:
         if name not in self.new_members:  self.new_members[name] = []
         self.new_members[name].append(value)
 
-class WorkerClient(ClientBase):
+class WorkerContext(ContextBase):
     def __init__(self, redis, id, pn):
         super().__init__(redis, "Worker", id, pn)
 
@@ -56,7 +56,7 @@ class WorkerClient(ClientBase):
         nns = flow.get_all_node_names()
         self._cnt = {nn: await self.r_ns.get_length_for_pn_nn_wid(self.pn, nn, self.id) for nn in nns}
 
-class WorkSessionClient(ClientBase):
+class WorkSessionContext(ContextBase):
     def __init__(self, redis, id, pn):
         super().__init__(redis, "WorkSession", id, pn)
 

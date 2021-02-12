@@ -58,17 +58,17 @@ class FlowNode:
     def is_template(self):
         return isinstance(self, TemplateNode)
         
-    def eval_cond(self, wkr_client, ws_client):
+    def eval_cond(self, wkr_context, ws_context):
         if callable(self.condition):
-            return self.condition(wkr_client, ws_client)
+            return self.condition(wkr_context, ws_context)
         else:
             print("skipping self.condition", self.condition)
             return True
 
-    def forward(self, wkr_client, ws_client, try_skip=False):
+    def forward(self, wkr_context, ws_context, try_skip=False):
         def check_node_exec_or_skip(node, try_skip=False):
             if node.statement in (Statement.IF, Statement.WHILE):
-                if node.eval_cond(wkr_client, ws_client) and try_skip==False:
+                if node.eval_cond(wkr_context, ws_context) and try_skip==False:
                     return node
                 else:
                     if node.is_skippable:  return None
@@ -94,7 +94,7 @@ class FlowNode:
                 # reaches here only if the node *is_skippable*, to go to the next node 
             else:
                 if _parent.statement==Statement.WHILE:
-                    if _parent.eval_cond(wkr_client, ws_client):
+                    if _parent.eval_cond(wkr_context, ws_context):
                         return _parent
 
             _next = _parent

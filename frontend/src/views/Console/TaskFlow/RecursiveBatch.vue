@@ -121,15 +121,10 @@ export default {
                         this.nanotasks = data["Nanotasks"];
                 }
             });
-            this.duct.eventListeners.resource.on("uploadNanotasks", {
+            this.duct.eventListeners.resource.on(["uploadNanotasks", "deleteNanotasks", "updateNanotaskNumAssignable"], {
                 success: (data) => {
                     if(data["ProjectName"]==this.prjName && data["TemplateName"]==this.node.name)
                         this.getNanotasks();
-                }
-            });
-            this.duct.eventListeners.resource.on("deleteNanotasks", {
-                success: () => {
-                    this.getNanotasks();
                 }
             });
 

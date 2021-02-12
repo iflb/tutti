@@ -185,6 +185,8 @@ export default {
             new DuctsLoader().initDuct("guest").then( ({ loader, duct }) => {
                 this.duct = duct;
 
+                this.duct.logger = new window.ducts.tutti.DuctEventLogger(this.duct);
+
                 duct.addOnOpenHandler(() => {
                     this.duct.eventListeners.resource.on("getProjectScheme", {
                         success: (data) => {
@@ -258,6 +260,9 @@ export default {
                                 //else  this.$refs.unexpectedTermination.shown = true;
                             }
                             this.loadingNextTemplate = false;
+                        },
+                        error: (data) => {
+                            console.error(data["Reason"]);
                         }
                     });
                     this.duct.eventListeners.resource.on("setAnswer", {
@@ -271,6 +276,10 @@ export default {
                     });
 
                     this.duct.controllers.resource.getProjectScheme(this.projectName);
+                    
+                    //setInterval(() => {                
+                    //    console.log(this.duct.logger.log);
+                    //}, 5000);
                 });
 
                 loader.openDuct()
