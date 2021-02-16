@@ -10,7 +10,7 @@
                     <slot name="body"></slot>
                 </v-form>
             </v-card-text>
-            <div class="px-4 py-2" v-if="$slots.bodyRaw">
+            <div class="px-4 py-2" v-if="$slots['body-raw']">
                 <slot name="body-raw"></slot>
             </div>
             <v-card-actions>
