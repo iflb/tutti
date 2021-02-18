@@ -108,6 +108,20 @@ class Handler(EventHandler):
         tasks = [self.evt_mturk_api_core.exec_boto3("create_hit_with_hit_type", CreateHITsWithHITTypeParams) for i in range(NumHITs)]
         return await asyncio.gather(*tasks)
 
+    async def expire_hits(self, HITIds):
+        sem = asyncio.Semaphore(10)
+        async def _expire_hit(HITId):
+            async with sem:
+                return await self.evt_mturk_api_core.exec_boto3("update_expiration_for_hit", { "HITId": HITId, "ExpireAt": datetime(1,1,1) })
+
+        tasks = [asyncio.ensure_future(_expire_hit(HITId)) for HITId in HITIds]
+        return await asyncio.gather(*tasks)
+
     async def delete_hits(self, HITIds):
-        tasks = [self.evt_mturk_api_core.exec_boto3("delete_hit", { "HITId": HITId }) for HITId in HITIds]
+        sem = asyncio.Semaphore(10)
+        async def _delete_hit(HITId):
+            async with sem:
+                return await self.evt_mturk_api_core.exec_boto3("delete_hit", { "HITId": HITId })
+                
+        tasks = [asyncio.ensure_future(_delete_hit(HITId)) for HITId in HITIds]
         return await asyncio.gather(*tasks)
