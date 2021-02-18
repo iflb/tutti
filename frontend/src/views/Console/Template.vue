@@ -1,36 +1,41 @@
 <template>
     <!--<v-main class="mt-10 grey lighten-4">-->
     <v-main>
-        <v-toolbar class="grey lighten-4">
-            <v-row class="ml-5 mr-0 pr-0" align="end" justify="center">
-                <v-col cols="6">
-                    <v-select width="300" :hide-details="!templateCreated" messages="Page refresh may be required for rendering the new templates" :items="tmplNames" v-model="tmplName" label="Template name" :disabled="tmplNames.length==0">
-                        <template v-if="templateCreated" v-slot:message="{ message }">
-                            <span style="color:darkorange;font-weight:bold;">{{ message }}</span>
-                        </template>
-                    </v-select>
+            <v-toolbar flat class="pa-0 ma-0">
+                <v-row align="end" justify="center">
+                    <v-col cols="6">
+                        <v-select outlined dense width="300" :hide-details="!templateCreated" messages="Page refresh may be required for rendering the new templates" :items="tmplNames" v-model="tmplName" label="Template name" :disabled="tmplNames.length==0">
+                            <template v-if="templateCreated" v-slot:message="{ message }">
+                                <span style="color:darkorange;font-weight:bold;">{{ message }}</span>
+                            </template>
+                        </v-select>
+                    </v-col>
+                    <v-col cols="2">
+                        <v-tooltip bottom>
+                            <template v-slot:activator="{ on, attrs }">
+                                <v-btn fab small icon v-on="on" v-bind="attrs" :disabled="!prjName" @click.stop="$refs.dialogCreateTemplate.show()"><v-icon dark>mdi-plus-box-multiple-outline</v-icon></v-btn>
+                            </template>
+                            <span>Create New Template...</span>
+                        </v-tooltip>
+                    </v-col>
+                </v-row>
+            </v-toolbar>
+
+            <v-divider></v-divider>
+
+            <v-row style="height:calc(100% - 53px)">
+                <v-col cols="10" class="pa-0">
+                    <v-fade-transition hide-on-leave>
+                        <component :is="tmplComponent" @submit="submit" @updateAnswer="updateAnswer"/>
+                    </v-fade-transition>
                 </v-col>
-                <v-col cols="2">
-                    <v-tooltip bottom>
-                        <template v-slot:activator="{ on, attrs }">
-                            <v-btn fab small icon v-on="on" v-bind="attrs" :disabled="!prjName" @click.stop="$refs.dialogCreateTemplate.show()"><v-icon dark>mdi-plus-box-multiple-outline</v-icon></v-btn>
-                        </template>
-                        <span>Create New Template...</span>
-                    </v-tooltip>
+                <v-col cols="2" class="px-0 pb-0">
+                    <v-card elevation="0" tile color="grey lighten-5" class="pa-4" height="100%">
+                        <div class="overline mb-4">ANSWER DATA</div>
+                        <vue-json-pretty :data="currentAnswer" style="line-height:1.4em;"></vue-json-pretty>
+                    </v-card>
                 </v-col>
             </v-row>
-        </v-toolbar>
-
-        <v-navigation-drawer app clipped right class="grey lighten-4">
-            <div class="pa-4">
-                <div class="overline mb-4">ANSWER DATA</div>
-                <vue-json-pretty :data="currentAnswer" style="line-height:1.4em;"></vue-json-pretty>
-            </div>
-        </v-navigation-drawer>
-
-        <v-fade-transition hide-on-leave>
-            <component :is="tmplComponent" @submit="submit" @updateAnswer="updateAnswer"/>
-        </v-fade-transition>
 
         <tutti-dialog ref="dialogCreateTemplate" maxWidth="400" title="Create New Template"
             :actions="[
@@ -140,3 +145,8 @@ export default {
     }
 }
 </script>
+<style scoped>
+#toolbar {
+    border-bottom: thin;
+}
+</style>
