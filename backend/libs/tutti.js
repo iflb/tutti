@@ -173,11 +173,12 @@ window.ducts.tutti.DuctEventLogger = class {
     }
 
     _skipLargeData(data) {
+        var newData = {}
         for(const key in data) {
             if(typeof data[key] === 'object')
-                data[key] = (JSON.stringify(data[key]).length <= this.dataSizeLimit) ? data[key] : "[log skipped]";
+                newData[key] = (JSON.stringify(data[key]).length <= this.dataSizeLimit) ? data[key] : "[log skipped]";
         }
-        return data;
+        return newData;
     }
 }
 

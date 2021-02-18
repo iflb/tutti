@@ -2,10 +2,10 @@
     <div class="mt-10">
         <v-row justify="center">
             <v-col cols="10" class="text-right">
-                <v-btn :loading="button.expireHITs.loading" :disabled="button.expireHITs.loading" class="mx-2" dark
-                       color="warning" v-if="selectedHITIds.length>0" @click="button.expireHITs.loading=true; expireHITs()">Expire ({{ selectedHITIds.length }})</v-btn>
-                <v-btn :loading="button.deleteHITs.loading" :disabled="button.deleteHITs.loading" class="mx-2" dark
-                       color="error" v-if="selectedHITIds.length>0" @click="button.deleteHITs.loading=true; deleteHITs()">Delete ({{ selectedHITIds.length }})</v-btn>
+                <v-btn :loading="button.expireHITs.loading" class="mx-2" dark
+                       color="warning" v-if="selectedHITIds.length>0" @click="expireHITs()">Expire ({{ selectedHITIds.length }})</v-btn>
+                <v-btn :loading="button.deleteHITs.loading" class="mx-2" dark
+                       color="error" v-if="selectedHITIds.length>0" @click="deleteHITs()">Delete ({{ selectedHITIds.length }})</v-btn>
                 <v-btn class="mx-2" dark color="indigo" to="/console/platform/mturk/hit/create/">Create HITs...</v-btn>
             </v-col>
             <v-col cols="10">
@@ -162,11 +162,11 @@ export default {
             return `${hours}:${("00"+minutes).slice(-2)}:${("00"+seconds).slice(-2)}`;
         },
         expireHITs(){
-            this.button.expireHITs.loading = false;
+            this.button.expireHITs.loading = true;
             this.duct.controllers.mturk.expireHITs(this.selectedHITIds);
         },
         deleteHITs(){
-            this.button.deleteHITs.loading = false;
+            this.button.deleteHITs.loading = true;
             this.duct.controllers.mturk.deleteHITs(this.selectedHITIds);
         },
         listHITs(cached){
@@ -214,7 +214,7 @@ export default {
             for(const opr of ["expire", "delete"]){
                 this.duct.eventListeners.mturk.on(`${opr}HITs`, {
                     success: (data) => {
-                        const cntSuccess = data["Results"].reduce((cnt,res) => ((("ResponseMetadata" in res) && ("HTTPStatusCode" in res["ResponseMetadata"]) && (res["ResponseMetadata"]["HTTPStatusCode"]==200)) ? cnt+1 : cnt));
+                        const cntSuccess = data["Results"].filter((r) => ( ("ResponseMetadata" in r) && ("HTTPStatusCode" in r["ResponseMetadata"]) && (r["ResponseMetadata"]["HTTPStatusCode"]==200) )).length;
 
                         if(cntSuccess==data["Results"].length) {
                             this.$refs.snackbarSuccess.show(`${opr[0].toUpperCase()+opr.slice(1)}d ${cntSuccess} HITs`);
@@ -222,11 +222,13 @@ export default {
                             this.$refs.snackbarWarning.show(`${opr[0].toUpperCase()+opr.slice(1)}d ${cntSuccess} HITs, but errors occurred in ${opr.slice(0,-1)}ing ${data["Results"].length-cntSuccess} HITs`);
                         }
 
+                        this.button[opr+"HITs"].loading = false;
                         this.listHITs(false);
                     },
                     error: (data) => {
                         this.$refs.snackbarError.show(`Errors occurred in ${opr.slice(0,-1)}ing HITs: ${data["Reason"]}`);
 
+                        this.button[opr+"HITs"].loading = false;
                         this.listHITs(false);
                     }
                 });

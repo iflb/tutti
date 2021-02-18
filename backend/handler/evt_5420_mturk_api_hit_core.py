@@ -107,3 +107,7 @@ class Handler(EventHandler):
             </ExternalQuestion>'''
         tasks = [self.evt_mturk_api_core.exec_boto3("create_hit_with_hit_type", CreateHITsWithHITTypeParams) for i in range(NumHITs)]
         return await asyncio.gather(*tasks)
+
+    async def delete_hits(self, HITIds):
+        tasks = [self.evt_mturk_api_core.exec_boto3("delete_hit", { "HITId": HITId }) for HITId in HITIds]
+        return await asyncio.gather(*tasks)

@@ -1,6 +1,8 @@
 from datetime import datetime
 
 import aiobotocore
+import backoff
+from botocore.exceptions import ClientError
 
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
@@ -47,6 +49,7 @@ class Handler(EventHandler):
     async def cache_set_hit_type(self, HITTypeId, Params):
         await self.r_mt.set_hit_type_params_for_htid(HITTypeId, Params)
 
+    @backoff.on_exception(backoff.expo, ClientError)
     async def exec_boto3(self, Method, Parameters=None):
         if Parameters is None:  Parameters = {}
 

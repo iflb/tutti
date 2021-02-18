@@ -177,7 +177,7 @@ export default {
     data: () => ({
         duct: null,
         drawer: true,
-        eventNav: false,
+        eventNav: true,
         logTableHeaders: [
             { text: "Message", value: "msg" },
         ],
