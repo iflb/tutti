@@ -5,6 +5,8 @@ import xml.etree.ElementTree as ET
 
 from ducts.event import EventHandler
 
+sem_limit = 10
+
 class Handler(EventHandler):
     def __init__(self):
         super().__init__()
@@ -98,6 +100,11 @@ class Handler(EventHandler):
         return htid
 
     async def create_hit_with_hit_type(self, ProjectName, NumHITs, CreateHITsWithHITTypeParams, FrameHeight=800):
+        sem = asyncio.Semaphore(sem_limit)
+        async def _create_hit():
+            async with sem:
+                return await self.evt_mturk_api_core.exec_boto3("create_hit_with_hit_type", CreateHITsWithHITTypeParams)
+
         url = f"https://{os.environ['DOMAIN_NAME']}/vue/private-prod/{ProjectName}"
         CreateHITsWithHITTypeParams["Question"] = f'''
             <ExternalQuestion
@@ -105,11 +112,11 @@ class Handler(EventHandler):
                 <ExternalURL>{url}</ExternalURL>
                 <FrameHeight>{FrameHeight}</FrameHeight>
             </ExternalQuestion>'''
-        tasks = [self.evt_mturk_api_core.exec_boto3("create_hit_with_hit_type", CreateHITsWithHITTypeParams) for i in range(NumHITs)]
+        tasks = [asyncio.ensure_future(_create_hit()) for i in range(NumHITs)]
         return await asyncio.gather(*tasks)
 
     async def expire_hits(self, HITIds):
-        sem = asyncio.Semaphore(10)
+        sem = asyncio.Semaphore(sem_limit)
         async def _expire_hit(HITId):
             async with sem:
                 return await self.evt_mturk_api_core.exec_boto3("update_expiration_for_hit", { "HITId": HITId, "ExpireAt": datetime(1,1,1) })
@@ -118,7 +125,7 @@ class Handler(EventHandler):
         return await asyncio.gather(*tasks)
 
     async def delete_hits(self, HITIds):
-        sem = asyncio.Semaphore(10)
+        sem = asyncio.Semaphore(sem_limit)
         async def _delete_hit(HITId):
             async with sem:
                 return await self.evt_mturk_api_core.exec_boto3("delete_hit", { "HITId": HITId })

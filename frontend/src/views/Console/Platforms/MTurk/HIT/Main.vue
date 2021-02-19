@@ -44,8 +44,8 @@
                             <div class="text-truncate" style="max-width:100px;">
                             {{ item.id }}
                             </div>
-                            <v-icon v-if="item.detail.HITStatusCount.Assignable>0" small @click="openNewWindow('https://worker.mturk.com/projects/'+item.groupId+'/tasks');">mdi-open-in-new</v-icon>
-                            <v-icon v-if="item.detail.HITStatusCount.Assignable>0" small @click="openNewWindow('https://workersandbox.mturk.com/projects/'+item.groupId+'/tasks');">mdi-open-in-new</v-icon>
+                            <v-icon v-if="item.detail.HITStatusCount.Assignable>0 && !credentials.Sandbox" small @click="openNewWindow('https://worker.mturk.com/projects/'+item.groupId+'/tasks');">mdi-open-in-new</v-icon>
+                            <v-icon v-if="item.detail.HITStatusCount.Assignable>0 && credentials.Sandbox" small @click="openNewWindow('https://workersandbox.mturk.com/projects/'+item.groupId+'/tasks');">mdi-open-in-new</v-icon>
                         </template>
                         <template v-slot:item.title="{ item }">
                             <div class="text-truncate" style="max-width:100px;">
