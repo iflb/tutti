@@ -163,7 +163,7 @@
 </template>
 
 <script>
-import { DuctsLoader } from '@/lib/ducts-loader'
+import tutti from 'tutti'
 import dateFormat from 'dateformat'
 import rules from '@/lib/input-rules'
 import 'vue-json-pretty/lib/styles.css'
@@ -220,66 +220,64 @@ export default {
     },
 
     created: function(){
-        new DuctsLoader().initDuct("guest").then( ({ loader, duct }) => {
-            this.duct = duct;
+        this.duct = new tutti.Duct();
 
-            this.srvStatusProfile = {
-                connected: {
-                    btn: {
-                        color: "success",
-                        label: "Connected to server",
-                        menu: [ { title: "Disconnect", handler: () => { loader.closeDuct(); } } ]
-                    }
-                },
-                connecting: {
-                    btn: {
-                        color: "warning",
-                        label: "Connecting to server..."
-                    }
-                },
-                disconnected: {
-                    btn: {
-                        color: "error",
-                        label: "No connection to server",
-                        menu: [ { title: "Connect", handler: () => { loader.openDuct(); } } ]
-                    }
+        this.srvStatusProfile = {
+            connected: {
+                btn: {
+                    color: "success",
+                    label: "Connected to server",
+                    menu: [ { title: "Disconnect", handler: () => { this.duct.close(); } } ]
+                }
+            },
+            connecting: {
+                btn: {
+                    color: "warning",
+                    label: "Connecting to server..."
+                }
+            },
+            disconnected: {
+                btn: {
+                    color: "error",
+                    label: "No connection to server",
+                    menu: [ { title: "Connect", handler: () => { this.duct.open(); } } ]
                 }
             }
+        }
 
-            this.duct.logger = new window.ducts.tutti.DuctEventLogger(this.duct);
+        this.duct.logger = new tutti.DuctEventLogger(this.duct);
 
-            duct.addOnOpenHandler(() => {
-                this.srvStatus = "connected"
-                this.lastPinged = dateFormat(new Date(), "HH:MM:ss")
-
-
-                this.setEventHandlers();
-                this.duct.controllers.resource.listProjects();
+        this.duct.addOnOpenHandler(() => {
+            this.srvStatus = "connected"
+            this.lastPinged = dateFormat(new Date(), "HH:MM:ss")
 
 
-                setInterval(() => {
-                    var rows = [];
-                    const ductLog = this.duct.logger.log;
-                    for(const rid in ductLog){
-                        if( ductLog[rid].eid <= 1010 )  continue;
+            this.setEventHandlers();
+            this.duct.controllers.resource.listProjects();
 
-                        rows.unshift({
-                            rid,
-                            eid: ductLog[rid].eid,
-                            evtName: Object.keys(this.duct.EVENT).find(key => this.duct.EVENT[key] === ductLog[rid].eid),
-                            sent: ductLog[rid].sent,
-                            received: ductLog[rid].received[0]
-                        });
-                    }
-                    this.serverLogTableRows = rows;
-                }, 1000);
 
-            });
+            setInterval(() => {
+                var rows = [];
+                const ductLog = this.duct.logger.log;
+                for(const rid in ductLog){
+                    if( ductLog[rid].eid <= 1010 )  continue;
 
-            duct._connection_listener.on(["onclose", "onerror"], () => { this.srvStatus = "disconnected"; } );
+                    rows.unshift({
+                        rid,
+                        eid: ductLog[rid].eid,
+                        evtName: Object.keys(this.duct.EVENT).find(key => this.duct.EVENT[key] === ductLog[rid].eid),
+                        sent: ductLog[rid].sent,
+                        received: ductLog[rid].received[0]
+                    });
+                }
+                this.serverLogTableRows = rows;
+            }, 1000);
 
-            loader.openDuct();
         });
+
+        this.duct._connection_listener.on(["onclose", "onerror"], () => { this.srvStatus = "disconnected"; } );
+
+        this.duct.open("/ducts/wsd");
     }
 }
 </script>

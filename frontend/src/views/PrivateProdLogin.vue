@@ -47,7 +47,7 @@ export default {
     methods: {
         mySubmit() {
             if(this.$refs.form.validate()){
-                localStorage.setItem("workerId", this.workerId);
+                localStorage.setItem("tuttiPlatformWorkerId", this.workerId);
                 window.location.href = `./private-prod/${this.projectName}`;
             }
         }

@@ -100,7 +100,7 @@
 </template>
 
 <script>
-import { DuctsLoader } from '@/lib/ducts-loader'
+import tutti from 'tutti'
 import { platformConfig } from './platformConfig'
 
 export default {
@@ -182,108 +182,101 @@ export default {
     created: function(){
         this.loadClientToken().then(() => {
 
-            new DuctsLoader().initDuct("guest").then( ({ loader, duct }) => {
-                this.duct = duct;
+            this.duct = new tutti.Duct();
+            this.duct.logger = new tutti.DuctEventLogger(this.duct);
 
-                this.duct.logger = new window.ducts.tutti.DuctEventLogger(this.duct);
+            this.duct.addOnOpenHandler(() => {
+                this.duct.eventListeners.resource.on("getProjectScheme", {
+                    success: (data) => {
+                        const config = data["Config"];
+                        this.pagination = config["Pagination"];
+                        this.projectTitle = config["Title"] || "";
+                        this.instruction.enabled = config["Instruction"];
+                        this.showTitle = config["ShowTitle"];
 
-                duct.addOnOpenHandler(() => {
-                    this.duct.eventListeners.resource.on("getProjectScheme", {
-                        success: (data) => {
-                            const config = data["Config"];
-                            this.pagination = config["Pagination"];
-                            this.projectTitle = config["Title"] || "";
-                            this.instruction.enabled = config["Instruction"];
-                            this.showTitle = config["ShowTitle"];
-
-                            this.platformWorkerId = platformConfig.workerId(this);
-                            if(!this.platformWorkerId) {
-                                this.showPreviewTemplate = true;
-                                this.$refs.dialogInstruction.shown = true;
-                                return;
-                            } else {
-                                this.duct.controllers.resource.checkPlatformWorkerIdExistenceForProject(this.projectName, platformConfig.platformName, this.platformWorkerId);
-                                this.duct.controllers.resource.createSession(this.projectName, this.platformWorkerId, this.clientToken, platformConfig.platformName);
-                            }
+                        this.platformWorkerId = platformConfig.workerId(this);
+                        if(!this.platformWorkerId) {
+                            this.showPreviewTemplate = true;
+                            this.$refs.dialogInstruction.shown = true;
+                            return;
+                        } else {
+                            this.duct.controllers.resource.checkPlatformWorkerIdExistenceForProject(this.projectName, platformConfig.platformName, this.platformWorkerId);
+                            this.duct.controllers.resource.createSession(this.projectName, this.platformWorkerId, this.clientToken, platformConfig.platformName);
+                        }
+                    },
+                    error: (data) => {
+                        alert("Error occured; please kindly report this to us!" + data["Reason"]);
+                    }
+                });
+                this.duct.eventListeners.resource.on("checkPlatformWorkerIdExistenceForProject", {
+                    success: (data) => {
+                        if(!data["Exists"]) this.$refs.dialogInstruction.shown=true;
+                    },
+                    error: (data) => {
+                        console.error(data["Reason"]);
+                    }
+                });
+                this.duct.eventListeners.resource.on("createSession", {
+                    success: (data) => {
+                        this.wsid = data["WorkSessionId"];
+                        this.workerId = data["WorkerId"];
+                        this.getTemplate("NEXT");
                         },
-                        error: (data) => {
-                            alert("Error occured; please kindly report this to us!" + data["Reason"]);
+                    error: (data) => {
+                        console.log("createSession error", data);
+                    }
+                });
+                this.duct.eventListeners.resource.on("getTemplateNode", {
+                    success: (data) => {
+                        this.hasPrevTemplate = data["HasPrevTemplate"];
+                        this.hasNextTemplate = data["HasNextTemplate"];
+                        if(data["Template"]){
+                            //this.count += 1;
+                            this.showTemplate = false;
+                            this.$nextTick(() => {
+                                this.showTemplate = true;
+                                this.templateName = data["Template"];
+                                this.nsid = data["NodeSessionId"];
+                                if(data["IsStatic"]) {
+                                    this.$set(this, "nanoProps", null);
+                                    //this.nanotaskId = null;
+                                }
+                                else {
+                                    this.$set(this, "nanoProps", data["Props"]);
+                                    //this.nanotaskId = data["NanotaskId"];
+                                }
+                                
+                                if("Answers" in data) {
+                                    this.$set(this, "prevAnswer", data["Answers"]);
+                                }
+                            });
+                        } else if(data["WorkSessionStatus"]=="Terminated") {
+                            if(this.templateName=="")  this.$refs.dialogAdviseReturn.shown = true;
+                            else if(data["TerminateReason"]=="UnskippableNode")  this.$refs.dialogUnskippableNode.shown = true;
+                            else if(data["TerminateReason"]=="SessionEnd")  this._onSubmitWorkSession(this);
+                            else  this._onSubmitWorkSession(this);
+                            //else  this.$refs.unexpectedTermination.shown = true;
                         }
-                    });
-                    this.duct.eventListeners.resource.on("checkPlatformWorkerIdExistenceForProject", {
-                        success: (data) => {
-                            if(!data["Exists"]) this.$refs.dialogInstruction.shown=true;
-                        },
-                        error: (data) => {
-                            console.error(data["Reason"]);
-                        }
-                    });
-                    this.duct.eventListeners.resource.on("createSession", {
-                        success: (data) => {
-                            this.wsid = data["WorkSessionId"];
-                            this.workerId = data["WorkerId"];
-                            this.getTemplate("NEXT");
-                            },
-                        error: (data) => {
-                            console.log("createSession error", data);
-                        }
-                    });
-                    this.duct.eventListeners.resource.on("getTemplateNode", {
-                        success: (data) => {
-                            this.hasPrevTemplate = data["HasPrevTemplate"];
-                            this.hasNextTemplate = data["HasNextTemplate"];
-                            if(data["Template"]){
-                                //this.count += 1;
-                                this.showTemplate = false;
-                                this.$nextTick(() => {
-                                    this.showTemplate = true;
-                                    this.templateName = data["Template"];
-                                    this.nsid = data["NodeSessionId"];
-                                    if(data["IsStatic"]) {
-                                        this.$set(this, "nanoProps", null);
-                                        //this.nanotaskId = null;
-                                    }
-                                    else {
-                                        this.$set(this, "nanoProps", data["Props"]);
-                                        //this.nanotaskId = data["NanotaskId"];
-                                    }
-                                    
-                                    if("Answers" in data) {
-                                        this.$set(this, "prevAnswer", data["Answers"]);
-                                    }
-                                });
-                            } else if(data["WorkSessionStatus"]=="Terminated") {
-                                if(this.templateName=="")  this.$refs.dialogAdviseReturn.shown = true;
-                                else if(data["TerminateReason"]=="UnskippableNode")  this.$refs.dialogUnskippableNode.shown = true;
-                                else if(data["TerminateReason"]=="SessionEnd")  this._onSubmitWorkSession(this);
-                                else  this._onSubmitWorkSession(this);
-                                //else  this.$refs.unexpectedTermination.shown = true;
-                            }
-                            this.loadingNextTemplate = false;
-                        },
-                        error: (data) => {
-                            console.error(data["Reason"]);
-                        }
-                    });
-                    this.duct.eventListeners.resource.on("setResponse", {
-                        success: () => {
-                            this.answer = {}
-                            this.getTemplate("NEXT");
-                        },
-                        error: (data) => {
-                            console.error(data["Reason"]);
-                        }
-                    });
-
-                    this.duct.controllers.resource.getProjectScheme(this.projectName);
-                    
-                    //setInterval(() => {                
-                    //    console.log(this.duct.logger.log);
-                    //}, 5000);
+                        this.loadingNextTemplate = false;
+                    },
+                    error: (data) => {
+                        console.error(data["Reason"]);
+                    }
+                });
+                this.duct.eventListeners.resource.on("setResponse", {
+                    success: () => {
+                        this.answer = {}
+                        this.getTemplate("NEXT");
+                    },
+                    error: (data) => {
+                        console.error(data["Reason"]);
+                    }
                 });
 
-                loader.openDuct()
+                this.duct.controllers.resource.getProjectScheme(this.projectName);
             });
+
+            this.duct.open("/ducts/wsd");
 
         }).catch(platformConfig.onClientTokenFailure);
     }

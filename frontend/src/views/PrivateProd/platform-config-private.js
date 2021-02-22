@@ -8,7 +8,7 @@ export default {
     platformName: "Private",
 
     workerId: function() {
-        return localStorage.getItem("workerId");
+        return localStorage.getItem("tuttiPlatformWorkerId");
     },
 
     clientToken: function() {
@@ -27,7 +27,8 @@ export default {
         return false;
     },
 
-    onClientTokenFailure: function() {
+    onClientTokenFailure: function(a,b,c) {
+        console.log(a,b,c);
         console.log("clienttokenFailure");
     },
 
