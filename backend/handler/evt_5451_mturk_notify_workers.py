@@ -25,8 +25,7 @@ class Handler(EventHandler):
         if event.data is None:  event.data = {}
         output.set("Results", await self.notify_workers(**event.data))
 
-    async def notify_workers(self, Subject, MessageText, WorkerIds):
-        wids = [WorkerIds[i:i+100] for i in range(0, len(WorkerIds), 100)]
-        print([{"Subject":Subject, "MessageText": MessageText, "WorkerIds":_wids} for _wids in wids])
+    async def notify_workers(self, Subject, MessageText, SendEmailWorkerIds):
+        wids = [SendEmailWorkerIds[i:i+100] for i in range(0, len(SendEmailWorkerIds), 100)]
         tasks = [self.evt_mturk_api_core.exec_boto3("notify_workers", {"Subject":Subject, "MessageText": MessageText, "WorkerIds":_wids}) for _wids in wids]
         return await asyncio.gather(*tasks)

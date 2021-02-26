@@ -12,3 +12,4 @@ projects/*
 *.swp
 redis/
 projects/test0812
+letsencrypt/

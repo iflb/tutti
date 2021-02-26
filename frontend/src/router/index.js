@@ -81,10 +81,6 @@ const routes = [
         component: () => import("@/views/PrivateProdLogin.vue"),
         props: true
     },
-    {
-        path: "/test",
-        component: () => import("@/views/Test/Main.vue")
-    }
 ]
 
 const router = new VueRouter({

@@ -163,7 +163,7 @@ export default {
             this.duct.controllers.resource.setResponse(this.wsid, this.nsid, this.answer);
         },
         logout() {
-            localStorage.removeItem("workerId");
+            localStorage.removeItem("tuttiPlatformWorkerId");
             this.platformWorkerId = "";
             window.location.reload();
         },
@@ -278,7 +278,8 @@ export default {
 
             this.duct.open("/ducts/wsd");
 
-        }).catch(platformConfig.onClientTokenFailure);
+        });
+        //}).catch(platformConfig.onClientTokenFailure);
     }
 }
 </script>

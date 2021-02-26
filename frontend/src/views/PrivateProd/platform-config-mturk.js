@@ -9,8 +9,7 @@ function turkGetSubmitToHost(self) {
 
 function getAssignmentId(self) {
     const assignmentId = self.$route.query.assignmentId;
-    if(assignmentId=="ASSIGNMENT_ID_NOT_AVAILABLE") return null;
-    else return assignmentId;
+    return assignmentId;
 }
 
 function generateSubmitForm(self, data) {

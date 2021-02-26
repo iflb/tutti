@@ -1,2 +1,4 @@
 download-images.sh
 sample-nanotasks.json
+*/
+!sample-images/

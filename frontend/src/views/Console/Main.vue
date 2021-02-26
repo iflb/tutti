@@ -163,7 +163,7 @@
 </template>
 
 <script>
-import tutti from 'tutti'
+import tutti from '@/lib/tutti-js/lib/tutti'
 import dateFormat from 'dateformat'
 import rules from '@/lib/input-rules'
 import 'vue-json-pretty/lib/styles.css'
