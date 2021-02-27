@@ -43,8 +43,9 @@
         </v-col>
         </v-row>
 
-        <v-row justify="center">
-            <v-col cols="3">
+        <v-sheet max-width="1000" color="transparent" class="mx-auto">
+        <v-row>
+            <v-col cols="4">
                 <v-card>
                     <v-img src="https://media.istockphoto.com/videos/stack-of-files-documents-being-piled-onto-office-desk-video-id825340524?s=640x640" height="120"></v-img>
                     <v-card-title>HITs</v-card-title>
@@ -52,7 +53,7 @@
                     <v-card-actions><v-btn color="indigo lighten-1" text to="hit">Manage HITs</v-btn></v-card-actions>
                 </v-card>
             </v-col>
-            <v-col cols="3">
+            <v-col cols="4">
                 <v-card>
                     <v-img src="https://us.123rf.com/450wm/aniwhite/aniwhite1603/aniwhite160300174/53982937-stock-vector-the-crowd-of-abstract-people-flat-design-vector-illustration-.jpg?ver=6" height="120"></v-img>
                     <v-card-title>Workers</v-card-title>
@@ -60,7 +61,7 @@
                     <v-card-actions><v-btn color="indigo lighten-1" text to="worker">Manage workers</v-btn></v-card-actions>
                 </v-card>
             </v-col>
-            <v-col cols="3">
+            <v-col cols="4">
                 <v-card>
                     <v-img src="https://assets.st-note.com/production/uploads/images/30971758/rectangle_large_type_2_d321a7db4258595199bc6a264e7b320b.jpg?fit=bounds&format=jpeg&quality=45&width=960" height="120"></v-img>
                     <v-card-title>Qualifications</v-card-title>
@@ -68,7 +69,16 @@
                     <v-card-actions><v-btn color="indigo lighten-1" text to="qual">Manage qualifications</v-btn></v-card-actions>
                 </v-card>
             </v-col>
+            <v-col cols="4">
+                <v-card>
+                    <v-img src="https://jopus.net/wp-content/uploads/2018/10/shutterstock_1065989561.jpg" height="120"></v-img>
+                    <v-card-title>Assignments</v-card-title>
+                    <v-card-text>See and approve/deny assignments.</v-card-text>
+                    <v-card-actions><v-btn color="indigo lighten-1" text to="assignment">Manage assignments</v-btn></v-card-actions>
+                </v-card>
+            </v-col>
         </v-row>
+        </v-sheet>
 
         <tutti-dialog ref="dialogSetCredentials" title="Set MTurk Credentials" maxWidth="600"
             :actions="[

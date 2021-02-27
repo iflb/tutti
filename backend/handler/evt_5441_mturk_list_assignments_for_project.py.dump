@@ -1,0 +1,41 @@
+import asyncio
+
+from ducts.spi import EventHandler, Event
+from ifconf import configure_module, config_callback
+
+from handler import paths, common
+from handler.handler_output import handler_output, CommandError
+from handler.redis_resource import WorkSessionResource
+
+sem_limit = 10
+
+class Handler(EventHandler):
+    def __init__(self):
+        super().__init__()
+
+    def setup(self, handler_spec, manager):
+        self.evt_mturk_api_core = manager.get_handler_for(manager.key_ids["MTURK_API_CORE"])[1]
+        self.r_ws = WorkSessionResource(manager.redis)
+        handler_spec.set_description('Creates a QualificationType.')
+        handler_spec.set_as_responsive()
+
+        return handler_spec
+
+    @handler_output
+    async def handle(self, event, output):
+        output.set("AssignmentIds", await self.list_assignments_for_project(**event.data))
+
+    async def list_assignments_for_project(self, ProjectName):
+        sem = asyncio.Semaphore(sem_limit)
+        async def _get_assignment(assignmentId):
+            async with sem:
+                return await self.evt_mturk_api_core.exec_boto3("get_assignment", { "AssignmentId": assignmentId })
+
+        wsids = await self.r_ws.get_ids_for_pn(ProjectName)
+        assignmentIds = []
+        for wsid in wsids:
+            ws = await self.r_ws.get(wsid)
+            if ws["Platform"]=="MTurk":
+                assignmentIds.append(ws["ClientToken"])
+        tasks = [asyncio.ensure_future(_get_assignment(assignmentId)) for assignmentId in assignmentIds]
+        return await asyncio.gather(*tasks)

@@ -48,6 +48,10 @@ class Handler(EventHandler):
         return await self.r_mt.get_hit_type_params_for_htid(HITTypeId)
     async def cache_set_hit_type(self, HITTypeId, Params):
         await self.r_mt.set_hit_type_params_for_htid(HITTypeId, Params)
+    async def cache_get_assignments_list(self):
+        return await self.r_mt.get_assignments()
+    async def cache_set_assignments_list(self, data):
+        await self.r_mt.set_assignments(data)
 
     @backoff.on_exception(backoff.expo, ClientError)
     async def exec_boto3(self, Method, Parameters=None):

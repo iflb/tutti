@@ -56,7 +56,12 @@ const routes = [
                         path: "worker",
                         component: () => import("@/views/Console/Platforms/MTurk/Worker/Main"),
                         props: getPropsForRoute
-                    }
+                    },
+                    {
+                        path: "assignment",
+                        component: () => import("@/views/Console/Platforms/MTurk/Assignment/Main"),
+                        props: getPropsForRoute
+                    },
                 ]
             },
             {

@@ -149,7 +149,7 @@
 
         <tutti-dialog ref="dialogCreateProject" title="Create New Project" maxWidth="400"
             :actions="[
-                { label: 'Create', color: 'indigo darken-1', text: true, onclick: createProject },
+                { label: 'Create', color: 'indigo darken-1', disableByRule: true, text: true, onclick: createProject },
                 { label: 'Cancel', color: 'grey darken-1', text: true }
             ]" >
             <template v-slot:body>

@@ -364,6 +364,9 @@ class WorkSessionResource(RedisResource):
     async def add_id_for_pn(self, pn, id):
         await self.redis.execute("SADD", self.key_ids_for_pn(pn), id)
 
+    async def get_ids_for_pn(self, pn):
+        return await self.redis.execute_str("SMEMBERS", self.key_ids_for_pn(pn))
+
     async def set_id_for_pn_wid_ct(self, pn, wid, ct, id):
         await self.redis.execute("SET", self.key_id_for_pn_wid_ct(pn,wid,ct), id)
 
@@ -523,6 +526,8 @@ class MTurkResource:
         return "{}/HITTypeIds".format(await self.key_base())
     async def key_hit_type_params_for_htid(self, htid):
         return "{}/HITTypeParams/{}".format(await self.key_base(), htid)
+    async def key_assignments(self):
+        return "{}/Assignments".format(await self.key_base())
 
     async def get_access_key_id(self):
         return await self.redis.execute_str("GET", self.key_access_key_id())
@@ -582,4 +587,10 @@ class MTurkResource:
     async def set_hits(self, hits):
         await self.redis.execute("SET", await self.key_hits(), json.dumps(hits))
 
+    async def get_assignments(self):
+        data = await self.redis.execute("GET", await self.key_assignments())
+        return json.loads(data) if data else None
+        
+    async def set_assignments(self, data):
+        await self.redis.execute("SET", await self.key_assignments(), json.dumps(data))
 
