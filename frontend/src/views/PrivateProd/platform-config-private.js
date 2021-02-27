@@ -33,6 +33,7 @@ export default {
     },
 
     onSubmitWorkSession: function() {
+        console.log("onSubmitWorkSession");
         sessionStorage.removeItem(clientTokenKey);
         window.location.reload();
     }
