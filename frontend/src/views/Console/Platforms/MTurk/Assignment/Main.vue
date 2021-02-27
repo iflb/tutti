@@ -47,10 +47,10 @@
                             {{ item.AssignmentId }}
                         </div>
                     </template>
-                    <template v-slot:item.WorkerId="{ item }">
+                    <!--<template v-slot:item.WorkerId="{ item }">
                         {{ item.PlatformWorkerId }}<br>
                         ({{ item.WorkerId }})
-                    </template>
+                    </template>-->
                     <template v-slot:item.AcceptTime="{ item }">
                         {{ stringifyUnixTime(item.AcceptTime*1000) }}
                     </template>
@@ -166,6 +166,9 @@ export default {
                     this.loading = false;
                     this.listLastRetrieved = stringifyUnixTime(data["Assignments"]["LastRetrieved"]);
                     this.assignments = data["Assignments"]["Assignments"];
+                    for(let asmt of this.assignments){
+                        asmt.WorkerId = `${asmt.PlatformWorkerId}\n(${asmt.WorkerId})`;
+                    }
                 }
             });
             //this.duct.eventListeners.mturk.on("getAssignments", {

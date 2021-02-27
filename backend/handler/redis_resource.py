@@ -1,7 +1,13 @@
 import json
 from datetime import datetime
+import asyncio
 import aioredis
 import random
+from collections import defaultdict
+import traceback
+
+import logging
+logger = logging.getLogger(__name__)
 
 class RedisResource:
     def __init__(self, redis, base_path, id_prefix):
@@ -117,6 +123,10 @@ class NanotaskResource(RedisResource):
         self.r_wkr = WorkerResource(redis)
         self.weight_for_assignment = 100000
 
+        self.reserve_nanotask_lock = asyncio.Condition()
+
+        self.pool = None
+
     def key_ids_for_pn_tn(self,pn,tn):                     return f"NanotaskIds/PRJ:{pn}/TMPL:{tn}"
     def key_ids_occupied_for_pn_tn(self,pn,tn):            return f"NanotaskIdsOccupied/PRJ:{pn}/TMPL:{tn}"
     #def key_ids_completed_for_pn_tn(self,pn,tn):           return f"NanotaskIdsCompleted/PRJ:{pn}/TMPL:{tn}"
@@ -210,100 +220,147 @@ class NanotaskResource(RedisResource):
         return await self.redis.execute_str("SMEMBERS", self.key_ids_occupied_for_pn_tn(pn,tn))
 
     async def get_first_id_for_pn_tn_wid(self, pn, tn, wid, assignment_order="bfs", sort_order="natural"):
-        while True:
-            # watch changes in ID set of occupied nanotasks for the template
-            await self.redis.execute("WATCH", self.key_ids_occupied_for_pn_tn(pn,tn))
-            await self.redis.execute("MULTI")
-            # create *ID set of assignable nanotasks for the template and the worker* by
-            # (all nanotask IDs for the template) - (unavailable nanotask IDs for the template) - (already-assigned nanotask IDs for the template and the worker)
-            await self.redis.execute("ZUNIONSTORE",
-                                     self.key_ids_assignable_for_pn_tn_wid(pn,tn,wid), 3,
-                                     self.key_ids_for_pn_tn(pn,tn),
-                                     self.key_ids_occupied_for_pn_tn(pn,tn),
-                                     self.key_ids_assigned_for_pn_tn_wid(pn,tn,wid),
-                                     "WEIGHTS", 1, 0, 0, "AGGREGATE", "MIN")
-
-            # get the most prioritized (with top priority but LEAST # of assigned workers) nanotask ID(s) from the obtained ID set
-            get_first_bfs = '''
-                local ret = redis.call('ZRANGEBYSCORE', '{key_nids_assignable_for_pn_tn_wid}', 1, '+inf', 'WITHSCORES', 'LIMIT', 0, 1)
-                local nid = ret[1]
-                local priority = ret[2]
-
-            '''
-            # get the most prioritized (with top priority and most # of assigned workers) nanotask ID(s) from the obtained ID set
-            get_first_dfs = '''
-                local ret = redis.call('ZRANGEBYSCORE', '{key_nids_assignable_for_pn_tn_wid}', 1, '+inf', 'WITHSCORES', 'LIMIT', 0, 1)
-                local _priority = ret[2]
-                _priority = math.floor(_priority)
-                
-                local ret = redis.call('ZREVRANGEBYSCORE', '{key_nids_assignable_for_pn_tn_wid}', '('..(_priority+1), _priority, 'WITHSCORES', 'LIMIT', 0, 1)
-                local nid = ret[1]
-                local priority = ret[2]
-
-            '''
-            # if there are more than one ID, get one of them randomly or in natural order
-            # count up # of assigned workers for the nanotask
-            # compare # of assignable workers and assigned workers;
-            # if no more workers can be assigned, mark the nanotask as unavailable
-            get_first_common = '''
-                local num_nids = redis.call('ZCOUNT', '{key_nids_assignable_for_pn_tn_wid}', priority, priority)
-                if num_nids > 1 then
-                    local idx = 0
-                    if '{sort_order}' == 'random' then
-                        math.randomseed({random_seed})
-                        idx = math.random(0, num_nids-1)
-                    end
-                    local ret = redis.call('ZRANGEBYSCORE', '{key_nids_assignable_for_pn_tn_wid}', priority, priority, 'LIMIT', idx, 1)
-                    nid = ret[1]
-                end
-
-                redis.call('ZINCRBY', '{key_nids_for_pn_tn}', 1, nid)
-
-                local key_nt = string.gsub('{key_nt}', '%[%[nid%]%]', nid)
-                local key_wids_assigned_for_nid = string.gsub('{key_wids_assigned_for_nid}', '%[%[nid%]%]', nid)
-                local nt = redis.call('GET', key_nt)
-                local num_assignable = cjson.decode(nt)['NumAssignable']
-
-                -- self.add_id_assigned_for_pn_tn_wid
-                redis.call('SADD', '{key_nids_assigned_for_pn_tn_wid}', nid)
-                -- self.r_wkr.add_id_assigned_for_nid
-                redis.call('SADD', key_wids_assigned_for_nid, '{wid}')
-
-                local num_assigned = redis.call('SCARD', key_wids_assigned_for_nid)
-
-                redis.call('SADD', 'NanotaskIds/hogemi/num_assignable', num_assignable)
-                redis.call('SADD', 'NanotaskIds/hogemi/num_assigned', num_assigned)
-                if num_assignable <= num_assigned then
-                    -- self.add_id_occupied_for_pn_tn
-                    redis.call('SADD', '{key_nids_occupied_for_pn_tn}', nid)
-                end
-                
-                return nid
-            '''
-            
-            if assignment_order=="bfs":    get_first = get_first_bfs+get_first_common
-            elif assignment_order=="dfs":  get_first = get_first_dfs+get_first_common
-
-            get_first = get_first.format(wid=wid,
-                                         key_nids_assignable_for_pn_tn_wid=self.key_ids_assignable_for_pn_tn_wid(pn,tn,wid),
-                                         key_nids_for_pn_tn=self.key_ids_for_pn_tn(pn,tn),
-                                         key_nids_assigned_for_pn_tn_wid=self.key_ids_assigned_for_pn_tn_wid(pn,tn,wid),
-                                         key_nt=self.key(id="[[nid]]"),
-                                         key_wids_assigned_for_nid=self.r_wkr.key_ids_assigned_for_nid("[[nid]]"),
-                                         key_nids_occupied_for_pn_tn=self.key_ids_occupied_for_pn_tn(pn,tn),
-                                         random_seed=datetime.now().timestamp()+random.randint(0, random.randint(1, 100)),
-                                         sort_order=sort_order)
-
-            await self.redis.execute("EVAL", get_first, 0)
-
-            ret = await self.redis.execute_str("EXEC")
-
-            if type(ret[1])==aioredis.WatchVariableError:  continue
-            else:  break
-
+        current_time = datetime.now()
+        await asyncio.sleep((60-current_time.second)%10+(10**6-current_time.microsecond)/(10**6))
         try:
-            return ret[1].decode()
-        except:
+            logger.error(self.pool)
+            async with self.reserve_nanotask_lock:
+                self.pool = self.pool if self.pool is not None else await self.redis.connect_for_blocking(1,1)
+            logger.error(self.pool)
+            logger.error(id(self.pool))
+            while True:
+                key_occupied = self.key_ids_occupied_for_pn_tn(pn,tn)
+
+                #async with self.reserve_nanotask_lock[key_occupied]:
+                with await self.pool as conn:
+                    try:
+                        logger.error(conn)
+                        logger.error(id(conn))
+                        logger.error(await conn.watch(key_occupied))
+                        tr = conn.multi_exec()
+                        #tr.execute("WATCH", key_occupied)
+                        #tr.watch(key_occupied)
+                        tr.zunionstore(
+                            self.key_ids_assignable_for_pn_tn_wid(pn,tn,wid),
+                            (self.key_ids_for_pn_tn(pn,tn), 1),
+                            (key_occupied, 0),
+                            (self.key_ids_assigned_for_pn_tn_wid(pn,tn,wid), 0),
+                            with_weights=True,
+                            aggregate=aioredis.commands.SortedSetCommandsMixin.ZSET_AGGREGATE_MIN
+                        )
+
+                        ## watch changes in ID set of occupied nanotasks for the template
+                        #await self.redis.execute("WATCH", key_occupied)
+                        #await self.redis.execute("MULTI")
+                        ## create *ID set of assignable nanotasks for the template and the worker* by
+                        ## (all nanotask IDs for the template) - (unavailable nanotask IDs for the template) - (already-assigned nanotask IDs for the template and the worker)
+                        #await self.redis.execute("ZUNIONSTORE",
+                        #                         self.key_ids_assignable_for_pn_tn_wid(pn,tn,wid), 3,
+                        #                         self.key_ids_for_pn_tn(pn,tn),
+                        #                         key_occupied,
+                        #                         self.key_ids_assigned_for_pn_tn_wid(pn,tn,wid),
+                        #                         "WEIGHTS", 1, 0, 0, "AGGREGATE", "MIN")
+
+                        # get the most prioritized (with top priority but LEAST # of assigned workers) nanotask ID(s) from the obtained ID set
+                        get_first_bfs = '''
+                            local ret = redis.call('ZRANGEBYSCORE', '{key_nids_assignable_for_pn_tn_wid}', 1, '+inf', 'WITHSCORES', 'LIMIT', 0, 1)
+                            local nid = ret[1]
+                            local priority = ret[2]
+
+                        '''
+                        # get the most prioritized (with top priority and most # of assigned workers) nanotask ID(s) from the obtained ID set
+                        get_first_dfs = '''
+                            local ret = redis.call('ZRANGEBYSCORE', '{key_nids_assignable_for_pn_tn_wid}', 1, '+inf', 'WITHSCORES', 'LIMIT', 0, 1)
+                            local _priority = ret[2]
+                            _priority = math.floor(_priority)
+                            
+                            local ret = redis.call('ZREVRANGEBYSCORE', '{key_nids_assignable_for_pn_tn_wid}', '('..(_priority+1), _priority, 'WITHSCORES', 'LIMIT', 0, 1)
+                            local nid = ret[1]
+                            local priority = ret[2]
+
+                        '''
+                        # if there are more than one ID, get one of them randomly or in natural order
+                        # count up # of assigned workers for the nanotask
+                        # compare # of assignable workers and assigned workers;
+                        # if no more workers can be assigned, mark the nanotask as unavailable
+                        get_first_common = '''
+                            local num_nids = redis.call('ZCOUNT', '{key_nids_assignable_for_pn_tn_wid}', priority, priority)
+                            if num_nids > 1 then
+                                local idx = 0
+                                if '{sort_order}' == 'random' then
+                                    math.randomseed({random_seed})
+                                    idx = math.random(0, num_nids-1)
+                                end
+                                local ret = redis.call('ZRANGEBYSCORE', '{key_nids_assignable_for_pn_tn_wid}', priority, priority, 'LIMIT', idx, 1)
+                                nid = ret[1]
+                            end
+
+                            redis.call('ZINCRBY', '{key_nids_for_pn_tn}', 1, nid)
+
+                            local key_nt = string.gsub('{key_nt}', '%[%[nid%]%]', nid)
+                            local key_wids_assigned_for_nid = string.gsub('{key_wids_assigned_for_nid}', '%[%[nid%]%]', nid)
+                            local nt = redis.call('GET', key_nt)
+                            local num_assignable = cjson.decode(nt)['NumAssignable']
+
+                            -- self.add_id_assigned_for_pn_tn_wid
+                            redis.call('SADD', '{key_nids_assigned_for_pn_tn_wid}', nid)
+                            -- self.r_wkr.add_id_assigned_for_nid
+                            redis.call('SADD', key_wids_assigned_for_nid, '{wid}')
+
+                            local num_assigned = redis.call('SCARD', key_wids_assigned_for_nid)
+
+                            redis.call('SADD', 'NanotaskIds/hogemi/num_assignable', num_assignable)
+                            redis.call('SADD', 'NanotaskIds/hogemi/num_assigned', num_assigned)
+                            if num_assignable <= num_assigned then
+                                -- self.add_id_occupied_for_pn_tn
+                                redis.call('SADD', '{key_nids_occupied_for_pn_tn}', nid)
+                            end
+                            
+                            return nid
+                        '''
+                        
+                        if assignment_order=="bfs":    get_first = get_first_bfs+get_first_common
+                        elif assignment_order=="dfs":  get_first = get_first_dfs+get_first_common
+
+                        get_first = get_first.format(wid=wid,
+                                                     key_nids_assignable_for_pn_tn_wid=self.key_ids_assignable_for_pn_tn_wid(pn,tn,wid),
+                                                     key_nids_for_pn_tn=self.key_ids_for_pn_tn(pn,tn),
+                                                     key_nids_assigned_for_pn_tn_wid=self.key_ids_assigned_for_pn_tn_wid(pn,tn,wid),
+                                                     key_nt=self.key(id="[[nid]]"),
+                                                     key_wids_assigned_for_nid=self.r_wkr.key_ids_assigned_for_nid("[[nid]]"),
+                                                     key_nids_occupied_for_pn_tn=self.key_ids_occupied_for_pn_tn(pn,tn),
+                                                     random_seed=datetime.now().timestamp()+random.randint(0, random.randint(1, 100)),
+                                                     sort_order=sort_order)
+
+                        tr.eval(get_first)
+
+                        logger.error("sleep")
+                        await asyncio.sleep(1)
+                        logger.error("execute")
+                        ret = await tr.execute()
+                        #ret = await self.redis.execute_str("EXEC")
+
+                        logger.error(ret)
+
+                    except aioredis.WatchVariableError as e:
+                        logger.warning("WatchVariableError: retrying nanotask reservation")
+                        continue
+
+                    except Exception as e:
+                        logger.error("nanotask reservation failed", e)
+                        await self.redis.execute("DISCARD")
+                        return None
+
+                    else:
+                        #if type(ret[1])==aioredis.WatchVariableError:
+                        #    logger.warning("WatchVariableError: retrying nanotask reservation")
+                        #    continue
+                        #else:
+                            #return ret[1].decode()
+                            return ret[1]
+
+        except Exception as e:
+            logger.error("unexpected error happened for nanotask reservation", e)
             return None
 
 

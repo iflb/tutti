@@ -132,3 +132,12 @@ class Handler(EventHandler):
                 
         tasks = [asyncio.ensure_future(_delete_hit(HITId)) for HITId in HITIds]
         return await asyncio.gather(*tasks)
+
+    #async def get_hits(self, HITIds):
+    #    sem = asyncio.Semaphore(sem_limit)
+    #    async def _delete_hit(HITId):
+    #        async with sem:
+    #            return await self.evt_mturk_api_core.exec_boto3("delete_hit", { "HITId": HITId })
+    #            
+    #    tasks = [asyncio.ensure_future(_delete_hit(HITId)) for HITId in HITIds]
+    #    return await asyncio.gather(*tasks)
