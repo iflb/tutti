@@ -232,16 +232,16 @@ class NanotaskResource(RedisResource):
                         tasks = []
 
                         # watch changes in ID set of occupied nanotasks for the template
-                        tasks.append(conn.execute("WATCH", key_occupied))
-                        tasks.append(conn.execute("MULTI"))
+                        tasks.append(asyncio.ensure_future(conn.execute("WATCH", key_occupied)))
+                        tasks.append(asyncio.ensure_future(conn.execute("MULTI")))
                         # create *ID set of assignable nanotasks for the template and the worker* by
                         # (all nanotask IDs for the template) - (unavailable nanotask IDs for the template) - (already-assigned nanotask IDs for the template and the worker)
-                        tasks.append(conn.execute("ZUNIONSTORE",
+                        tasks.append(asyncio.ensure_future(conn.execute("ZUNIONSTORE",
                                                  self.key_ids_assignable_for_pn_tn_wid(pn,tn,wid), 3,
                                                  self.key_ids_for_pn_tn(pn,tn),
                                                  key_occupied,
                                                  self.key_ids_assigned_for_pn_tn_wid(pn,tn,wid),
-                                                 "WEIGHTS", 1, 0, 0, "AGGREGATE", "MIN"))
+                                                 "WEIGHTS", 1, 0, 0, "AGGREGATE", "MIN")))
 
                         # get the most prioritized (with top priority but LEAST # of assigned workers) nanotask ID(s) from the obtained ID set
                         get_first_bfs = '''
@@ -318,9 +318,9 @@ class NanotaskResource(RedisResource):
                                                      random_seed=datetime.now().timestamp()+random.randint(0, random.randint(1, 100)),
                                                      sort_order=sort_order)
 
-                        tasks.append(conn.execute("EVAL", get_first, 0))
+                        tasks.append(asyncio.ensure_future(conn.execute("EVAL", get_first, 0)))
 
-                        tasks.append(conn.execute("EXEC"))
+                        tasks.append(asyncio.ensure_future(conn.execute("EXEC")))
 
                         ret = await asyncio.gather(*tasks)
                         ret = ret[-1]
