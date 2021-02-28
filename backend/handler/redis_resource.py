@@ -565,6 +565,8 @@ class MTurkResource:
         return "{}/HITTypeIds".format(await self.key_base())
     async def key_hit_type_params_for_htid(self, htid):
         return "{}/HITTypeParams/{}".format(await self.key_base(), htid)
+    async def key_hit_type_qualification_type_id_for_htid(self, htid):
+        return "{}/QualificationTypeId/{}".format(await self.key_base(), htid)
     async def key_assignments(self):
         return "{}/Assignments".format(await self.key_base())
 
@@ -618,6 +620,12 @@ class MTurkResource:
         }
         await self.redis.execute("SADD", await self.key_hit_type_ids(), htid)
         await self.redis.execute("SET", await self.key_hit_type_params_for_htid(htid), json.dumps(params))
+
+    async def set_hit_type_qualification_type_id_for_htid(self, htid, qtid):
+        await self.redis.execute("SET", await self.key_hit_type_qualification_type_id_for_htid(htid), qtid)
+
+    async def get_hit_type_qualification_type_id_for_htid(self, htid):
+        return await self.redis.execute_str("GET", await self.key_hit_type_qualification_type_id_for_htid(htid))
 
     async def get_hits(self):
         data = await self.redis.execute("GET", await self.key_hits())

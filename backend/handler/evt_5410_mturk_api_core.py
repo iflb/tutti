@@ -48,6 +48,10 @@ class Handler(EventHandler):
         return await self.r_mt.get_hit_type_params_for_htid(HITTypeId)
     async def cache_set_hit_type(self, HITTypeId, Params):
         await self.r_mt.set_hit_type_params_for_htid(HITTypeId, Params)
+    async def cache_get_hit_type_qualification_type_id(self, HITTypeId):
+        await self.r_mt.get_hit_type_qualification_type_id_for_htid(HITTypeId)
+    async def cache_set_hit_type_qualification_type_id(self, HITTypeId, QualificationTypeId):
+        await self.r_mt.set_hit_type_qualification_type_id_for_htid(HITTypeId, QualificationTypeId)
     async def cache_get_assignments_list(self):
         return await self.r_mt.get_assignments()
     async def cache_set_assignments_list(self, data):

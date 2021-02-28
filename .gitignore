@@ -13,3 +13,4 @@ projects/*
 redis/
 projects/test0812
 letsencrypt/
+frontend/src/lib/tutti-js/

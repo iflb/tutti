@@ -1,6 +1,7 @@
 <template>
     <v-row class="my-10" justify="center">
         <v-col cols="10">
+            {{ attributes }}
             <v-card>
                 <v-card-title>
                     Assign HIT Type <v-btn icon @click="openNewWindow('https://docs.aws.amazon.com/AWSMechTurk/latest/AWSMechanicalTurkRequester/Concepts_HITTypesArticle.html');"><v-icon>mdi-help-circle-outline</v-icon></v-btn>
@@ -192,6 +193,7 @@
 </template>
 <script>
 import Snackbar from '@/views/assets/Snackbar.vue'
+import { stringifyUnixTime } from '@/lib/utils'
 
 export default {
     name: "HIT-Create",
@@ -326,13 +328,12 @@ export default {
             this.duct.controllers.mturk.createHITsWithHITType( this.prjName, this.numCreateHITs, { HITTypeId, ...this.createHITParams } )
         },
         createHITType() {
-            var qrs = this.attributes.QualificationRequirements;
-            for(const i in qrs) for(const j in qrs[i]["IntegerValues"]) qrs[i]["IntegerValues"][j] = parseInt(qrs[i]["IntegerValues"][j]);
-            this.attributes.Reward = this.attributes.Reward.toString();
-            this.attributes.AutoApprovalDelayInSeconds = parseInt(this.attributes.AutoApprovalDelayInSeconds);
-            this.attributes.AssignmentDurationInSeconds = parseInt(this.attributes.AssignmentDurationInSeconds);
-
-            this.duct.controllers.mturk.createHITType(this.attributes)
+            this.duct.controllers.mturk.createQualification({
+                Name: `TUTTI_HITTYPE_QUALIFICATION ${stringifyUnixTime(new Date())}`,
+                Description: "TUTTI_HITTYPE_QUALIFICATION",
+                AutoGranted: false,
+                QualificationTypeStatus: "Active"
+            });
         },
 
         confirmPostHITs() {
@@ -340,7 +341,7 @@ export default {
         },
         postHITs() {
             this.postingHITs = true;
-            if(this.createNew){ this.createHITType(); }
+            if(this.createNew){ this.createHITType(this.attributes); }
             else { this.createHITsWithHITType(this.chosenExstHITTypeId); }
         },
     },
@@ -366,6 +367,28 @@ export default {
                 }
             });
 
+            this.duct.eventListeners.mturk.on("createQualification", {
+                success: (data) => {
+                    const QualificationTypeId = data.QualificationType.QualificationType.QualificationTypeId;
+                    
+                    let attrs = this.attributes;
+                    var qrs = attrs.QualificationRequirements;
+                    for(const i in qrs) {
+                        if(qrs[i].IntegerValues.length) qrs[i].IntegerValues.map((data) => parseInt(data));
+                        else delete qrs[i].IntegerValues;
+                    }
+                    qrs.push({
+                        QualificationTypeId,
+                        Comparator: "DoesNotExist",
+                        ActionsGuarded: "DiscoverPreviewAndAccept"
+                    });
+                    attrs.Reward = attrs.Reward.toString();
+                    attrs.AutoApprovalDelayInSeconds = parseInt(attrs.AutoApprovalDelayInSeconds);
+                    attrs.AssignmentDurationInSeconds = parseInt(attrs.AssignmentDurationInSeconds);
+
+                    this.duct.controllers.mturk.createHITType(attrs, QualificationTypeId)
+                }
+            })
             this.duct.eventListeners.mturk.on("createHITType", {
                 success: (data) => {
                     this.createHITsWithHITType(data["HITTypeId"]);
