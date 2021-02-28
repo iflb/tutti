@@ -96,14 +96,23 @@ class Handler(EventHandler):
             return hits
 
         else:
-            ret = await self._list_hits("list_hits")
+            ret = await self._list_hits()
             await self.evt_mturk_api_core.cache_set_hit_list(ret)
             return ret
 
-    async def list_hits_for_hit_type(self, HITTypeId):
-        QualificationTypeId = await self.r_mt.get_hit_type_qualification_type_id_for_htid(HITTypeId)
-        if QualificationTypeId:  return (await self._list_hits(QualificationTypeId))["HITTypes"]
-        else:  return {}
+    async def list_hits_for_hit_type(self, HITTypeId, Cached=True):
+        if Cached and (hits := await self.evt_mturk_api_core.cache_get_hits_for_htid(HITTypeId)):
+            return dict([(HITTypeId,hits)])
+
+        else:
+            print("non-cache", HITTypeId)
+            QualificationTypeId = await self.r_mt.get_hit_type_qualification_type_id_for_htid(HITTypeId)
+            if not QualificationTypeId: return {}
+
+            hit_types = (await self._list_hits(QualificationTypeId))["HITTypes"]  # ideally only one hit type is returned
+            htid = list(hit_types.keys())[0]
+            await self.evt_mturk_api_core.cache_set_hits_for_htid(htid, hit_types[htid])
+            return hit_types 
 
     async def get_hit_types(self, HITTypeIds=None):
         if not isinstance(HITTypeIds, list):  HITTypeIds = await self.evt_mturk_api_core.cache_get_hit_type_ids()

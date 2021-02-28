@@ -38,20 +38,30 @@ class Handler(EventHandler):
         return await self.r_mt.get_secret_access_key()
     async def cache_get_is_sandbox(self):
         return await self.r_mt.get_is_sandbox()
+
     async def cache_get_hit_list(self):
         return await self.r_mt.get_hits()
     async def cache_set_hit_list(self, data):
         await self.r_mt.set_hits(data)
+
+    async def cache_get_hits_for_htid(self, HITTypeId):
+        return await self.r_mt.get_hits_for_htid(HITTypeId)
+    async def cache_set_hits_for_htid(self, HITTypeId, HITs):
+        await self.r_mt.set_hits_for_htid(HITTypeId, HITs)
+
     async def cache_get_hit_type_ids(self):
         return await self.r_mt.get_hit_type_ids()
+
     async def cache_get_hit_type(self, HITTypeId):
         return await self.r_mt.get_hit_type_params_for_htid(HITTypeId)
     async def cache_set_hit_type(self, HITTypeId, Params):
         await self.r_mt.set_hit_type_params_for_htid(HITTypeId, Params)
+
     async def cache_get_hit_type_qualification_type_id(self, HITTypeId):
         await self.r_mt.get_hit_type_qualification_type_id_for_htid(HITTypeId)
     async def cache_set_hit_type_qualification_type_id(self, HITTypeId, QualificationTypeId):
         await self.r_mt.set_hit_type_qualification_type_id_for_htid(HITTypeId, QualificationTypeId)
+
     async def cache_get_assignments_list(self):
         return await self.r_mt.get_assignments()
     async def cache_set_assignments_list(self, data):

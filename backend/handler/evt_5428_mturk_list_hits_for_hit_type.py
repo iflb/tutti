@@ -19,14 +19,20 @@ class Handler(EventHandler):
 
     @handler_output
     async def handle(self, event, output):
-        if event.data and "HITTypeId" in event.data:
-            htids = [event.data["HITTypeId"]]
+        ret = await self._list_hits_for_hit_type(**event.data)
+        output.set("Results", ret)
+
+    async def _list_hits_for_hit_type(self, HITTypeId=None, Cached=True):
+        print(HITTypeId)
+        if HITTypeId:
+            htids = [HITTypeId]
         else:
             htids = await self.r_mt.get_hit_type_ids()
-        tasks = [self.evt_mturk_api_hit_core.list_hits_for_hit_type(htid) for htid in htids]
+            
+        tasks = [self.evt_mturk_api_hit_core.list_hits_for_hit_type(htid, Cached) for htid in htids]
         results = await asyncio.gather(*tasks)
 
         ret = {}
         for result in results:  ret = ret | result
 
-        output.set("Results", { "HITTypes": ret })
+        return ret

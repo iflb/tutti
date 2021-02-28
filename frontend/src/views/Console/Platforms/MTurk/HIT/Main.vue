@@ -68,7 +68,7 @@
                             ${{ item.reward }}
                         </template>
                         <template v-slot:item.refresh="{ item }">
-                            <v-btn icon @click="listHITs(item.id)"><v-icon>mdi-refresh</v-icon></v-btn>
+                            <v-btn icon @click="listHITs(item.id, false)"><v-icon>mdi-refresh</v-icon></v-btn>
                         </template>
                         <template v-slot:expanded-item="{ headers, item }">
                             <td :colspan="headers.length">
@@ -173,9 +173,9 @@ export default {
             this.button.deleteHITs.loading = true;
             this.duct.controllers.mturk.deleteHITs(this.selectedHITIds);
         },
-        listHITs(HITTypeId){
+        listHITs(HITTypeId, Cached){
             this.loadingHITs = true;
-            this.duct.controllers.mturk.listHITsForHITType(HITTypeId);
+            this.duct.controllers.mturk.listHITsForHITType(HITTypeId, Cached);
         }
     },
 
@@ -191,12 +191,13 @@ export default {
         this.duct.invokeOrWaitForOpen(() => {
             this.duct.eventListeners.mturk.on("listHITsForHITType", {
                 success: (data) => {
+                    console.log(data);
                     this.loadingHITs = false;
                     //this.listLastRetrieved = stringifyUnixTime(data["Results"]["LastRetrieved"]);
 
                     //this.hitTypes = [];
-                    for(const htid in data["Results"]["HITTypes"]){
-                        const ht = data["Results"]["HITTypes"][htid];
+                    for(const htid in data["Results"]){
+                        const ht = data["Results"][htid];
 
                         const rowData = {
                             id: htid,
