@@ -28,7 +28,7 @@
                         <template v-slot:top>
                             <v-card-title>
                                 HITs
-                                <v-btn icon @click="listHITs(false)"><v-icon>mdi-refresh</v-icon></v-btn>
+                                <v-btn icon @click="listHITs()"><v-icon>mdi-refresh</v-icon></v-btn>
                                 <v-spacer></v-spacer>
                                 <v-spacer></v-spacer>
                                 <v-text-field v-model="search" append-icon="mdi-magnify" label="Search" single-line hide-details></v-text-field>
@@ -66,6 +66,9 @@
                         </template>
                         <template v-slot:item.reward="{ item }">
                             ${{ item.reward }}
+                        </template>
+                        <template v-slot:item.refresh="{ item }">
+                            <v-btn icon @click="listHITs(item.id)"><v-icon>mdi-refresh</v-icon></v-btn>
                         </template>
                         <template v-slot:expanded-item="{ headers, item }">
                             <td :colspan="headers.length">
@@ -115,6 +118,7 @@ export default {
           { text: '# HITs (Open/Closed)', value: 'num_hits' },
           { text: 'Creation Time', value: 'creation_time' },
           { text: 'Expiration Time', value: 'expiration_time' },
+          { text: '', value: 'refresh' },
           { text: '', value: 'data-table-expand' },
         ],
         listLastRetrieved: null,
@@ -169,43 +173,54 @@ export default {
             this.button.deleteHITs.loading = true;
             this.duct.controllers.mturk.deleteHITs(this.selectedHITIds);
         },
-        listHITs(cached){
+        listHITs(HITTypeId){
             this.loadingHITs = true;
-            this.duct.controllers.mturk.listHITs(cached);
+            this.duct.controllers.mturk.listHITsForHITType(HITTypeId);
         }
     },
 
     watch: {
         credentials: {
             handler() {
-                this.listHITs(true);
+                this.listHITs();
             },
             deep: true
         }
     },
     created() {
         this.duct.invokeOrWaitForOpen(() => {
-            this.duct.eventListeners.mturk.on("listHITs", {
+            this.duct.eventListeners.mturk.on("listHITsForHITType", {
                 success: (data) => {
                     this.loadingHITs = false;
-                    this.listLastRetrieved = stringifyUnixTime(data["Results"]["LastRetrieved"]);
-                    const hits = data["Results"]["HITTypes"];
+                    //this.listLastRetrieved = stringifyUnixTime(data["Results"]["LastRetrieved"]);
 
-                    this.hitTypes = [];
-                    for(var i in hits){
-                        this.hitTypes.push({
-                            id: i,
-                            groupId: hits[i]["HITGroupId"],
-                            title: hits[i]["Props"]["Title"],
-                            project_names: hits[i]["ProjectNames"],
-                            reward: hits[i]["Props"]["Reward"],
-                            creation_time: stringifyUnixTime(hits[i]["CreationTime"]),
-                            expiration_time: stringifyUnixTime(hits[i]["Expiration"]),
-                            num_hits: hits[i]["Count"],
-                            num_assignable: hits[i]["HITStatusCount"]["Assignable"],
-                            num_reviewable: hits[i]["HITStatusCount"]["Reviewable"],
-                            detail: hits[i]
-                        });
+                    //this.hitTypes = [];
+                    for(const htid in data["Results"]["HITTypes"]){
+                        const ht = data["Results"]["HITTypes"][htid];
+
+                        const rowData = {
+                            id: htid,
+                            groupId: ht["HITGroupId"],
+                            title: ht["Props"]["Title"],
+                            project_names: ht["ProjectNames"],
+                            reward: ht["Props"]["Reward"],
+                            creation_time: stringifyUnixTime(ht["CreationTime"]),
+                            expiration_time: stringifyUnixTime(ht["Expiration"]),
+                            num_hits: ht["Count"],
+                            num_assignable: ht["HITStatusCount"]["Assignable"],
+                            num_reviewable: ht["HITStatusCount"]["Reviewable"],
+                            detail: ht
+                        };
+
+                        let existed = false;
+                        for(const i in this.hitTypes) {
+                            if(this.hitTypes[i].id==htid) {
+                                this.$set(this.hitTypes, i, rowData);
+                                existed = true;
+                                break;
+                            }
+                        }
+                        if(!existed) this.hitTypes.push(rowData);
                     }
                     this.selectedHITTypes = [];
                 }
@@ -223,18 +238,18 @@ export default {
                         }
 
                         this.button[opr+"HITs"].loading = false;
-                        this.listHITs(false);
+                        //this.listHITs(false);
                     },
                     error: (data) => {
                         this.$refs.snackbarError.show(`Errors occurred in ${opr.slice(0,-1)}ing HITs: ${data["Reason"]}`);
 
                         this.button[opr+"HITs"].loading = false;
-                        this.listHITs(false);
+                        //this.listHITs(false);
                     }
                 });
             }
 
-            this.listHITs(true);
+            this.listHITs();
         });
     }
 }
