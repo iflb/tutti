@@ -1,7 +1,6 @@
 <template>
     <v-row class="my-10" justify="center">
         <v-col cols="10">
-            {{ attributes }}
             <v-card>
                 <v-card-title>
                     Assign HIT Type <v-btn icon @click="openNewWindow('https://docs.aws.amazon.com/AWSMechTurk/latest/AWSMechanicalTurkRequester/Concepts_HITTypesArticle.html');"><v-icon>mdi-help-circle-outline</v-icon></v-btn>
@@ -28,7 +27,7 @@
                                     <td><v-radio-group class="ma-0 pa-0" dense hide-details v-model="chosenExstHITTypeId"><v-radio :value="htid"></v-radio></v-radio-group></td>
                                     <td>{{ params.Title }}</td>
                                     <td>{{ htid }}</td>
-                                    <td><v-btn small text color="indigo">Copy to new</v-btn></td>
+                                    <td><v-btn small text color="indigo" @click="createNew=true; $nextTick(() => { chosenExstHITTypeId = htid; });">Copy to new</v-btn></td>
                                 </tr>
                             </tbody>
                         </template>
