@@ -53,14 +53,20 @@ class Handler(EventHandler):
     async def cache_set_assignments_list(self, data):
         await self.r_mt.set_assignments(data)
 
-    @backoff.on_exception(backoff.expo, ClientError)
+    @backoff.on_predicate(backoff.expo, lambda x: isinstance(x,ClientError))
     async def exec_boto3(self, Method, Parameters=None):
         if Parameters is None:  Parameters = {}
 
         async with await self._get_client_async() as client:
             namespace = {"client": client}
             exec("async def _func(**kwargs): return await client.{}(**kwargs)".format(Method), namespace)
-            results = await namespace["_func"](**Parameters)
+            try:
+                results = await namespace["_func"](**Parameters)
+            except ClientError as e:
+                if e.response["Error"]["Code"]=="ThrottlingException" and e.response["Error"]["Message"]=="Rate exceeded":
+                    return e
+                else:
+                    raise e
             self.map_nested_dicts_modify(results, lambda x: x.timestamp() if isinstance(x, datetime) else x)
             return results
 

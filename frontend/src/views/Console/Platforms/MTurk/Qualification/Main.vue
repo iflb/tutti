@@ -55,18 +55,18 @@
 
             <tutti-dialog ref="dialogCreate" title="Create Qualification Type" maxWidth="500"
                 :actions="[
-                    { label: 'Create', color: 'indigo darken-1', dark: true, onclick: createQualificationType },
+                    { label: 'Create', color: 'indigo darken-1', disableByRule: true, text: true, onclick: createQualificationType },
                     { label: 'Cancel', color: 'grey darken-1', text: true }
                 ]" >
                 <template v-slot:body>
                     <v-row>
-                        <v-col cols="12">
-                            <v-text-field prepend-icon="mdi-label" v-model="newQualParams.Name" filled label="Name" dense hide-details/>
+                        <v-col cols="12" class="mb-0 pb-0">
+                            <v-text-field prepend-icon="mdi-label" v-model="newQualParams.Name" filled label="Name" :rules="[rules.required]" dense/>
                         </v-col>
-                        <v-col cols="12">
-                            <v-text-field prepend-icon="mdi-message-text" v-model="newQualParams.Description" filled label="Description" dense hide-details/>
+                        <v-col cols="12" class="my-0 py-0">
+                            <v-text-field prepend-icon="mdi-message-text" v-model="newQualParams.Description" filled label="Description" :rules="[rules.required]" dense/>
                         </v-col>
-                        <v-col cols="6"><v-switch v-model="newQualParams.AutoGranted" color="indigo" hide-details label="AutoGranted" /></v-col>
+                        <v-col cols="6" class="my-0 py-0"><v-switch v-model="newQualParams.AutoGranted" color="indigo" hide-details label="AutoGranted" /></v-col>
                     </v-row>
                 </template>
             </tutti-dialog>
@@ -75,6 +75,7 @@
 <script>
 import 'vue-json-pretty/lib/styles.css'
 import { stringifyUnixTime } from '@/lib/utils'
+import rules from '@/lib/input-rules'
 
 export default {
     components: {
@@ -83,6 +84,8 @@ export default {
         TuttiDialog: () => import('@/views/assets/Dialog')
     },
     data: () => ({
+        rules,
+
         selectedQualTypes: [],
         search: "",
         expanded: [],
