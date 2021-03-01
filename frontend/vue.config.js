@@ -8,12 +8,12 @@ module.exports = {
     configureWebpack: {
         resolve: { symlinks: false },
         devtool: 'source-map',
-        watch: true,
-        watchOptions: {
-            aggregateTimeout: 1000,
-            poll: 5000,
-            ignored: /node_modules/
-        },
+        //watch: true,
+        //watchOptions: {
+        //    aggregateTimeout: 1000,
+        //    poll: 5000,
+        //    ignored: /node_modules/
+        //},
         devServer: {
             watchOptions: {
                 poll: true

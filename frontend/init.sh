@@ -1,5 +1,5 @@
 #!/bin/ash
 
 npm run serve &
-npm run build &
+#npm run build &
 /bin/ash
