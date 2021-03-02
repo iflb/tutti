@@ -28,7 +28,7 @@
                         <template v-slot:top>
                             <v-card-title>
                                 HITs
-                                <v-btn icon @click="listHITs()"><v-icon>mdi-refresh</v-icon></v-btn>
+                                <v-btn icon @click="listHITs(false)"><v-icon>mdi-refresh</v-icon></v-btn>
                                 <v-spacer></v-spacer>
                                 <v-spacer></v-spacer>
                                 <v-text-field v-model="search" append-icon="mdi-magnify" label="Search" single-line hide-details></v-text-field>
@@ -68,7 +68,8 @@
                             ${{ item.reward }}
                         </template>
                         <template v-slot:item.refresh="{ item }">
-                            <v-btn icon @click="listHITs(item.id, false)"><v-icon>mdi-refresh</v-icon></v-btn>
+                            <v-btn v-if="item.refresh==false" icon @click="item.refresh=true; listHITs(item.id, false)"><v-icon>mdi-refresh</v-icon></v-btn>
+                            <v-progress-circular v-else indeterminate color="grey darken-2" :size="20" :width="2"></v-progress-circular>
                         </template>
                         <template v-slot:expanded-item="{ headers, item }">
                             <td :colspan="headers.length">
@@ -174,7 +175,7 @@ export default {
             this.duct.controllers.mturk.deleteHITs(this.selectedHITIds);
         },
         listHITs(HITTypeId, Cached){
-            this.loadingHITs = true;
+            if(Cached) this.loadingHITs = true;
             this.duct.controllers.mturk.listHITsForHITType(HITTypeId, Cached);
         }
     },
@@ -207,6 +208,7 @@ export default {
                             reward: ht["Props"]["Reward"],
                             creation_time: stringifyUnixTime(ht["CreationTime"]),
                             expiration_time: stringifyUnixTime(ht["Expiration"]),
+                            refresh: false,
                             num_hits: ht["Count"],
                             num_assignable: ht["HITStatusCount"]["Assignable"],
                             num_reviewable: ht["HITStatusCount"]["Reviewable"],

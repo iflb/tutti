@@ -26,6 +26,7 @@
                   v-model="selectedWorkers"
                   sort-by="Timestamp"
                   sort-desc
+                  :search="search"
                 >
                     <template v-slot:top>
                         <v-card-title>
@@ -52,12 +53,12 @@
                     { label: 'Cancel', color: 'grey darken-1', text: true }
                 ]" >
                 <template v-slot:body>
-                    <v-combobox dense multiple small-chips outlined hide-selected v-model="sendEmailWorkerIds" :items="workerIds" label="To">
+                    <v-combobox dense multiple small-chips outlined hide-selected v-model="sendEmailWorkerIds" :items="workerIds" label="To" :search-input.sync="searchedWorkerId">
                         <template v-slot:no-data>
                             <v-list-item>
                                 <v-list-item-content>
                                     <v-list-item-title>
-                                        No results matching "<strong>{{ search }}</strong>". Press <kbd>enter</kbd> to create a new one
+                                        No results matching "<strong>{{ searchedWorkerId }}</strong>". Press <kbd>enter</kbd> to create a new one
                                     </v-list-item-title>
                                 </v-list-item-content>
                             </v-list-item>
@@ -74,12 +75,12 @@
                     { label: 'Cancel', color: 'grey darken-1', text: true }
                 ]" >
                 <template v-slot:body>
-                    <v-combobox dense multiple small-chips outlined hide-selected v-model="newAssociateQual.WorkerIds" :items="workerIds" label="To">
+                    <v-combobox dense multiple small-chips outlined hide-selected v-model="newAssociateQual.WorkerIds" :items="workerIds" label="To" :search-input.sync="searchedWorkerId">
                         <template v-slot:no-data>
                             <v-list-item>
                                 <v-list-item-content>
                                     <v-list-item-title>
-                                        No results matching "<strong>{{ search }}</strong>". Press <kbd>enter</kbd> to create a new one
+                                        No results matching "<strong>{{ searchedWorkerId }}</strong>". Press <kbd>enter</kbd> to create a new one
                                     </v-list-item-title>
                                 </v-list-item-content>
                             </v-list-item>
@@ -105,6 +106,7 @@ export default {
     data: () => ({
         hoge: "",
         search: "",
+        searchedWorkerId: "",
         workerHeaders: [
           { text: 'Worker ID', value: 'wid' },
           { text: 'Worker ID (MTurk)', value: 'PlatformWorkerId' },
