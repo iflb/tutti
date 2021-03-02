@@ -175,7 +175,7 @@ export default {
             this.duct.controllers.mturk.deleteHITs(this.selectedHITIds);
         },
         listHITs(HITTypeId, Cached){
-            if(Cached) this.loadingHITs = true;
+            if(!HITTypeId) this.loadingHITs = true;
             this.duct.controllers.mturk.listHITsForHITType(HITTypeId, Cached);
         }
     },
