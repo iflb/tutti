@@ -41,11 +41,11 @@ class Handler(EventHandler):
         pn = scheme.flow.pn
 
         prev_nsid = nsid
-        wkr_context = await WorkerContext(self.redis, wid, pn)._load_for_read(flow)
-        ws_context = await WorkSessionContext(self.redis, wsid, pn)._load_for_read(flow)
+        wkr_ctxt = await WorkerContext(self.redis, wid, pn)._load_for_read(flow)
+        ws_ctxt = await WorkSessionContext(self.redis, wsid, pn)._load_for_read(flow)
 
         try_skip = False
-        while (next_node := next_node.forward(wkr_context, ws_context, try_skip=try_skip)):
+        while (next_node := next_node.forward(wkr_ctxt, ws_ctxt, try_skip=try_skip)):
             try_skip = False
             if next_node.is_template():
                 has_nanotasks = await self.r_nt.check_id_exists_for_pn_tn(pn, next_node.name)
@@ -60,6 +60,7 @@ class Handler(EventHandler):
                     nid = None
             else:
                 nid = None
+
             ns = NodeSessionResource.create_instance(pn=pn,
                                                      name=next_node.name,
                                                      wid=wid,
@@ -244,12 +245,12 @@ class Handler(EventHandler):
             else:
                 ref = None
             
-            wkr_context = WorkerContext(event.session.redis, wid, pn)
-            ws_context = WorkSessionContext(event.session.redis, wsid, pn)
+            wkr_ctxt = await WorkerContext(event.session.redis, wid, pn)._load_for_read()
+            ws_ctxt = await WorkSessionContext(event.session.redis, wsid, pn)._load_for_read()
             if callable(node.on_submit):
-                node.on_submit(wkr_context, ws_context, response["Answers"], ref)
-            await wkr_context._register_new_members_to_redis()
-            await ws_context._register_new_members_to_redis()
+                node.on_submit(wkr_ctxt, ws_ctxt, response["Answers"], ref)
+            await wkr_ctxt._register_new_members_to_redis()
+            await ws_ctxt._register_new_members_to_redis()
 
         else:
             raise Exception("unknown command '{}'".format(command))

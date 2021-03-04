@@ -58,17 +58,27 @@ class FlowNode:
     def is_template(self):
         return isinstance(self, TemplateNode)
         
-    def eval_cond(self, wkr_context, ws_context):
+    def eval_cond(self, wkr_ctxt, ws_ctxt):
         if callable(self.condition):
-            return self.condition(wkr_context, ws_context)
+            return self.condition(wkr_ctxt, ws_ctxt)
         else:
             print("skipping self.condition", self.condition)
             return True
 
-    def forward(self, wkr_context, ws_context, try_skip=False):
+    def forward(self, wkr_ctxt, ws_ctxt, try_skip=False):
+        def _invoke_on_enter(node):
+            if callable(next_node.on_enter):
+                node.on_enter(wkr_ctxt, ws_ctxt)
+            return node
+
+        def _invoke_on_exit(node):
+            if callable(node.on_exit):
+                node.on_exit(wkr_ctxt, ws_ctxt)
+            return node
+
         def check_node_exec_or_skip(node, try_skip=False):
             if node.statement in (Statement.IF, Statement.WHILE):
-                if node.eval_cond(wkr_context, ws_context) and try_skip==False:
+                if node.eval_cond(wkr_ctxt, ws_ctxt) and try_skip==False:
                     return node
                 else:
                     if node.is_skippable:  return None
@@ -81,31 +91,42 @@ class FlowNode:
                     return node
 
 
+        ### main part starts here ###
+
+        # try to get the first available children in the batch
         if isinstance(self, BatchNode):
             for child in self.children:
                 node = check_node_exec_or_skip(child)
-                if node: return node
-                else:    continue
+                if node:  return _invoke_on_enter(node)
+                else: continue
+            # reaches here if no children is available
 
-        _parent = self
+        # reaches here if it's a BatchNode w/o available children OR a TemplateNode
+
+        _invoke_on_exit(self)
+
+        _node = self
         while True:
             if try_skip:
-                check_node_exec_or_skip(_parent, try_skip=try_skip)
-                # reaches here only if the node *is_skippable*, to go to the next node 
-            else:
-                if _parent.statement==Statement.WHILE:
-                    if _parent.eval_cond(wkr_context, ws_context):
-                        return _parent
+                check_node_exec_or_skip(_node, try_skip=True)
 
-            _next = _parent
+                # checking only whether the node is skippable
+                # so, reaches here only if the node *is_skippable*, and go search the next node below
+                # (if above would return something, it's always None, so ignore the return value)
+            else:
+                if _node.statement==Statement.WHILE:
+                    if _node.eval_cond(wkr_ctxt, ws_ctxt):
+                        return _invoke_on_enter(_node)
+
+            _next = _node
             while (_next := _next.next):
                 node = check_node_exec_or_skip(_next, try_skip=try_skip)
-                if node: return node
+                if node: return _invoke_on_enter(node)
                 else:    continue
 
-            if not (_parent := _parent.parent):  break
+            # reaches here when no executable next nodes are found
 
-        return _parent
+            if not (_node := _node.parent):  return None
 
 class TerminalNode(FlowNode):
     def __init__(self, name):
@@ -121,21 +142,26 @@ class EndNode(TerminalNode):
 
 
 class TemplateNode(FlowNode):
-    def __init__(self, name, statement=Statement.NONE, condition=None, is_skippable=False, on_submit=None):
+    def __init__(self, name, statement=Statement.NONE, condition=None, is_skippable=False, on_enter=None, on_submit=None, on_exit=None):
         super().__init__(name,
                          statement=statement,
                          condition=condition,
                          is_skippable=is_skippable)
+        self.on_enter = on_enter
         self.on_submit = on_submit
+        self.on_exit = on_exit
 
 class BatchNode(FlowNode):
-    def __init__(self, name, children=None, statement=Statement.NONE, condition=None, is_skippable=False):
+    def __init__(self, name, children=None, statement=Statement.NONE, condition=None, is_skippable=False, on_enter=None, on_exit=None):
         super().__init__(name,
                          statement=statement,
                          condition=condition,
                          is_skippable=is_skippable)
         self.children = children if children else []
         self.scan_children()
+
+        self.on_enter = on_enter
+        self.on_exit = on_exit
 
     def scan_children(self):
         c_prev = None

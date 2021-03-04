@@ -36,7 +36,8 @@ class ContextBase:
             for name,values in self.new_members.items():  await self.redis.execute("RPUSH", self._path_member(name), *values)
 
 
-
+    def get_id(self):
+        return int(self.id[-8:])
 
     def get_member(self, name):
         return self.members[name] if name in self.members else []
