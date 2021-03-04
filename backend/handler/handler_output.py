@@ -8,6 +8,7 @@ import json
 
 import logging
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 class CommandError(Exception):
     pass
@@ -50,7 +51,7 @@ def handler_output(f):
         kwargs["output"] = _output
         try:
             await f(*args, **kwargs)
-            output = _output
+            output = _output # set contents are accepted only no exception is raised
         except CommandError as e:
             output.set_error_status(f"unknown command '{e}'")
         except Exception as e:
@@ -61,5 +62,10 @@ def handler_output(f):
             error = tb[-1].split("\n")[0]
             logger.debug(json.dumps(tb,indent=4))
             output.set_error_status(f"{error} [{fname} (line {lineno})]")
+
+            # only for evt_5100_session.py
+            if "Command" in _output.contents:
+                output.set("Command", _output.contents["Command"])
+
         return output.dict()
     return wrapper

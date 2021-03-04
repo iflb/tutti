@@ -1,5 +1,5 @@
 import json
-from handler.redis_resource import NodeSessionResource
+from handler.redis_resource import (NodeSessionResource, WorkerResource)
 
 class ContextBase:
     def __init__(self, redis, resource, id, pn):
@@ -52,10 +52,19 @@ class ContextBase:
 class WorkerContext(ContextBase):
     def __init__(self, redis, id, pn):
         super().__init__(redis, "Worker", id, pn)
+        self.r_wkr = WorkerResource(redis)
 
     async def _load_cnt(self, flow):
         nns = flow.get_all_node_names()
         self._cnt = {nn: await self.r_ns.get_length_for_pn_nn_wid(self.pn, nn, self.id) for nn in nns}
+
+    async def _load_for_read(self, flow):
+        await super()._load_for_read(flow)
+        self.prj_id = await self.r_wkr.get_prj_id(self.pn, self.id)
+        return self
+
+    def get_prj_id(self):
+        return self.prj_id
 
 class WorkSessionContext(ContextBase):
     def __init__(self, redis, id, pn):

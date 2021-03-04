@@ -82,6 +82,8 @@ class WorkerResource(RedisResource):
     def key_ids_for_pn(self,pn):                   return f"WorkerIds/PRJ:{pn}"
     def key_ids_assigned_for_nid(self,nid):        return f"WorkerIdsAssigned/{nid}"
     def key_ids_map_for_platform(self, platform):  return f"WorkerIdsMap/{platform}"
+    def key_prj_ids(self,pn):                      return f"ProjectWorkerIds/PRJ:{pn}"
+    def key_prj_id_counter(self,pn):               return f"ProjectWorkerIds/PRJ:{pn}/Counter"
         
     @classmethod
     def create_instance(cls, platform_wid, platform):
@@ -116,6 +118,16 @@ class WorkerResource(RedisResource):
     async def get_ids_assigned_for_nid(self, nid):
         return await self.redis.execute_str("SMEMBERS", self.key_ids_assigned_for_nid(nid))
 
+    async def add_prj_id(self, pn, id):
+        if not (prj_id := await self.get_prj_id(pn, id)):
+            next_prj_id = await self.redis.execute("INCR", self.key_prj_id_counter(pn))
+            return await self.redis.execute("HSET", self.key_prj_ids(pn), id, next_prj_id)
+
+    async def get_prj_id(self, pn, id):
+        try:
+            return int(await self.redis.execute_str("HGET", self.key_prj_ids(pn), id))
+        except:
+            return None
 
 class NanotaskResource(RedisResource):
     def __init__(self, redis):

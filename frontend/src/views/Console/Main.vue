@@ -285,7 +285,6 @@ export default {
             //}
         },
         disconnect() {
-            console.log("disconnecting")
             this.retry.enabled = false;
             this.duct.close();
         }

@@ -100,7 +100,7 @@
 </template>
 
 <script>
-import tutti from 'tutti'
+import tutti from '@/lib/tutti-js/lib/tutti'
 import { platformConfig } from './platformConfig'
 
 export default {
@@ -188,6 +188,7 @@ export default {
             this.duct.addOnOpenHandler(() => {
                 this.duct.eventListeners.resource.on("getProjectScheme", {
                     success: (data) => {
+                        console.log("getProjectScheme");
                         const config = data["Config"];
                         this.pagination = config["Pagination"];
                         this.projectTitle = config["Title"] || "";
@@ -210,6 +211,7 @@ export default {
                 });
                 this.duct.eventListeners.resource.on("checkPlatformWorkerIdExistenceForProject", {
                     success: (data) => {
+                        console.log("checkPlatformWorkerIdExistenceForProject");
                         if(!data["Exists"]) this.$refs.dialogInstruction.shown=true;
                     },
                     error: (data) => {
@@ -218,6 +220,7 @@ export default {
                 });
                 this.duct.eventListeners.resource.on("createSession", {
                     success: (data) => {
+                        console.log("createSession");
                         this.wsid = data["WorkSessionId"];
                         this.workerId = data["WorkerId"];
                         this.getTemplate("NEXT");
@@ -228,6 +231,7 @@ export default {
                 });
                 this.duct.eventListeners.resource.on("getTemplateNode", {
                     success: (data) => {
+                        console.log("getTemplateNode", data);
                         this.hasPrevTemplate = data["HasPrevTemplate"];
                         this.hasNextTemplate = data["HasNextTemplate"];
                         if(data["Template"]){

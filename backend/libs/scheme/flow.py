@@ -46,7 +46,7 @@ class Flow:
         return self.nodes.keys()
 
 class FlowNode:
-    def __init__(self, name, parent=None, prev=None, next=None, statement=Statement.NONE, condition=None, is_skippable=False):
+    def __init__(self, name, parent=None, prev=None, next=None, statement=Statement.NONE, condition=None, is_skippable=False, on_enter=None, on_exit=None):
         self.name = name
         self.parent = parent
         self.prev = prev
@@ -54,6 +54,8 @@ class FlowNode:
         self.statement = statement
         self.condition = condition
         self.is_skippable = is_skippable
+        self.on_enter = on_enter
+        self.on_exit = on_exit
 
     def is_template(self):
         return isinstance(self, TemplateNode)
@@ -67,7 +69,7 @@ class FlowNode:
 
     def forward(self, wkr_ctxt, ws_ctxt, try_skip=False):
         def _invoke_on_enter(node):
-            if callable(next_node.on_enter):
+            if callable(self.on_enter):
                 node.on_enter(wkr_ctxt, ws_ctxt)
             return node
 
@@ -142,26 +144,25 @@ class EndNode(TerminalNode):
 
 
 class TemplateNode(FlowNode):
-    def __init__(self, name, statement=Statement.NONE, condition=None, is_skippable=False, on_enter=None, on_submit=None, on_exit=None):
+    def __init__(self, name, statement=Statement.NONE, condition=None, is_skippable=False, on_enter=None, on_exit=None, on_submit=None):
         super().__init__(name,
                          statement=statement,
                          condition=condition,
-                         is_skippable=is_skippable)
-        self.on_enter = on_enter
+                         is_skippable=is_skippable,
+                         on_enter=on_enter,
+                         on_exit=on_exit)
         self.on_submit = on_submit
-        self.on_exit = on_exit
 
 class BatchNode(FlowNode):
     def __init__(self, name, children=None, statement=Statement.NONE, condition=None, is_skippable=False, on_enter=None, on_exit=None):
         super().__init__(name,
                          statement=statement,
                          condition=condition,
-                         is_skippable=is_skippable)
+                         is_skippable=is_skippable,
+                         on_enter=on_enter,
+                         on_exit=on_exit)
         self.children = children if children else []
         self.scan_children()
-
-        self.on_enter = on_enter
-        self.on_exit = on_exit
 
     def scan_children(self):
         c_prev = None

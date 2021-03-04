@@ -98,7 +98,6 @@ class Handler(EventHandler):
         command = event.data["Command"]
         output.set("Command", command)
 
-
         if command=="Create":
             if not (
                     (pn := event.data["ProjectName"]) and
@@ -112,6 +111,8 @@ class Handler(EventHandler):
 
             if not (wid := await self.r_wkr.get_id_for_platform(platform, platform_wid)):
                 wid = await self.r_wkr.add(WorkerResource.create_instance(platform_wid, platform))
+            if not (prj_wid := await self.r_wkr.get_prj_id(pn,wid)):
+                await self.r_wkr.add_prj_id(pn,wid)
 
             if not (wsid := await self.r_ws.get_id_for_pn_wid_ct(pn,wid,ct)):
                 wsid = await self.r_ws.add(WorkSessionResource.create_instance(pn,wid,ct,platform))
@@ -144,6 +145,7 @@ class Handler(EventHandler):
                     if (nid := out_ns["NanotaskId"]) and (nid not in await self.r_nt.get_ids_assigned_for_pn_tn_wid(pn,out_ns["NodeName"],wid)):
                         # mark current node session Expired=True
                         await self.r_ns.set_expired(out_nsid)
+
                         # assign another available nanotask
                         out_ns, out_nsid = await self._get_next_template_node(scheme, scheme.flow.get_node_by_name(out_ns["NodeName"]).prev, wid, wsid, None)
                         out_ans = None
@@ -191,6 +193,7 @@ class Handler(EventHandler):
                                 output.set("WorkSessionStatus", "Terminated")
                                 output.set("TerminateReason", "UnskippableNode")
                                 return
+
                     elif target=="PREV":
                         if ns["PrevId"]:
                             out_nsid = ns["PrevId"]
@@ -245,8 +248,8 @@ class Handler(EventHandler):
             else:
                 ref = None
             
-            wkr_ctxt = await WorkerContext(event.session.redis, wid, pn)._load_for_read()
-            ws_ctxt = await WorkSessionContext(event.session.redis, wsid, pn)._load_for_read()
+            wkr_ctxt = await WorkerContext(event.session.redis, wid, pn)._load_for_read(scheme.flow)
+            ws_ctxt = await WorkSessionContext(event.session.redis, wsid, pn)._load_for_read(scheme.flow)
             if callable(node.on_submit):
                 node.on_submit(wkr_ctxt, ws_ctxt, response["Answers"], ref)
             await wkr_ctxt._register_new_members_to_redis()
