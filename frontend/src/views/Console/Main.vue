@@ -183,6 +183,7 @@ export default {
             maxCnt: 5,
             interval: null
         },
+        wsdPath: "/ducts/wsd",
         drawer: true,
         eventNav: true,
         logTableHeaders: [
@@ -224,18 +225,64 @@ export default {
                 }
             });
         },
+        initDuct() {
+            this.duct = new tutti.Duct();
+
+            this.duct.logger = new tutti.DuctEventLogger(this.duct);
+
+            this.duct.addOnOpenHandler(() => {
+                this.srvStatus = "connected"
+                this.lastPinged = dateFormat(new Date(), "HH:MM:ss")
+
+
+                this.setEventHandlers();
+                this.duct.controllers.resource.listProjects();
+
+
+                setInterval(() => {
+                    var rows = [];
+                    const ductLog = this.duct.logger.log;
+                    for(const rid in ductLog){
+                        if( ductLog[rid].eid <= 1010 )  continue;
+
+                        rows.unshift({
+                            rid,
+                            eid: ductLog[rid].eid,
+                            evtName: Object.keys(this.duct.EVENT).find(key => this.duct.EVENT[key] === ductLog[rid].eid),
+                            sent: ductLog[rid].sent,
+                            received: ductLog[rid].received[0]
+                        });
+                    }
+                    this.serverLogTableRows = rows;
+                }, 1000);
+
+            });
+
+            this.duct._connection_listener.on(["onclose", "onerror"], () => { this.srvStatus = "disconnected"; } );
+
+            this.duct.open(this.wsdPath);
+
+        },
         reconnect() {
             console.log("trying to reconnect");
-            this.duct.reconnect().then(() => {
-                this.retry.enabled = true;
-                this.srvStatus = "connected";
-                this.retry.cnt = 0;
-            }).catch(() => { 
-                if(++this.retry.cnt>=this.retry.maxCnt) {
-                    console.error("failed reconnection 5 times");
-                    this.retry.interval = null;
-                }
-            });
+            this.initDuct();
+            //if(this.duct){
+            //    try {
+            //        this.duct.reconnect().then(() => {
+            //            this.retry.enabled = true;
+            //            this.srvStatus = "connected";
+            //            this.retry.cnt = 0;
+            //        }).catch(() => { 
+            //            if(++this.retry.cnt>=this.retry.maxCnt) {
+            //                console.error("failed reconnection 5 times");
+            //                this.retry.interval = null;
+            //            }
+            //        });
+            //    } catch (e) {
+            //        console.log(e);
+            //    }
+            //} else {
+            //}
         },
         disconnect() {
             console.log("disconnecting")
@@ -245,7 +292,7 @@ export default {
     },
 
     created: function(){
-        this.duct = new tutti.Duct();
+        this.initDuct();
 
         this.srvStatusProfile = {
             connected: {
@@ -269,40 +316,6 @@ export default {
                 }
             }
         }
-
-        this.duct.logger = new tutti.DuctEventLogger(this.duct);
-
-        this.duct.addOnOpenHandler(() => {
-            this.srvStatus = "connected"
-            this.lastPinged = dateFormat(new Date(), "HH:MM:ss")
-
-
-            this.setEventHandlers();
-            this.duct.controllers.resource.listProjects();
-
-
-            setInterval(() => {
-                var rows = [];
-                const ductLog = this.duct.logger.log;
-                for(const rid in ductLog){
-                    if( ductLog[rid].eid <= 1010 )  continue;
-
-                    rows.unshift({
-                        rid,
-                        eid: ductLog[rid].eid,
-                        evtName: Object.keys(this.duct.EVENT).find(key => this.duct.EVENT[key] === ductLog[rid].eid),
-                        sent: ductLog[rid].sent,
-                        received: ductLog[rid].received[0]
-                    });
-                }
-                this.serverLogTableRows = rows;
-            }, 1000);
-
-        });
-
-        this.duct._connection_listener.on(["onclose", "onerror"], () => { this.srvStatus = "disconnected"; } );
-
-        this.duct.open("/ducts/wsd");
 
         this.retry.interval = setInterval(() => {
             if(this.srvStatus=="disconnected" && this.retry.enabled) { this.reconnect(); }
