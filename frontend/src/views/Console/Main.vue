@@ -27,6 +27,7 @@
                     <v-btn depressed :color="srvStatusProfile[srvStatus].btn.color" class="text-none" v-bind="attrs" v-on="on">
                         {{ srvStatusProfile[srvStatus].btn.label }}
                         <span v-if="srvStatus == 'connected'" class="text-caption ml-2">(last pinged: {{ lastPinged }})</span>
+                        <span v-else-if="srvStatus == 'disconnected'" class="text-caption ml-2">(Auto-retry remaining: {{ retry.maxCnt-retry.cnt }})</span>
                     </v-btn>
                 </template>
                 <v-list>
@@ -176,6 +177,12 @@ export default {
     },
     data: () => ({
         duct: null,
+        retry: {
+            enabled: true,
+            cnt: 0,
+            maxCnt: 5,
+            interval: null
+        },
         drawer: true,
         eventNav: true,
         logTableHeaders: [
@@ -216,6 +223,24 @@ export default {
                     this.duct.controllers.resource.listProjects();
                 }
             });
+        },
+        reconnect() {
+            console.log("trying to reconnect");
+            this.duct.reconnect().then(() => {
+                this.retry.enabled = true;
+                this.srvStatus = "connected";
+                this.retry.cnt = 0;
+            }).catch(() => { 
+                if(++this.retry.cnt>=this.retry.maxCnt) {
+                    console.error("failed reconnection 5 times");
+                    this.retry.interval = null;
+                }
+            });
+        },
+        disconnect() {
+            console.log("disconnecting")
+            this.retry.enabled = false;
+            this.duct.close();
         }
     },
 
@@ -227,7 +252,7 @@ export default {
                 btn: {
                     color: "success",
                     label: "Connected to server",
-                    menu: [ { title: "Disconnect", handler: () => { this.duct.close(); } } ]
+                    menu: [ { title: "Disconnect", handler: this.disconnect } ]
                 }
             },
             connecting: {
@@ -240,7 +265,7 @@ export default {
                 btn: {
                     color: "error",
                     label: "No connection to server",
-                    menu: [ { title: "Connect", handler: () => { this.duct.open(); } } ]
+                    menu: [ { title: "Connect", handler: this.reconnect } ]
                 }
             }
         }
@@ -278,6 +303,10 @@ export default {
         this.duct._connection_listener.on(["onclose", "onerror"], () => { this.srvStatus = "disconnected"; } );
 
         this.duct.open("/ducts/wsd");
+
+        this.retry.interval = setInterval(() => {
+            if(this.srvStatus=="disconnected" && this.retry.enabled) { this.reconnect(); }
+        }, 3000);
     }
 }
 </script>
