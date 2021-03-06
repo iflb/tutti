@@ -84,6 +84,8 @@ class WorkerResource(RedisResource):
     def key_ids_map_for_platform(self, platform):  return f"WorkerIdsMap/{platform}"
     def key_prj_ids(self,pn):                      return f"ProjectWorkerIds/PRJ:{pn}"
     def key_prj_id_counter(self,pn):               return f"ProjectWorkerIds/PRJ:{pn}/Counter"
+    def key_active_ids_for_pn(self,pn):            return f"ActiveWorkerIds/PRJ:{pn}"
+    def key_active_ids_for_ct(self,ct):            return f"ActiveWorkerIds/ClientToken:{ct}"
         
     @classmethod
     def create_instance(cls, platform_wid, platform):
@@ -96,6 +98,20 @@ class WorkerResource(RedisResource):
         platform_wid = data["PlatformWorkerId"]
         platform = data["Platform"]
         await self.add_id_map_for_platform(platform, platform_wid, id)
+
+    async def add_active_id_for_pn(self, id, pn):
+        await self.redis.execute("SADD", self.key_active_ids_for_pn(pn), id)
+    async def check_active_id_for_pn(self, id, pn):
+        return await self.redis.execute("SISMEMBER", self.key_active_ids_for_pn(pn), id)
+    async def delete_active_id_for_pn(self, id, pn):
+        return await self.redis.execute("SREM", self.key_active_ids_for_pn(pn), id)
+
+    async def add_active_id_for_ct(self, id, ct):
+        await self.redis.execute("SADD", self.key_active_ids_for_ct(ct), id)
+    async def check_active_id_for_ct(self, id, ct):
+        return await self.redis.execute("SISMEMBER", self.key_active_ids_for_ct(ct), id)
+    async def delete_active_id_for_ct(self, id, ct):
+        return await self.redis.execute("SREM", self.key_active_ids_for_ct(ct), id)
 
     async def get_ids_for_pn(self, pn):
         return await self.redis.execute_str("SMEMBERS", self.key_ids_for_pn(pn))

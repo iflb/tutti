@@ -14,6 +14,7 @@ class ProjectSchemeBase(ABC):
         self.pagination = False
         self.instruction = True
         self.show_title = True
+        self.allow_parallel_sessions = True
 
         self.config_params()
 

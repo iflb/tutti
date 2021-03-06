@@ -7,6 +7,7 @@ from handler.handler_output import handler_output
 
 import logging
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 from libs.scheme.flow import SessionEndException, UnskippableNodeException
 from libs.scheme.context import WorkerContext, WorkSessionContext
@@ -36,6 +37,11 @@ class Handler(EventHandler):
 
         return handler_spec
 
+    #async def _terminate_with_exception(self, wid, pn, ct, exception):
+    #    await self.r_wkr.delete_active_id_for_pn(wid, pn)
+    #    await self.r_wkr.delete_active_id_for_ct(wid, ct)
+    #    raise exception
+
     async def _get_next_template_node(self, scheme, next_node, wid, wsid, nsid):
         flow = scheme.flow
         pn = scheme.flow.pn
@@ -45,7 +51,8 @@ class Handler(EventHandler):
         ws_ctxt = await WorkSessionContext(self.redis, wsid, pn)._load_for_read(flow)
 
         try_skip = False
-        while (next_node := next_node.forward(wkr_ctxt, ws_ctxt, try_skip=try_skip)):
+        while (next_node := await next_node.forward(wkr_ctxt, ws_ctxt, try_skip=try_skip)):
+            logger.debug(f"**{next_node.name}**")
             try_skip = False
             if next_node.is_template():
                 has_nanotasks = await self.r_nt.check_id_exists_for_pn_tn(pn, next_node.name)
@@ -55,7 +62,6 @@ class Handler(EventHandler):
                     nid = await self.r_nt.get_first_id_for_pn_tn_wid(pn, next_node.name, wid, assignment_order=asmt_order, sort_order=sort_order)
                     if not nid:
                         try_skip = True
-                        continue
                 else:
                     nid = None
             else:
@@ -77,7 +83,7 @@ class Handler(EventHandler):
                 await self.r_ns.update(prev_nsid, prev_ns)
 
             prev_nsid = nsid
-            if next_node.is_template():
+            if next_node.is_template() and try_skip is False:
                 return ns, nsid
         raise SessionEndException()
             
@@ -107,16 +113,31 @@ class Handler(EventHandler):
                 ):
                 raise Exception("ProjectName, Platform, PlatformWorkerId, and ClientToken are required")
 
-            scheme = await self.evt_project_scheme.get_project_scheme(ProjectName=event.data["ProjectName"])
+            scheme = await self.evt_project_scheme.get_project_scheme(pn)
 
+            # add worker id
             if not (wid := await self.r_wkr.get_id_for_platform(platform, platform_wid)):
                 wid = await self.r_wkr.add(WorkerResource.create_instance(platform_wid, platform))
             if not (prj_wid := await self.r_wkr.get_prj_id(pn,wid)):
                 await self.r_wkr.add_prj_id(pn,wid)
+            await event.session.set_session_attribute("WorkerId", wid)
+            await event.session.set_session_attribute("ProjectName", pn)
+            await event.session.set_session_attribute("ClientToken", ct)
 
+            # check parallel sessions
+            if not scheme.allow_parallel_sessions:
+                exst_wid_pn = await self.r_wkr.check_active_id_for_pn(wid, pn)
+                exst_wid_ct = await self.r_wkr.check_active_id_for_ct(wid, ct)
+                if exst_wid_pn and not exst_wid_ct:
+                    output.set("SessionError", "SessionError")
+
+            await self.r_wkr.add_active_id_for_pn(wid, pn)
+            await self.r_wkr.add_active_id_for_ct(wid, ct)
+
+            # create or restore work session
             if not (wsid := await self.r_ws.get_id_for_pn_wid_ct(pn,wid,ct)):
                 wsid = await self.r_ws.add(WorkSessionResource.create_instance(pn,wid,ct,platform))
-            await event.session.set_session_attribute("WorkSessionId", wsid)
+            #await event.session.set_session_attribute("WorkSessionId", wsid)
 
             output.set("WorkSessionId", wsid)
             output.set("WorkerId", wid)
@@ -134,6 +155,7 @@ class Handler(EventHandler):
 
             pn = ws["ProjectName"]
             wid = ws["WorkerId"]
+            ct = ws["ClientToken"]
             scheme = await self.evt_project_scheme.get_project_scheme(ProjectName=pn)
 
             out = {}
@@ -142,7 +164,12 @@ class Handler(EventHandler):
                     out_nsid = nsid
                     out_ns = await self.r_ns.get(nsid)
                     out_ans = await self.r_resp.get(nsid)
-                    if (nid := out_ns["NanotaskId"]) and (nid not in await self.r_nt.get_ids_assigned_for_pn_tn_wid(pn,out_ns["NodeName"],wid)):
+
+                    if out_ns["IsTemplateNode"] is False:
+                        out_ns, out_nsid = await self._get_next_template_node(scheme, scheme.flow.get_node_by_name(out_ns["NodeName"]).prev, wid, wsid, None)
+                        out_ans = None
+
+                    elif (nid := out_ns["NanotaskId"]) and (nid not in await self.r_nt.get_ids_assigned_for_pn_tn_wid(pn,out_ns["NodeName"],wid)):
                         # mark current node session Expired=True
                         await self.r_ns.set_expired(out_nsid)
 
@@ -155,12 +182,16 @@ class Handler(EventHandler):
                         out_ns, out_nsid = await self._get_next_template_node(scheme, scheme.flow.get_begin_node(), wid, wsid, None)
                         out_ans = None
                     except SessionEndException as e:
-                        #print("SessionEndException")
+                        await self.r_wkr.delete_active_id_for_pn(wid, pn)
+                        await self.r_wkr.delete_active_id_for_ct(wid, ct)
+
                         output.set("WorkSessionStatus", "Terminated")
                         output.set("TerminateReason", "SessionEnd")
                         return 
                     except UnskippableNodeException as e:
-                        #print("UnskippableNodeException")
+                        await self.r_wkr.delete_active_id_for_pn(wid, pn)
+                        await self.r_wkr.delete_active_id_for_ct(wid, ct)
+
                         output.set("WorkSessionStatus", "Terminated")
                         output.set("TerminateReason", "UnskippableNode")
                         return
@@ -184,12 +215,16 @@ class Handler(EventHandler):
                                 out_ans = None
                                 break
                             except SessionEndException as e:
-                                #print("SessionEndException")
+                                await self.r_wkr.delete_active_id_for_pn(wid, pn)
+                                await self.r_wkr.delete_active_id_for_ct(wid, ct)
+
                                 output.set("WorkSessionStatus", "Terminated")
                                 output.set("TerminateReason", "SessionEnd")
                                 return 
                             except UnskippableNodeException as e:
-                                #print("UnskippableNodeException")
+                                await self.r_wkr.delete_active_id_for_pn(wid, pn)
+                                await self.r_wkr.delete_active_id_for_ct(wid, ct)
+
                                 output.set("WorkSessionStatus", "Terminated")
                                 output.set("TerminateReason", "UnskippableNode")
                                 return
@@ -259,17 +294,12 @@ class Handler(EventHandler):
             raise Exception("unknown command '{}'".format(command))
 
     async def handle_closed(self, session):
-        return   # TODO
+        #wsid = await session.get_session_attribute('WorkSessionId')
+        wid = await session.get_session_attribute('WorkerId')
+        pn = await session.get_session_attribute('ProjectName')
+        ct = await session.get_session_attribute('ClientToken')
 
-        try:
-            wsid = await session.get_session_attribute('WorkSessionId')
-        except KeyError:
-            wsid = None
-
-        if wsid:
-            nsid = await self.r_ns.get_id_for_wsid_by_index(wsid, -1)
-            ns = await self.r_ns.get(nsid)
-            pn = ns["ProjectName"]
-            wid = ns["WorkerId"]
-            if (nid := ns["NanotaskId"]):
-                await self.r_nt.unassign(pn,ns["NodeName"],wid,nid)
+        if wid and pn:
+            await self.r_wkr.delete_active_id_for_pn(wid, pn)
+            await self.r_wkr.delete_active_id_for_ct(wid, ct)
+            logger.debug(f"inactivating {wid} for {pn}")
