@@ -14,7 +14,7 @@ chardet==3.0.4
 configparser==5.0.1
 decorator==4.4.2
 docutils==0.15.2
-ducts==0.0.27
+ducts==0.0.28
 hiredis==1.1.0
 idna==2.10
 ifconf==0.0.15

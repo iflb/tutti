@@ -2,7 +2,7 @@ from copy import deepcopy
 from enum import Enum
 import logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 class Statement(Enum):
     NONE = 0

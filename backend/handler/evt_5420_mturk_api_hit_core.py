@@ -110,8 +110,9 @@ class Handler(EventHandler):
             if not QualificationTypeId: return {}
 
             hit_types = (await self._list_hits(QualificationTypeId))["HITTypes"]  # ideally only one hit type is returned
-            htid = list(hit_types.keys())[0]
-            await self.evt_mturk_api_core.cache_set_hits_for_htid(htid, hit_types[htid])
+            if len(hit_types.keys()):
+                htid = list(hit_types.keys())[0]
+                await self.evt_mturk_api_core.cache_set_hits_for_htid(htid, hit_types[htid])
             return hit_types 
 
     async def get_hit_types(self, HITTypeIds=None):

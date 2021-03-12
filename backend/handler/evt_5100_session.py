@@ -7,7 +7,7 @@ from handler.handler_output import handler_output
 
 import logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.ERROR)
 
 from libs.scheme.flow import SessionEndException, UnskippableNodeException
 from libs.scheme.context import WorkerContext, WorkSessionContext
@@ -294,12 +294,14 @@ class Handler(EventHandler):
             raise Exception("unknown command '{}'".format(command))
 
     async def handle_closed(self, session):
-        #wsid = await session.get_session_attribute('WorkSessionId')
-        wid = await session.get_session_attribute('WorkerId')
-        pn = await session.get_session_attribute('ProjectName')
-        ct = await session.get_session_attribute('ClientToken')
+        try:
+            #wsid = await session.get_session_attribute('WorkSessionId')
+            wid = await session.get_session_attribute('WorkerId')
+            pn = await session.get_session_attribute('ProjectName')
+            ct = await session.get_session_attribute('ClientToken')
 
-        if wid and pn:
             await self.r_wkr.delete_active_id_for_pn(wid, pn)
             await self.r_wkr.delete_active_id_for_ct(wid, ct)
             logger.debug(f"inactivating {wid} for {pn}")
+        except:
+            pass
