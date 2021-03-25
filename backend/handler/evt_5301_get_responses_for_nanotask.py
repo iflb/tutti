@@ -1,5 +1,6 @@
 import time
 import os
+import asyncio
 
 from ducts.event import EventHandler
 from ifconf import configure_module, config_callback
@@ -25,10 +26,16 @@ class Handler(EventHandler):
         handler_spec.set_as_responsive()
         return handler_spec
 
-    @handler_output
-    async def handle(self, event, output):
-        output.set("Responses", await self.get_responses_for_nanotask(**event.data))
+    #@handler_output
+    async def handle(self, event):
+        #output.set("Responses", await self.get_responses_for_nanotask(**event.data))
+        async for res in self.get_responses_for_nanotask(**event.data):
+            yield res
+
 
     async def get_responses_for_nanotask(self, NanotaskId):
         aids = await self.r_resp.get_ids_for_nid(NanotaskId)
-        return [await self.r_resp.get(aid) for aid in aids]
+        #return [await self.r_resp.get(aid) for aid in aids]
+        for aid in aids:
+            yield await self.r_resp.get(aid)
+        yield None
