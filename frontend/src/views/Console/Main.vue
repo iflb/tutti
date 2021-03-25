@@ -164,7 +164,8 @@
 </template>
 
 <script>
-import tutti from '@/lib/tutti-js/lib/tutti'
+//import tutti from '@/lib/tutti-js/lib/tutti'
+import tutti from '@iflb/tutti'
 import dateFormat from 'dateformat'
 import rules from '@/lib/input-rules'
 import 'vue-json-pretty/lib/styles.css'

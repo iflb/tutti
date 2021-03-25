@@ -114,7 +114,8 @@
 </template>
 
 <script>
-import tutti from '@/lib/tutti-js/lib/tutti'
+//import tutti from '@/lib/tutti-js/lib/tutti'
+import tutti from '@iflb/tutti'
 import { platformConfig } from './platformConfig'
 
 export default {

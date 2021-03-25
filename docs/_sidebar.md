@@ -12,7 +12,7 @@
   - ~~[Tutti Partner-Sourcing](platform/partner.md)~~
 - **Detailed Guide**
   - [Programming Reference](guide/ref.md)
-    - [- Project Scheme (Python)](guide/ref_scheme.md)
-    - [- Template (Vue.js)](guide/ref_template.md)
+    - [Project Scheme (Python)](guide/ref_scheme.md)
+    - [Template (Vue.js)](guide/ref_template.md)
   - [DUCTS Events](guide/ducts.md)
   - [Troubleshooting](guide/troubleshooting.md)
