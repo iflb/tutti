@@ -1,5 +1,8 @@
+from copy import deepcopy
 from enum import Enum
-
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 class Statement(Enum):
     NONE = 0
@@ -46,7 +49,7 @@ class Flow:
         return self.nodes.keys()
 
 class FlowNode:
-    def __init__(self, name, parent=None, prev=None, next=None, statement=Statement.NONE, condition=None, is_skippable=False):
+    def __init__(self, name, parent=None, prev=None, next=None, statement=Statement.NONE, condition=None, is_skippable=False, on_enter=None, on_exit=None):
         self.name = name
         self.parent = parent
         self.prev = prev
@@ -54,58 +57,103 @@ class FlowNode:
         self.statement = statement
         self.condition = condition
         self.is_skippable = is_skippable
+        self.on_enter = on_enter
+        self.on_exit = on_exit
 
     def is_template(self):
         return isinstance(self, TemplateNode)
         
-    def eval_cond(self, wkr_context, ws_context):
+    def eval_cond(self, wkr_ctxt, ws_ctxt):
         if callable(self.condition):
-            return self.condition(wkr_context, ws_context)
+            return self.condition(wkr_ctxt, ws_ctxt)
         else:
             print("skipping self.condition", self.condition)
             return True
 
-    def forward(self, wkr_context, ws_context, try_skip=False):
-        def check_node_exec_or_skip(node, try_skip=False):
+    async def forward(self, wkr_ctxt, ws_ctxt, try_skip=False):
+        async def _invoke_on_enter(node):
+            logger.debug(f"trying {node.name} on_enter")
+            if callable(self.on_enter):
+                logger.debug(f"{node.name} on_enter")
+                node.on_enter(wkr_ctxt, ws_ctxt)
+                await wkr_ctxt._register_new_members_to_redis()
+                await ws_ctxt._register_new_members_to_redis()
+            return node
+
+        async def _invoke_on_exit(node, unskippable=False, no_nanotask=False):
+            logger.debug(f"trying {node.name} on_exit")
+            if callable(node.on_exit):
+                logger.debug(f"{node.name} on_exit")
+
+                node.on_exit(wkr_ctxt, ws_ctxt, unskippable, no_nanotask)
+
+                await wkr_ctxt._register_new_members_to_redis()
+                await ws_ctxt._register_new_members_to_redis()
+            return node
+
+        async def _exit_all_and_raise_exception(node, exception):
+            while (node := node.parent):
+                await _invoke_on_exit(node, unskippable=True)
+            raise exception
+
+        async def check_node_exec_or_skip(node, try_skip=False):
+            logger.debug(f"trying {node.name}")
             if node.statement in (Statement.IF, Statement.WHILE):
-                if node.eval_cond(wkr_context, ws_context) and try_skip==False:
+                if node.eval_cond(wkr_ctxt, ws_ctxt) and try_skip==False:
                     return node
                 else:
                     if node.is_skippable:  return None
-                    else:  raise UnskippableNodeException(f"unskippable node '{node.name}'")
+                    else:  await _exit_all_and_raise_exception(node, UnskippableNodeException(f"unskippable node '{node.name}'"))
             else:
                 if try_skip:
                     if node.is_skippable:  return None
-                    else:  raise UnskippableNodeException(f"unskippable node '{node.name}'")
+                    else:  await _exit_all_and_raise_exception(node, UnskippableNodeException(f"unskippable node '{node.name}'"))
                 else:
                     return node
 
 
+        ### main part starts here ###
+
+        # try to get the first available children in the batch
         if isinstance(self, BatchNode):
+            logger.debug(f"searching children of {self.name}")
             for child in self.children:
-                node = check_node_exec_or_skip(child)
-                if node: return node
-                else:    continue
+                node = await check_node_exec_or_skip(child)
+                if node:  return await _invoke_on_enter(node)
+                else: continue
+            # reaches here if no children is available
+            logger.debug("no executable child was found")
 
-        _parent = self
+        # reaches here if it's a BatchNode w/o available children OR a TemplateNode
+
+        _node = self
         while True:
+            await _invoke_on_exit(_node, no_nanotask=try_skip)
             if try_skip:
-                check_node_exec_or_skip(_parent, try_skip=try_skip)
-                # reaches here only if the node *is_skippable*, to go to the next node 
+                await check_node_exec_or_skip(_node, try_skip=True)
+
+                logger.debug(f"skipping {_node.name}")
+                # checking only whether the node is skippable
+                # so, reaches here only if the node *is_skippable*, and go search the next node below
+                # (if above would return something, it's always None, so ignore the return value)
             else:
-                if _parent.statement==Statement.WHILE:
-                    if _parent.eval_cond(wkr_context, ws_context):
-                        return _parent
+                if _node.statement==Statement.WHILE:
+                    logger.debug(f"trying loop for {_node.name}")
+                    if _node.eval_cond(wkr_ctxt, ws_ctxt):
+                        logger.debug(f"looping {_node.name}")
+                        return await _invoke_on_enter(_node)
 
-            _next = _parent
+            _next = deepcopy(_node)
+            logger.debug(f"next node for {_node.name}: {_node.next.name if _node.next else 'None'}")
             while (_next := _next.next):
-                node = check_node_exec_or_skip(_next, try_skip=try_skip)
-                if node: return node
-                else:    continue
+                if ( node := await check_node_exec_or_skip(_next, try_skip=try_skip)):
+                    return await _invoke_on_enter(node)
 
-            if not (_parent := _parent.parent):  break
+            # reaches here when no executable next nodes are found
 
-        return _parent
+            if not (_node := _node.parent):  return None
+
+            logger.debug(f"back to parent: {_node.name}")
 
 class TerminalNode(FlowNode):
     def __init__(self, name):
@@ -121,19 +169,23 @@ class EndNode(TerminalNode):
 
 
 class TemplateNode(FlowNode):
-    def __init__(self, name, statement=Statement.NONE, condition=None, is_skippable=False, on_submit=None):
+    def __init__(self, name, statement=Statement.NONE, condition=None, is_skippable=False, on_enter=None, on_exit=None, on_submit=None):
         super().__init__(name,
                          statement=statement,
                          condition=condition,
-                         is_skippable=is_skippable)
+                         is_skippable=is_skippable,
+                         on_enter=on_enter,
+                         on_exit=on_exit)
         self.on_submit = on_submit
 
 class BatchNode(FlowNode):
-    def __init__(self, name, children=None, statement=Statement.NONE, condition=None, is_skippable=False):
+    def __init__(self, name, children=None, statement=Statement.NONE, condition=None, is_skippable=False, on_enter=None, on_exit=None):
         super().__init__(name,
                          statement=statement,
                          condition=condition,
-                         is_skippable=is_skippable)
+                         is_skippable=is_skippable,
+                         on_enter=on_enter,
+                         on_exit=on_exit)
         self.children = children if children else []
         self.scan_children()
 

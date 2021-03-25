@@ -27,6 +27,7 @@
                     <v-btn depressed :color="srvStatusProfile[srvStatus].btn.color" class="text-none" v-bind="attrs" v-on="on">
                         {{ srvStatusProfile[srvStatus].btn.label }}
                         <span v-if="srvStatus == 'connected'" class="text-caption ml-2">(last pinged: {{ lastPinged }})</span>
+                        <span v-else-if="srvStatus == 'disconnected'" class="text-caption ml-2">(Auto-retry remaining: {{ retry.maxCnt-retry.cnt }})</span>
                     </v-btn>
                 </template>
                 <v-list>
@@ -176,6 +177,13 @@ export default {
     },
     data: () => ({
         duct: null,
+        retry: {
+            enabled: true,
+            cnt: 0,
+            maxCnt: 5,
+            interval: null
+        },
+        wsdPath: "/ducts/wsd",
         drawer: true,
         eventNav: true,
         logTableHeaders: [
@@ -216,18 +224,81 @@ export default {
                     this.duct.controllers.resource.listProjects();
                 }
             });
+        },
+        initDuct() {
+            this.duct = new tutti.Duct();
+
+            this.duct.logger = new tutti.DuctEventLogger(this.duct);
+
+            this.duct.addOnOpenHandler(() => {
+                this.srvStatus = "connected"
+                this.lastPinged = dateFormat(new Date(), "HH:MM:ss")
+
+
+                this.setEventHandlers();
+                this.duct.controllers.resource.listProjects();
+
+
+                setInterval(() => {
+                    var rows = [];
+                    const ductLog = this.duct.logger.log;
+                    for(const rid in ductLog){
+                        if( ductLog[rid].eid <= 1010 )  continue;
+
+                        rows.unshift({
+                            rid,
+                            eid: ductLog[rid].eid,
+                            evtName: Object.keys(this.duct.EVENT).find(key => this.duct.EVENT[key] === ductLog[rid].eid),
+                            sent: ductLog[rid].sent,
+                            received: ductLog[rid].received[0]
+                        });
+                    }
+                    this.serverLogTableRows = rows;
+                }, 1000);
+
+            });
+
+            this.duct._connection_listener.on(["onclose", "onerror"], () => { this.srvStatus = "disconnected"; } );
+
+            this.duct.open(this.wsdPath);
+
+        },
+        reconnect() {
+            console.log("trying to reconnect");
+            this.initDuct();
+            //if(this.duct){
+            //    try {
+            //        this.duct.reconnect().then(() => {
+            //            this.retry.enabled = true;
+            //            this.srvStatus = "connected";
+            //            this.retry.cnt = 0;
+            //        }).catch(() => { 
+            //            if(++this.retry.cnt>=this.retry.maxCnt) {
+            //                console.error("failed reconnection 5 times");
+            //                this.retry.interval = null;
+            //            }
+            //        });
+            //    } catch (e) {
+            //        console.log(e);
+            //    }
+            //} else {
+            //}
+        },
+        disconnect() {
+            this.retry.enabled = false;
+            this.duct.close();
         }
     },
 
     created: function(){
-        this.duct = new tutti.Duct();
+        this.initDuct();
 
         this.srvStatusProfile = {
             connected: {
                 btn: {
                     color: "success",
                     label: "Connected to server",
-                    menu: [ { title: "Disconnect", handler: () => { this.duct.close(); } } ]
+                    menu: [ { title: "Disconnect", handler: this.disconnect } ]
                 }
             },
             connecting: {
@@ -240,44 +311,14 @@ export default {
                 btn: {
                     color: "error",
                     label: "No connection to server",
-                    menu: [ { title: "Connect", handler: () => { this.duct.open(); } } ]
+                    menu: [ { title: "Connect", handler: this.reconnect } ]
                 }
             }
         }
 
-        this.duct.logger = new tutti.DuctEventLogger(this.duct);
-
-        this.duct.addOnOpenHandler(() => {
-            this.srvStatus = "connected"
-            this.lastPinged = dateFormat(new Date(), "HH:MM:ss")
-
-
-            this.setEventHandlers();
-            this.duct.controllers.resource.listProjects();
-
-
-            setInterval(() => {
-                var rows = [];
-                const ductLog = this.duct.logger.log;
-                for(const rid in ductLog){
-                    if( ductLog[rid].eid <= 1010 )  continue;
-
-                    rows.unshift({
-                        rid,
-                        eid: ductLog[rid].eid,
-                        evtName: Object.keys(this.duct.EVENT).find(key => this.duct.EVENT[key] === ductLog[rid].eid),
-                        sent: ductLog[rid].sent,
-                        received: ductLog[rid].received[0]
-                    });
-                }
-                this.serverLogTableRows = rows;
-            }, 1000);
-
-        });
-
-        this.duct._connection_listener.on(["onclose", "onerror"], () => { this.srvStatus = "disconnected"; } );
-
-        this.duct.open("/ducts/wsd");
+        this.retry.interval = setInterval(() => {
+            if(this.srvStatus=="disconnected" && this.retry.enabled) { this.reconnect(); }
+        }, 3000);
     }
 }
 </script>

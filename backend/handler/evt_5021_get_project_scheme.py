@@ -21,9 +21,13 @@ class Handler(EventHandler):
 
     @handler_output
     async def handle(self, event, output):
-        scheme = await self.evt_project_scheme.get_project_scheme(**event.data)
-        output.set("Config", self.get_config_dict(scheme))
-        output.set("Flow", self.get_batch_info_dict(scheme.flow.root_node))
+        ret = await self.evt_project_scheme.get_project_scheme(**event.data)
+        if isinstance(ret, Exception):
+            raise ret
+        else:
+            scheme = ret
+            output.set("Config", self.get_config_dict(scheme))
+            output.set("Flow", self.get_batch_info_dict(scheme.flow.root_node))
 
     def get_batch_info_dict(self, child):
         if child.is_template():

@@ -96,11 +96,25 @@
                 This HIT will be automatically submitted as you close this dialog.
             </template>
         </tutti-dialog>
+
+        <tutti-dialog ref="dialogSessionError" maxWidth="500"
+            :actions="[
+                { label: 'OK', color: 'grey darken-1', text: true }
+            ]">
+            <template v-slot:title>
+                <v-icon color="warning" class="mr-2">mdi-alert</v-icon> Please do one HIT at a time
+            </template>
+            <template v-slot:body>
+                Multiple concurrent sessions are not allowed for this HIT. Please finish the other HIT first.<br>
+                If you believe this is caused in error, please try again later or contact <a href="mailto:mturk04@pcl.cs.waseda.ac.jp">mturk04@pcl.cs.waseda.ac.jp</a>.
+            </template>
+        </tutti-dialog>
+                
     </v-app>
 </template>
 
 <script>
-import tutti from 'tutti'
+import tutti from '@/lib/tutti-js/lib/tutti'
 import { platformConfig } from './platformConfig'
 
 export default {
@@ -188,6 +202,7 @@ export default {
             this.duct.addOnOpenHandler(() => {
                 this.duct.eventListeners.resource.on("getProjectScheme", {
                     success: (data) => {
+                        console.log("getProjectScheme");
                         const config = data["Config"];
                         this.pagination = config["Pagination"];
                         this.projectTitle = config["Title"] || "";
@@ -210,7 +225,8 @@ export default {
                 });
                 this.duct.eventListeners.resource.on("checkPlatformWorkerIdExistenceForProject", {
                     success: (data) => {
-                        if(!data["Exists"]) this.$refs.dialogInstruction.shown=true;
+                        console.log("checkPlatformWorkerIdExistenceForProject");
+                        if(!data["Exists"]) this.$refs.dialogInstruction.shown = true;
                     },
                     error: (data) => {
                         console.error(data["Reason"]);
@@ -218,16 +234,23 @@ export default {
                 });
                 this.duct.eventListeners.resource.on("createSession", {
                     success: (data) => {
-                        this.wsid = data["WorkSessionId"];
-                        this.workerId = data["WorkerId"];
-                        this.getTemplate("NEXT");
-                        },
+                        console.log("createSession");
+                        if(data.SessionError){
+                            console.log("sessionError");
+                            this.$refs.dialogSessionError.shown = true;
+                        } else {
+                            this.wsid = data["WorkSessionId"];
+                            this.workerId = data["WorkerId"];
+                            this.getTemplate("NEXT");
+                        }
+                    },
                     error: (data) => {
                         console.log("createSession error", data);
                     }
                 });
                 this.duct.eventListeners.resource.on("getTemplateNode", {
                     success: (data) => {
+                        console.log("getTemplateNode", data);
                         this.hasPrevTemplate = data["HasPrevTemplate"];
                         this.hasNextTemplate = data["HasNextTemplate"];
                         if(data["Template"]){

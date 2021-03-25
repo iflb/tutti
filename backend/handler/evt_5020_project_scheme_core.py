@@ -42,5 +42,5 @@ class Handler(EventHandler):
                 scheme = mod_flow.ProjectScheme()
                 self.schemes[ProjectName] = scheme
                 return scheme
-            except:
-                return None
+            except Exception as e:
+                return e

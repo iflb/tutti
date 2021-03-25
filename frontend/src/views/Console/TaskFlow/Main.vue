@@ -1,6 +1,6 @@
 <template>
     <v-main class="grey lighten-4">
-        <v-row class="justify-center"><v-col cols="11" md="8" lg="6">
+        <v-row class="justify-center"><v-col cols="11" lg="8">
             <v-card class="pa-3 mt-10">
             <v-container>
                 <v-row>
