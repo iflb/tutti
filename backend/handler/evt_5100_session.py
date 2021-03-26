@@ -37,11 +37,6 @@ class Handler(EventHandler):
 
         return handler_spec
 
-    #async def _terminate_with_exception(self, wid, pn, ct, exception):
-    #    await self.r_wkr.delete_active_id_for_pn(wid, pn)
-    #    await self.r_wkr.delete_active_id_for_ct(wid, ct)
-    #    raise exception
-
     async def _get_next_template_node(self, scheme, next_node, wid, wsid, nsid):
         flow = scheme.flow
         pn = scheme.flow.pn

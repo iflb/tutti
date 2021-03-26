@@ -1,5 +1,10 @@
 from copy import deepcopy
 from enum import Enum
+import inspect
+import io
+import tokenize
+import numbers
+
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -12,6 +17,34 @@ class Statement(Enum):
         return self.name
     def __repr__(self):
         return self.name
+
+class Condition:
+    def __init__(self, statement, func, **kwargs):
+        self.statement = statement
+        self.func = func
+        self.func_params = kwargs
+
+        self.print_func = self._get_print_func()
+
+    def eval(self, wkr_ctxt, ws_ctxt):
+        return self.func(wkr_ctxt, ws_ctxt, **self.func_params)
+
+    def _get_print_func(self):
+        result = []
+        for n,v,_,_,_ in tokenize.generate_tokens(io.StringIO(inspect.getsource(self.func)).readline):
+            if n==tokenize.NAME and (v in self.func_params.keys()):
+                if isinstance(self.func_params[v], numbers.Number):
+                    result.append((tokenize.NUMBER, str(self.func_params[v])))
+                elif isinstance(self.func_params[v], str):
+                    result.append((tokenize.STRING, self.func_params[v]))
+            else:
+                result.append((n,v))
+        result_str = tokenize.untokenize(result)
+        result_str = result_str.replace(" ,",", ").replace(" (","(").replace(" )",")").replace(" .",".")
+        return result_str
+
+    def print(self):
+        return self.print_func
 
 class UnskippableNodeException(Exception):
     pass
@@ -49,12 +82,11 @@ class Flow:
         return self.nodes.keys()
 
 class FlowNode:
-    def __init__(self, name, parent=None, prev=None, next=None, statement=Statement.NONE, condition=None, is_skippable=False, on_enter=None, on_exit=None):
+    def __init__(self, name, parent=None, prev=None, next=None, condition=None, is_skippable=False, on_enter=None, on_exit=None):
         self.name = name
         self.parent = parent
         self.prev = prev
         self.next = next
-        self.statement = statement
         self.condition = condition
         self.is_skippable = is_skippable
         self.on_enter = on_enter
@@ -64,10 +96,9 @@ class FlowNode:
         return isinstance(self, TemplateNode)
         
     def eval_cond(self, wkr_ctxt, ws_ctxt):
-        if callable(self.condition):
-            return self.condition(wkr_ctxt, ws_ctxt)
+        if self.condition:
+            return self.condition.eval(wkr_ctxt, ws_ctxt)
         else:
-            print("skipping self.condition", self.condition)
             return True
 
     async def forward(self, wkr_ctxt, ws_ctxt, try_skip=False):
@@ -98,7 +129,7 @@ class FlowNode:
 
         async def check_node_exec_or_skip(node, try_skip=False):
             logger.debug(f"trying {node.name}")
-            if node.statement in (Statement.IF, Statement.WHILE):
+            if node.condition and node.condition.statement in (Statement.IF, Statement.WHILE):
                 if node.eval_cond(wkr_ctxt, ws_ctxt) and try_skip==False:
                     return node
                 else:
@@ -137,7 +168,7 @@ class FlowNode:
                 # so, reaches here only if the node *is_skippable*, and go search the next node below
                 # (if above would return something, it's always None, so ignore the return value)
             else:
-                if _node.statement==Statement.WHILE:
+                if _node.condition and _node.condition.statement==Statement.WHILE:
                     logger.debug(f"trying loop for {_node.name}")
                     if _node.eval_cond(wkr_ctxt, ws_ctxt):
                         logger.debug(f"looping {_node.name}")
@@ -169,9 +200,8 @@ class EndNode(TerminalNode):
 
 
 class TemplateNode(FlowNode):
-    def __init__(self, name, statement=Statement.NONE, condition=None, is_skippable=False, on_enter=None, on_exit=None, on_submit=None):
+    def __init__(self, name, condition=None, is_skippable=False, on_enter=None, on_exit=None, on_submit=None):
         super().__init__(name,
-                         statement=statement,
                          condition=condition,
                          is_skippable=is_skippable,
                          on_enter=on_enter,
@@ -179,9 +209,8 @@ class TemplateNode(FlowNode):
         self.on_submit = on_submit
 
 class BatchNode(FlowNode):
-    def __init__(self, name, children=None, statement=Statement.NONE, condition=None, is_skippable=False, on_enter=None, on_exit=None):
+    def __init__(self, name, children=None, condition=None, is_skippable=False, on_enter=None, on_exit=None):
         super().__init__(name,
-                         statement=statement,
                          condition=condition,
                          is_skippable=is_skippable,
                          on_enter=on_enter,

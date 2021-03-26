@@ -31,9 +31,7 @@ class Handler(EventHandler):
 
     def get_batch_info_dict(self, child):
         if child.is_template():
-            return {
-                "statement": child.statement.value,
-                "condition": inspect.getsource(child.condition) if child.condition else None,
+            ret = {
                 "is_skippable": child.is_skippable,
                 "name": child.name
             }
@@ -41,13 +39,20 @@ class Handler(EventHandler):
             _info = []
             for c in child.children:
                 _info.append(self.get_batch_info_dict(c))
-            return {
+            ret = {
                 "name": child.name,
-                "statement": child.statement.value,
-                "condition": inspect.getsource(child.condition) if child.condition else None,
                 "is_skippable": child.is_skippable,
                 "children": _info
             }
+
+        if child.condition:
+            ret.update({
+                "statement": child.condition.statement.value,
+                "condition": child.condition.print() if child.condition else None
+            })
+
+        return ret
+
 
     def get_config_dict(self, scheme):
         return {
