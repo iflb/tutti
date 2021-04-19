@@ -21,6 +21,17 @@
                   sort-by="creationTime"
                   sort-desc
                 >
+                    <template v-slot:item.qualificationId="{ item }">
+                        <div class="text-truncate" style="max-width:100px;">
+                            {{ item.qualificationId }}
+                        </div>
+                    </template>
+                    <template v-slot:item.num_workers="{ item }">
+                        <v-btn text :loading="item.num_workers==-2" @click="item.num_workers=-2; listWorkersWithQualificationType(item.qualificationId);">
+                            <span v-if="item.num_workers>=0"> {{ item.num_workers }} </span>
+                            <span v-else> ... </span>
+                        </v-btn>
+                    </template>
                     <template v-slot:top>
                         <v-card-title>
                             Qualifications
@@ -93,6 +104,7 @@ export default {
           { text: 'Name', value: 'name' },
           { text: 'Status', value: 'status' },
           { text: 'QualificationTypeId', value: 'qualificationId' },
+          { text: '# Workers', value: 'num_workers' },
           { text: 'CreationTime', value: 'creationTime' },
           { text: '', value: 'data-table-expand' },
         ],
@@ -133,10 +145,13 @@ export default {
             this.loadingQuals = true;
             this.duct.controllers.mturk.listQualifications(false);
         },
-        _evtGetWorkersForQualificationTypeIds(qids){
-            for(var i in qids){
-                this.duct.controllers.mturk.listWorkersWithQualificationType(qids[i]);
-            }
+        //_evtGetWorkersForQualificationTypeIds(qids){
+        //    for(var i in qids){
+        //        this.duct.controllers.mturk.listWorkersWithQualificationType(qids[i]);
+        //    }
+        //},
+        listWorkersWithQualificationType(qid) {
+            this.duct.controllers.mturk.listWorkersWithQualificationType(qid);
         },
         createQualificationType() {
             this.duct.controllers.mturk.createQualification(this.newQualParams);
@@ -153,6 +168,7 @@ export default {
                             "name": qtype["Name"],
                             "status": qtype["QualificationTypeStatus"],
                             "qualificationId": qtype["QualificationTypeId"],
+                            "num_workers": -1,
                             "creationTime": stringifyUnixTime(qtype["CreationTime"]),
                             "detail": qtype
                         });
@@ -160,7 +176,7 @@ export default {
 
                     this.selectedQualTypes = [];
                     this.loadingQuals = false;
-                    this._evtGetWorkersForQualificationTypeIds( Object.keys(this.quals) );
+                    //this._evtGetWorkersForQualificationTypeIds( Object.keys(this.quals) );
                 }
             });
 
@@ -178,7 +194,8 @@ export default {
                 success: (data) => {
                     const qid = data["QualificationTypeId"];
                     var quals = data["Results"];
-                    this.$set(this.quals[qid].detail, "workers", quals);
+                    console.log(quals.length, this.quals[qid]);
+                    this.$set(this.quals[qid], "num_workers", quals.length);
                 }
             });
 
