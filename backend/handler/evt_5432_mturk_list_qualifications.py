@@ -16,6 +16,10 @@ class Handler(EventHandler):
 
     @handler_output
     async def handle(self, event, output):
+        quals = await self.list_qualification_types(**event.data)
+        output.set("QualificationTypes", quals)
+
+    async def list_qualification_types(self, TuttiQuals=True):
         next_token = None
         quals = []
         while True:
@@ -26,11 +30,13 @@ class Handler(EventHandler):
             if next_token:  kwargs["NextToken"] = next_token
 
             res = await self.evt_mturk_api_core.exec_boto3("list_qualification_types", kwargs)
-            quals[:0] = res["QualificationTypes"][::-1]
+            qtypes = [qt for qt in res["QualificationTypes"] if TuttiQuals is True or not qt["Name"].startswith("TUTTI_HITTYPE_QUALIFICATION")]
+            #quals[:0] = res["QualificationTypes"][::-1]
+            quals.extend(qtypes)
 
             if "NextToken" in res:
                 next_token = res["NextToken"]
                 continue
             else:
                 break
-        output.set("QualificationTypes", quals)
+        return quals

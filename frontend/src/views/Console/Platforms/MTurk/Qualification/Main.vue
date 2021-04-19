@@ -131,7 +131,7 @@ export default {
         },
         getQualificationTypeIds() {
             this.loadingQuals = true;
-            this.duct.controllers.mturk.listQualifications();
+            this.duct.controllers.mturk.listQualifications(false);
         },
         _evtGetWorkersForQualificationTypeIds(qids){
             for(var i in qids){

@@ -1,5 +1,6 @@
 <template>
     <v-row class="my-10" justify="center">
+        {{ this.attributes.QualificationRequirements }}
         <v-col cols="10">
             <v-card>
                 <v-card-title>
@@ -50,8 +51,8 @@
                                 </td>
                                 <td v-if="!createNew">{{ attributes[attr.name] }}</td>
                             </tr>
-                            <tr v-for="(qualItem, qualIndex) in attributes.QualificationRequirements" :key="'QualificationRequirements-'+qualIndex">
-                                <td> QualificationRequirements - {{ qualIndex+1 }} </td>
+                            <tr v-for="(qualItem, qualIndex) in qualificationRequirements" :key="'QualificationRequirements-'+qualIndex">
+                                <td> QualificationRequirements -     {{ qualIndex+1 }} </td>
                                 <td>
                                     <v-simple-table dense>
                                         <tbody>
@@ -110,10 +111,10 @@
                             </tr>
                             <tr v-if="createNew">
                                 <td>
-                                    <b>{{ numQualRequirements }} QualificationRequirements</b>
+                                    <b>{{ qualificationRequirements.length }} QualificationRequirements</b>
                                     <v-btn x-small icon @click="openNewWindow('https://docs.aws.amazon.com/AWSMechTurk/latest/AWSMturkAPI/ApiReference_QualificationRequirementDataStructureArticle.html#ApiReference_QualificationType-IDs');"><v-icon>mdi-help-circle-outline</v-icon></v-btn>
                                     <v-btn x-small icon @click="pushQualRequirements()"><v-icon>mdi-plus</v-icon></v-btn>
-                                    <v-btn x-small icon @click="popQualRequirements()" v-if="numQualRequirements"><v-icon>mdi-minus</v-icon></v-btn>
+                                    <v-btn x-small icon @click="popQualRequirements()" v-if="qualificationRequirements.length"><v-icon>mdi-minus</v-icon></v-btn>
                                 </td>
                             </tr>
                         </tbody>
@@ -238,7 +239,7 @@ export default {
             { id: "00000000000000000060", name: "Worker_Adult" },
             { id: "000000000000000000L0", name: "Worker_PercentAssignmentsApproved" }
         ],
-        customQualIds: [],
+        customQualTypes: {},
 
         createNew: null,
         chosenExstHITTypeId: "",
@@ -285,11 +286,6 @@ export default {
         postingHITs: false,
     }),
     computed: {
-        numQualRequirements() {
-            if(this.attributes && this.attributes.QualificationRequirements)
-                return this.attributes.QualificationRequirements.length;
-            else return 0;
-        },
         allQualIds() {
             var ret = [];
             for(const i in this.qualIds){
@@ -297,12 +293,24 @@ export default {
                 const name = this.qualIds[i].name;
                 ret.push({ text: `${name} - ${id}`, value: id });
             }
-            for(const i in this.customQualIds){
-                const id = this.customQualIds[i].id;
-                const name = this.customQualIds[i].name;
+            for(const id in this.customQualTypes){
+                const name = this.customQualTypes[id].name;
                 ret.push({ text: `${name} - ${id}`, value: id });
             }
             return ret;
+        },
+        qualificationRequirements() {
+            if(this.attributes && this.attributes.QualificationRequirements){
+                let qrs = [];
+                for(const qr of this.attributes.QualificationRequirements){
+                    if(!qr.QualificationTypeId ||
+                       !(qr.QualificationTypeId in this.customQualTypes) ||
+                       !this.isTuttiQual(qr.QualificationTypeId)) qrs.push(qr);
+                }
+                return qrs;
+            } else {
+                return [];
+            }
         }
     },
     methods: {
@@ -343,6 +351,9 @@ export default {
             if(this.createNew){ this.createHITType(this.attributes); }
             else { this.createHITsWithHITType(this.chosenExstHITTypeId); }
         },
+        isTuttiQual(qtid){
+            return this.customQualTypes[qtid].name.startsWith("TUTTI_HITTYPE_QUALIFICATION");
+        }
     },
     watch: {
         chosenExstHITTypeId(value) {
@@ -373,6 +384,10 @@ export default {
                     let attrs = this.attributes;
                     var qrs = attrs.QualificationRequirements;
                     for(const i in qrs) {
+                        if(this.isTuttiQual(qrs[i].QualificationTypeId)) {
+                            delete qrs[i];
+                            continue;
+                        }
                         if(qrs[i].IntegerValues.length) qrs[i].IntegerValues.map((data) => parseInt(data));
                         else delete qrs[i].IntegerValues;
                     }
@@ -409,18 +424,18 @@ export default {
 
             this.duct.eventListeners.mturk.on("listQualifications", {
                 success: (data) => {
-                    var ret = [];
+                    let ret = {};
                     for(var i in data["QualificationTypes"]) {
                         const id = data["QualificationTypes"][i]["QualificationTypeId"];
                         const name = data["QualificationTypes"][i]["Name"];
-                        ret.push({ id, name });
+                        ret[id] = { name };
                     }
-                    this.customQualIds = ret;
+                    this.customQualTypes = ret;
                 }
             });
 
             this.duct.controllers.mturk.getHITTypes();
-            this.duct.controllers.mturk.listQualifications();
+            this.duct.controllers.mturk.listQualifications(false);
         });
 
     }
