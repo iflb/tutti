@@ -1,0 +1,17 @@
+version: "3"
+
+services:
+
+  redis-dev:
+    restart: always
+    image: redis:6-alpine
+    container_name: ${COMPOSE_PROJECT_NAME}_redis-dev
+    volumes:
+     - ../redis/data-dev:/data
+    ports:
+      - "$DEV_REDIS_PORT:6379"
+    depends_on: 
+      - rev-proxy
+    networks:
+      default:
+        ipv4_address: $DEV_REDIS_ADDRESS

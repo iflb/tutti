@@ -6,52 +6,73 @@ http {
     default_type application/octet-stream;
 
     server {
-	    server_name ${DOMAIN_NAME};
+        listen ${HTTP_PORT};
+        server_name ${DOMAIN_NAME};
 
-        proxy_set_header Host $host;
+        proxy_set_header Host ${DOMAIN_NAME}:${HTTP_PORT};
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Forwarded-Server $host;
+        proxy_set_header X-Forwarded-Host ${DOMAIN_NAME}:${HTTP_PORT};
+        proxy_set_header X-Forwarded-Server ${DOMAIN_NAME}:${HTTP_PORT};
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+        location / {
+            alias /var/www/html/dist/;
+            index index.html;
+            try_files $uri $uri/ /index.html;
+        }
 
         location /static/ {
             root /;
         }
 
-        location /vue-dev/ {
-            proxy_pass http://172.100.0.3/vue-dev/;
-            proxy_redirect off;
-        }
-
-        location /vue/ {
-            alias /var/www/html/dist/;
-            index index.html;
-            try_files $uri $uri/ /vue/index.html;
-        }
-
-        location /sockjs-node/ {
-            proxy_pass http://172.100.0.3/sockjs-node/;
-            proxy_redirect off;
-            proxy_http_version 1.1;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection "upgrade";
+        location /ducts/ {
+            proxy_pass http://${BACKEND_ADDRESS}/ducts/;
         }
 
         location /ducts/ws/ {
-            proxy_pass http://172.100.0.4/ducts/ws/;
-            proxy_redirect off;
+            proxy_pass http://${BACKEND_ADDRESS}/ducts/ws/;
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection "upgrade";
         }
-        location /ducts/ {
-            proxy_pass http://172.100.0.4/ducts/;
-            proxy_redirect off;
+    }
+
+    server {
+        listen ${DEV_HTTP_PORT};
+        server_name ${DEV_DOMAIN_NAME};
+
+        proxy_set_header Host ${DEV_DOMAIN_NAME}:${DEV_HTTP_PORT};
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host ${DEV_DOMAIN_NAME}:${DEV_HTTP_PORT};
+        proxy_set_header X-Forwarded-Server ${DEV_DOMAIN_NAME}:${DEV_HTTP_PORT};
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+        location / {
+            proxy_pass http://${DEV_FRONTEND_ADDRESS}/;
         }
-        location /ducts/static/ {
-            proxy_pass http://172.100.0.4/ducts/static/;
-            proxy_redirect off;
+
+        location /sockjs-node/ {
+            proxy_pass http://${DEV_FRONTEND_ADDRESS}/sockjs-node/;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+        }
+        
+        location /static/ {
+            root /;
+        }
+
+        location /ducts/ {
+            proxy_pass http://${DEV_BACKEND_ADDRESS}/ducts/;
+        }
+
+        location /ducts/ws/ {
+            proxy_pass http://${DEV_BACKEND_ADDRESS}/ducts/ws/;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
         }
     }
 }

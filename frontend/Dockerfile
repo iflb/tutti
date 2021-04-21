@@ -1,14 +1,14 @@
 FROM node:lts-alpine3.12
 
-ARG FRONTEND_HOME
-WORKDIR $FRONTEND_HOME
+ARG HOME
+WORKDIR $HOME
 
 RUN apk add git
 
-COPY package.json* ./
-COPY init.sh ./init.sh
+COPY ./package.json* ./
+
 RUN npm install
 
-RUN chmod +x ./init.sh
+COPY ./ ./
 
-ENTRYPOINT ["./init.sh"]
+CMD ["npm", "run", "build"]

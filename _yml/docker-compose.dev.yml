@@ -1,0 +1,59 @@
+version: "3"
+
+services:
+
+  rev-proxy:
+    build:
+      dockerfile: Dockerfile
+    ports:
+      - "$DEV_HTTP_PORT:$DEV_HTTP_PORT"
+    environment:
+      - DEV_HTTP_PORT=$DEV_HTTP_PORT
+      - DEV_DOMAIN_NAME=$DEV_DOMAIN_NAME
+      - DEV_FRONTEND_ADDRESS=$DEV_FRONTEND_ADDRESS
+      - DEV_BACKEND_ADDRESS=$DEV_BACKEND_ADDRESS
+
+  frontend-dev:
+    container_name: ${COMPOSE_PROJECT_NAME}_frontend-dev
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile-dev
+      args:
+        - HOME=$FRONTEND_HOME
+    volumes:
+      - ../frontend:$FRONTEND_HOME
+      - $FRONTEND_HOME/node_modules/
+      - $FRONTEND_HOME/dist/
+      - ../projects/:${FRONTEND_HOME}/src/projects/
+    stdin_open: true
+    tty: true
+    environment:
+      - DOMAIN_NAME=$DOMAIN_NAME
+      - DEV_DOMAIN_NAME=$DEV_DOMAIN_NAME
+    depends_on: 
+      - frontend
+    networks:
+      default:
+        ipv4_address: $DEV_FRONTEND_ADDRESS
+
+  backend-dev:
+    container_name: ${COMPOSE_PROJECT_NAME}_backend-dev
+    build:
+      context: ../backend
+      dockerfile: Dockerfile-dev
+      args:
+        - HOME=$BACKEND_HOME
+    volumes:
+      - ../backend:$BACKEND_HOME
+      - $BACKEND_HOME/.pid
+      - ../projects:${BACKEND_HOME}/projects
+    stdin_open: true
+    tty: true
+    environment:
+      - HOME=$BACKEND_HOME
+      - REDIS_ADDRESS=$DEV_REDIS_ADDRESS
+    depends_on: 
+      - backend
+    networks:
+      default:
+        ipv4_address: $DEV_BACKEND_ADDRESS

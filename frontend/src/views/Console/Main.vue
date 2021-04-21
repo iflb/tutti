@@ -267,23 +267,29 @@ export default {
         reconnect() {
             console.log("trying to reconnect");
             this.initDuct();
-            //if(this.duct){
-            //    try {
-            //        this.duct.reconnect().then(() => {
-            //            this.retry.enabled = true;
-            //            this.srvStatus = "connected";
-            //            this.retry.cnt = 0;
-            //        }).catch(() => { 
-            //            if(++this.retry.cnt>=this.retry.maxCnt) {
-            //                console.error("failed reconnection 5 times");
-            //                this.retry.interval = null;
-            //            }
-            //        });
-            //    } catch (e) {
-            //        console.log(e);
-            //    }
-            //} else {
-            //}
+            if(this.duct){
+                try {
+                    this.duct.reconnect().then(() => {
+                        this.retry.enabled = true;
+                        this.srvStatus = "connected";
+                        this.retry.cnt = 0;
+                    }).catch(() => { 
+                        if(++this.retry.cnt>=this.retry.maxCnt) {
+                            console.error("failed reconnection 5 times");
+                            clearInterval(this.retry.interval);
+                            this.retry.interval = null;
+                        }
+                    });
+                } catch (e) {
+                    console.log(e);
+                }
+            } else {
+                if(++this.retry.cnt>=this.retry.maxCnt) {
+                    console.error("failed reconnection 5 times");
+                    clearInterval(this.retry.interval);
+                    this.retry.interval = null;
+                }
+            }
         },
         disconnect() {
             this.retry.enabled = false;

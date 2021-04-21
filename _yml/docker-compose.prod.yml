@@ -1,0 +1,63 @@
+version: "3"
+
+services:
+
+  rev-proxy:
+    build:
+      dockerfile: Dockerfile-prodonly
+    environment:
+      - DOMAIN_NAME=$DOMAIN_NAME
+      - BACKEND_ADDRESS=$BACKEND_ADDRESS
+
+  redis:
+    restart: always
+    image: redis:6-alpine
+    container_name: ${COMPOSE_PROJECT_NAME}_redis
+    volumes:
+     - ../redis/data:/data
+    ports:
+      - "$REDIS_PORT:6379"
+    depends_on: 
+      - rev-proxy
+    networks:
+      default:
+        ipv4_address: $REDIS_ADDRESS
+
+  frontend:
+    container_name: ${COMPOSE_PROJECT_NAME}_frontend
+    build:
+      context: ../frontend
+      args:
+        - HOME=$FRONTEND_HOME
+    volumes:
+      - ../frontend/dist:$FRONTEND_HOME/dist
+      - ../projects/:${FRONTEND_HOME}/src/projects/
+    stdin_open: true
+    tty: true
+    environment:
+      - DOMAIN_NAME=$DOMAIN_NAME
+      - DEV_DOMAIN_NAME=$DEV_DOMAIN_NAME
+    depends_on: 
+      - rev-proxy
+    networks:
+      default:
+        ipv4_address: $FRONTEND_ADDRESS
+
+  backend:
+    container_name: ${COMPOSE_PROJECT_NAME}_backend
+    build:
+      context: ../backend
+      args:
+        - HOME=$BACKEND_HOME
+    stdin_open: true
+    tty: true
+    environment:
+      - HOME=$BACKEND_HOME
+      - REDIS_ADDRESS=$REDIS_ADDRESS
+    depends_on: 
+      - rev-proxy
+    volumes:
+      - ../projects:${BACKEND_HOME}/projects
+    networks:
+      default:
+        ipv4_address: $BACKEND_ADDRESS
