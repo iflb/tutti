@@ -18,6 +18,8 @@ In `scheme.py`, a class for a project scheme called `ProjectScheme` needs to be 
 There are a couple of functions required to be implemented within the class: `config_params()` and `define_flow()`.
 
 
+
+
 <h4 class="h-class">ProjectScheme.<b>config_params</b><span class="args"></span></h4>
 
 
@@ -36,11 +38,11 @@ where the project title is set to a string "My test project" and the nanotask as
 
 All available parameters are as follows:
 
-##### Required parameters:
+#### Required parameters:
 
 - `title` (*string*) -- A project title.
 
-##### Optional parameters:
+#### Optional parameters:
 
 - `assignment_order` (*string;* default: "bfs") --
     Specified either as **"bfs"** or **"dfs"**.
@@ -77,6 +79,9 @@ All available parameters are as follows:
 - `show_title` (*boolean;* default: True) -- Whether to show the project title in the project UI.
  
 
+
+
+
 <h4 class="h-class">ProjectScheme.<b>define_flow</b><span class="args"></span></h4>
 
 
@@ -98,7 +103,7 @@ Or:
 
 ```python
 from libs.scheme import ProjectSchemeBase
-from libs.scheme.flow import BatchNode, TemplateNode, Statement
+from libs.scheme.flow import BatchNode, TemplateNode, Condition, Statement
 
 class ProjectScheme(ProjectSchemeBase):
     ...
@@ -107,9 +112,15 @@ class ProjectScheme(ProjectSchemeBase):
         tnode2 = TemplateNode("mytemplate2")
         return BatchNode("mybatch",
                          children=[tnode1, tnode2],
-                         statement=Statement.WHILE,
-                         condition=lambda wkr_client, ws_client: ws_client.cnt("mybatch")<3)
+                         condition=Condition(Statement.WHILE,
+                                             self.mybatch_while_condition)
+
+    def mybatch_while_condition(self, wkr_context, ws_context):
+        return ws_context.cnt("mybatch")<3
 ```
+
+
+
 
 <h3 class="h-class">class libs.scheme.flow.<b>FlowNode</b></h3>
 
@@ -117,33 +128,25 @@ class ProjectScheme(ProjectSchemeBase):
 
 A superclass of `TemplateNode` and `BatchNode` which can be used to build blocks for the Task Flow.
 
-<h3 class="h-class">class libs.scheme.flow.<b>TemplateNode</b><span class="args">name, statement=Statement.NONE, condition=None, is_skippable=False, on_submit=None</span></h4>
+
+
+
+<h3 class="h-class">class libs.scheme.flow.<b>TemplateNode</b><span class="args">name, condition=None, is_skippable=False, on_enter=None, on_exit=None, on_submit=None</span></h4>
 
 A building component of the Task Flow that represents a **template**, which is an actual nanotask visually shown to workers.
 
 Derived from `FlowNode`.
 
-##### Parameters:
+#### Parameters:
 
 - **name** (*str*) -- A name of the template. This value needs to be the same as that registered via `CreateTemplate` Event.
-- **statement** (*Statement*) -- A type of statement for execution of the node.
-- **condition** (*function*) -- A condition for the statement.
-This field is required if `statement` field is either **Statement.IF** or **Statement.WHILE**.
-The set function is called internally before the system tries to load the node, and is passed two arguments: **instances of `WorkerClient` and `WorkSessionClient`**. The node is loaded if the function returns True, and the node is not loaded otherwise. \
-The code below is an example of setting the `condition` parameter so that a work session repeats assigning a template named "mytemplate" for three times before submission:
-
-```python
-class ProjectScheme(ProjectSchemeBase):
-    ...
-    def define_flow(self):
-        return TemplateNode("mytemplate", statement=Statement.WHILE, condition=self.tnode_cond)
-
-    def tnode_cond(self, wkr_client, ws_client): 
-        return ws_client.cnt("mytemplate")<3
-```
-
+- **condition** (*Condition*) -- A condition for the statement.
 - **is_skippable** (*bool*) -- Whether to allow workers to skip the node to the next when the template node cannot be assigned. *If False is set, the project terminates the work session and starts the new one.*
-- **on_submit** (*function*) -- A hook function called internally on submission of the template node.  This function can be used mainly for saving custom information to `WorkerClient` or `WorkSessionClient`. Four arguments are passed to the function: i) a `WorkerClient` instance, ii) a `WorkSessionClient` instance, iii) a *dict* of submitted answers, and iv) a *dict* of ground-truths of the nanotask (or **None** if not exists).\
+- **on_enter** (*function*) -- A function that is called *before* the Node is visited (regardless of whether it will be executed or not).
+It is passed two arguments: instances of `WorkerContext` and `WorkSessionContext`.
+- **on_exit** (*function*) -- A function that is called upon leaving the executed Node.
+It is passed two arguments: instances of `WorkerContext` and `WorkSessionContext`.
+- **on_submit** (*function*) -- A hook function called internally on submission of the template node.  This function can be used mainly for saving custom information to `WorkerContext` or `WorkSessionContext`. Four arguments are passed to the function: i) a `WorkerContext` instance, ii) a `WorkSessionContext` instance, iii) a *dict* of submitted answers, and iv) a *dict* of ground-truths of the nanotask (or **None** if not exists).\
 The code below is an example of setting the `on_submit` parameter so that the work session counts the number of nanotasks a worker answered correctly on the template called "mytemplate1", and use the results to calculate the accuracy to allow only workers who had >=70% accuracy to work on the template called "mytemplate2".
 
 ```python
@@ -161,33 +164,76 @@ class ProjectScheme(ProjectSchemeBase):
 
         return BatchNode("mybatch", [tnode1, tnode2])
 
-    def tnode1_cond(self, wkr_client, ws_client): 
-        return ws_client.cnt("mytemplate1")<8
+    def tnode1_cond(self, wkr_context, ws_context): 
+        return ws_context.cnt("mytemplate1")<8
 
-    def tnode1_on_submit(self, wkr_client, ws_client, ans, gt):
+    def tnode1_on_submit(self, wkr_context, ws_context, ans, gt):
         is_correct = 1 if ans["somequestion"]==gt["somequestion"] else 0
-        ws_client.add_member("is_correct", is_correct)
+        ws_context.add_member("is_correct", is_correct)
 
-    def tnode2_cond(self, wkr_client, ws_client): 
-        cc = ws_client.get_member("is_correct")
+    def tnode2_cond(self, wkr_context, ws_context): 
+        cc = ws_context.get_member("is_correct")
         return cc.count("1") / len(cc) >= 0.7
 
 ```
 
 
-<h3 class="h-class">class libs.scheme.flow.<b>BatchNode</b><span class="args">name, children, statement=Statement.NONE, condition=None, is_skippable=False</h3>
+
+
+<h3 class="h-class">class libs.scheme.flow.<b>BatchNode</b><span class="args">name, children, condition=None, is_skippable=False, on_enter=None, on_exit=None</span></h3>
 
 A building component of the Task Flow which can create a group of **templates** and/or **batches**.
 
 Derived from `FlowNode`.
 
-##### Parameters (see `TemplateNode` for detailed descriptions):
+#### Parameters (see `TemplateNode` for detailed descriptions):
 
 - **name** (*str*) -- A name of the batch. This can be any string but needs to be unique.
 - **children** (*list*) -- A sequence of child nodes (*i.e.,* `TemplateNode`s and/or `BatchNode`s) to create a group with. All the child nodes must be in the order.
-- **statement** (*Statement*) -- A type of statement for execution of the node.
-- **condition** (*function*) -- A condition for the statement.
+- **condition** (*Condition*) -- A condition for the statement.
 - **is_skippable** (*bool*) -- Whether to allow workers to skip the node to the next when the template node cannot be assigned.
+- **on_enter** (*function*) -- A function that is called *before* the Node is visited.
+- **on_exit** (*function*) -- A function that is called upon leaving the executed Node.
+
+
+<h3 class="h-class">class libs.scheme.flow.<b>Condition</b><span class="args">statement, func, **kwargs</span></h3>
+
+A class that specifies the rule for `FlowNode` to be executed/skipped or looped with a conditional statement(s).
+
+#### Parameters:
+
+- **statement** (*Statement*) -- A type of statement (*i.e.,* IF or WHILE).
+- **func** (*function*) -- The function passed here is called internally before the system tries to load the node.
+The function is passed at least two arguments: **instances of `WorkerContext` and `WorkSessionContext`**.
+The node is loaded if the function returns True, otherwise the node will not be loaded.
+The code below is an example of initializing the Condition object and passing it as a `FlowNode`'s parameter, so that a work session repeats assigning a template named "mytemplate" for three times before submission:
+
+```python
+class ProjectScheme(ProjectSchemeBase):
+    ...
+    def define_flow(self):
+        return TemplateNode("mytemplate",
+                            condition=Condition(Statement.WHILE, self.tnode_cond))
+
+    def tnode_cond(self, wkr_context, ws_context): 
+        return ws_context.cnt("mytemplate")<3
+```
+
+- **kwargs** -- A set of arbitrary keyword arguments are allowed to be passed to the object, for the reusability of the passed function.
+The above example can be further written as follows (note that `tmpl_name` is now passed as the third argument of the `Condition` object):
+
+```python
+class ProjectScheme(ProjectSchemeBase):
+    ...
+    def define_flow(self):
+        tmpls = [TemplateNode(name, condition=Condition(Statement.WHILE, self.count_cond, tmpl_name=name)) for name in ["mytemplate", "mytemplate2"]]
+        return BatchNode("mybatch", tmpls)
+
+    def count_cond(self, wkr_context, ws_context, tmpl_name): 
+        return ws_context.cnt(tmpl_name)<3
+```
+
+Now the project iterates "mytemplate" `TemplateNode` three times, and then "mytemplate2" `TemplateNode` three other times.
 
 <h3 class="h-class">class libs.scheme.flow.<b>Statement</b></h3>
 
@@ -197,23 +243,23 @@ An `enum.Enum` subclass of available conditional statements for the task flow.
 - **IF** -- IF statement (the node is executed once when the node's `condition` returns True)
 - **WHILE** -- WHILE statement (the node is iteratively executed as long as the node's `condition` returns True)
 
-<h3 class="h-class">class libs.scheme.client.<b>ClientBase</b></h3>
+<h3 class="h-class">class libs.scheme.context.<b>ContextBase</b></h3>
 
-At present, this class is a superclass of `WorkerClient` and `WorkSessionClient` which provides developers with data memory used in evaluating conditional statements set to `TemplateNode` and `BatchNode`.
+At present, this class is a superclass of `WorkerContext` and `WorkSessionContext` which provides developers with data memory used in evaluating conditional statements set to `TemplateNode` and `BatchNode`.
 
-<h4 class="h-class">ClientBase.<b>add_member</b><span class="args">name, value</span></h4>
+<h4 class="h-class">ContextBase.<b>add_member</b><span class="args">name, value</span></h4>
 
 Stores a value for the specified member.
-Note that the stored value is appended to a *list* reserved for the member, which is returned when `ClientBase.get_member()` is called.
+Note that the stored value is appended to a *list* reserved for the member, which is returned when `ContextBase.get_member()` is called.
 
-##### Parameters:
+#### Parameters:
 
 - **name** (*str*) -- A member name.
 - **value** (*any*) -- A stored value for the member.
 
-<h4 class="h-class">ClientBase.<b>get_member</b><span class="args">name</span></h4>
+<h4 class="h-class">ContextBase.<b>get_member</b><span class="args">name</span></h4>
 
-##### Parameters:
+#### Parameters:
 
 - **name** (*str*) -- A member name.
 
@@ -221,11 +267,11 @@ Note that the stored value is appended to a *list* reserved for the member, whic
 
 A *list* of values added (pushed) for the member.
 
-<h4 class="h-class">ClientBase.<b>cnt</b><span class="args">node_name</span></h4>
+<h4 class="h-class">ContextBase.<b>cnt</b><span class="args">node_name</span></h4>
 
 Returns a number of times the node is visited previously.
 
-##### Parameters:
+#### Parameters:
 
 - **node_name** (*str*) -- A name of `TemplateNode` or `BatchNode`.
 
@@ -233,10 +279,10 @@ Returns a number of times the node is visited previously.
 
 An *integer* value.
 
-<h3 class="h-class">class libs.scheme.client.<b>WorkerClient</b></h3>
+<h3 class="h-class">class libs.scheme.context.<b>WorkerContext</b></h3>
 
-A `ClientBase` subclass with a scope for a worker ID.
+A `ContextBase` subclass with a scope for a worker ID.
 
-<h3 class="h-class">class libs.scheme.client.<b>WorkSessionClient</b></h3>
+<h3 class="h-class">class libs.scheme.context.<b>WorkSessionContext</b></h3>
 
-A `ClientBase` subclass with a scope for a work session.
+A `ContextBase` subclass with a scope for a work session.

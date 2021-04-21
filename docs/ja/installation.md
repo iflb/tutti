@@ -22,12 +22,16 @@ git clone https://github.com/iflb/tutti
 
 この機能を有効にするには、最初に環境構成ファイル`tutti/.env`を次のように編集する必要があります。
 
-```tutti/.env
+**tutti/.env**
+```diff
 
-DOMAIN_NAME=<Your domain name here (e.g., yourdomain.com)>
-EMAIL=<Your email address here>
+- DOMAIN_NAME=localhost
+- EMAIL=
++ DOMAIN_NAME=yourdomain.com
++ EMAIL=my.email.address@for.letsencrypt.contact.info.com
 ...
-ENABLE_SSL=1
+- ENABLE_SSL=0
++ ENABLE_SSL=1
 ...
 ```
 

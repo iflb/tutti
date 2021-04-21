@@ -23,12 +23,16 @@ This is especially necessary when you are planning to use some crowdsourcing pla
 
 To enable this feature, you first need to edit an environment configuration file `tutti/.env` as follows:
 
-```tutti/.env
+**tutti/.env**
+```diff
 
-DOMAIN_NAME=<Your domain name here (e.g., yourdomain.com)>
-EMAIL=<Your email address here>
+- DOMAIN_NAME=localhost
+- EMAIL=
++ DOMAIN_NAME=yourdomain.com
++ EMAIL=my.email.address@for.letsencrypt.contact.info.com
 ...
-ENABLE_SSL=1
+- ENABLE_SSL=0
++ ENABLE_SSL=1
 ...
 ```
 
