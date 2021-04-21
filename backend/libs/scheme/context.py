@@ -1,53 +1,69 @@
 import json
+import msgpack
+import pickle
+
 from handler.redis_resource import (NodeSessionResource, WorkerResource)
 
 class ContextBase:
     def __init__(self, redis, resource, id, pn):
-        self.id = id
-        self.redis = redis
-        self.new_members = {}
-        self.resource = resource
-        self.pn = pn
-        self.members = {}
+        self._new_attrs = {}
+        self._new_attrs_obj = {}
         self._cnt = {}
-        self._path_member_names = f"{self.resource}Context/{pn}/{self.id}/ContextMeta/MemberNames"
-        self.r_ns = NodeSessionResource(redis)
 
-    def _path_member(self, name):  return f"{self.resource}Context/{self.pn}/{self.id}/ContextMeta/Members/{name}"
+        self.redis = redis
+        self.resource = resource
+        self.id = id
+        self.pn = pn
+
+        self._path_attrs = f"{self.resource}Context/{pn}/{self.id}/Attributes"
+        self.r_ns = NodeSessionResource(redis)
 
     async def _load_for_read(self, flow):
         await self._load_cnt(flow)
-        await self._load_members()
+        #await self._load_members()
+        await self._load_attrs()
         return self
 
     async def _load_cnt(self, flow):
         pass
 
-    async def _load_members(self):
-        member_names = await self.redis.execute_str("SMEMBERS", self._path_member_names)
-        self.members = {name: await self.redis.execute_str("LRANGE", self._path_member(name), 0, -1) for name in member_names}
+    async def _load_attrs(self):
+        attrs = {}
+        key = ""
+        for i,val in enumerate(await self.redis.execute("HGETALL", self._path_attrs)):
+            if i%2==0:
+                key = val.decode()
+                attrs[val] = None
+            else:
+                attrs[key] = val
+        self.attrs = attrs
 
-    def _get_new_members(self):
-        return self.new_members
-
-    async def _register_new_members_to_redis(self):
-        if self.new_members.keys():
-            await self.redis.execute("SADD", self._path_member_names, *self.new_members.keys())
-            for name,values in self.new_members.items():  await self.redis.execute("RPUSH", self._path_member(name), *values)
-
+    async def _register_new_attrs_to_redis(self):
+        for (fmt,attrs) in [ (msgpack, self._new_attrs), (pickle, self._new_attrs_obj) ]:
+            if attrs.keys():
+                for name,values in attrs.items():
+                    await self.redis.execute("HSET", self._path_attrs, name, fmt.dumps(values))
+                    self.attrs[name] = fmt.dumps(values)
 
     def get_id(self):
         return int(self.id[-8:])
 
-    def get_member(self, name):
-        return self.members[name] if name in self.members else []
-
     def cnt(self, node_name):
         return self._cnt[node_name]
 
-    def add_member(self, name, value):
-        if name not in self.new_members:  self.new_members[name] = []
-        self.new_members[name].append(value)
+    def set_attr(self, name, value):
+        if name not in self._new_attrs:  self._new_attrs[name] = []
+        self._new_attrs[name].append(value)
+
+    def set_attr_obj(self, name, value):
+        if name not in self._new_attrs_obj:  self._new_attrs_obj[name] = []
+        self._new_attrs_obj[name].append(value)
+
+    def get_attr(self, name):
+        return msgpack.loads(self.attrs[name])[0] if name in self.attrs else None
+
+    def get_attr_obj(self, name):
+        return pickle.loads(self.attrs[name])[0] if name in self.attrs else None
 
 class WorkerContext(ContextBase):
     def __init__(self, redis, id, pn):

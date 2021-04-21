@@ -282,8 +282,8 @@ class Handler(EventHandler):
             ws_ctxt = await WorkSessionContext(event.session.redis, wsid, pn)._load_for_read(scheme.flow)
             if callable(node.on_submit):
                 node.on_submit(wkr_ctxt, ws_ctxt, response["Answers"], ref)
-            await wkr_ctxt._register_new_members_to_redis()
-            await ws_ctxt._register_new_members_to_redis()
+            await wkr_ctxt._register_new_attrs_to_redis()
+            await ws_ctxt._register_new_attrs_to_redis()
 
         else:
             raise Exception("unknown command '{}'".format(command))

@@ -107,8 +107,8 @@ class FlowNode:
             if callable(self.on_enter):
                 logger.debug(f"{node.name} on_enter")
                 node.on_enter(wkr_ctxt, ws_ctxt)
-                await wkr_ctxt._register_new_members_to_redis()
-                await ws_ctxt._register_new_members_to_redis()
+                await wkr_ctxt._register_new_attrs_to_redis()
+                await ws_ctxt._register_new_attrs_to_redis()
             return node
 
         async def _invoke_on_exit(node, unskippable=False, no_nanotask=False):
@@ -118,8 +118,8 @@ class FlowNode:
 
                 node.on_exit(wkr_ctxt, ws_ctxt, unskippable, no_nanotask)
 
-                await wkr_ctxt._register_new_members_to_redis()
-                await ws_ctxt._register_new_members_to_redis()
+                await wkr_ctxt._register_new_attrs_to_redis()
+                await ws_ctxt._register_new_attrs_to_redis()
             return node
 
         async def _exit_all_and_raise_exception(node, exception):
