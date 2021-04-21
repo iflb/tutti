@@ -9,7 +9,7 @@
   - [4. 回答の確認](/ja/tutorial/answer.md)
 - **Annotator Platforms**
   - [Amazon Mechanical Turk](platform/mturk.md)
-  - ~~[Tutti Partner-Sourcing](platform/partner.md)~~
+  - ~~[Tutti Marketplace](platform/partner.md)~~
 - **Detailed Guide (English)**
   - [Programming Reference](guide/ref.md)
     - [- Project Scheme (Python)](guide/ref_scheme.md)

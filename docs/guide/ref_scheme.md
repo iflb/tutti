@@ -20,6 +20,10 @@ There are a couple of functions required to be implemented within the class: `co
 
 
 
+---
+
+
+
 <h4 class="h-class">ProjectScheme.<b>config_params</b><span class="args"></span></h4>
 
 
@@ -81,6 +85,10 @@ All available parameters are as follows:
 
 
 
+---
+
+
+
 
 <h4 class="h-class">ProjectScheme.<b>define_flow</b><span class="args"></span></h4>
 
@@ -121,6 +129,10 @@ class ProjectScheme(ProjectSchemeBase):
 
 
 
+---
+
+
+
 
 <h3 class="h-class">class libs.scheme.flow.<b>FlowNode</b></h3>
 
@@ -128,6 +140,10 @@ class ProjectScheme(ProjectSchemeBase):
 
 A superclass of `TemplateNode` and `BatchNode` which can be used to build blocks for the Task Flow.
 
+
+
+
+---
 
 
 
@@ -169,13 +185,17 @@ class ProjectScheme(ProjectSchemeBase):
 
     def tnode1_on_submit(self, wkr_context, ws_context, ans, gt):
         is_correct = 1 if ans["somequestion"]==gt["somequestion"] else 0
-        ws_context.add_member("is_correct", is_correct)
+        ws_context.set_attr("is_correct", is_correct)
 
     def tnode2_cond(self, wkr_context, ws_context): 
-        cc = ws_context.get_member("is_correct")
+        cc = ws_context.get_attr("is_correct")
         return cc.count("1") / len(cc) >= 0.7
 
 ```
+
+
+
+---
 
 
 
@@ -194,6 +214,9 @@ Derived from `FlowNode`.
 - **is_skippable** (*bool*) -- Whether to allow workers to skip the node to the next when the template node cannot be assigned.
 - **on_enter** (*function*) -- A function that is called *before* the Node is visited.
 - **on_exit** (*function*) -- A function that is called upon leaving the executed Node.
+
+
+---
 
 
 <h3 class="h-class">class libs.scheme.flow.<b>Condition</b><span class="args">statement, func, **kwargs</span></h3>
@@ -235,6 +258,10 @@ class ProjectScheme(ProjectSchemeBase):
 
 Now the project iterates "mytemplate" `TemplateNode` three times, and then "mytemplate2" `TemplateNode` three other times.
 
+
+---
+
+
 <h3 class="h-class">class libs.scheme.flow.<b>Statement</b></h3>
 
 An `enum.Enum` subclass of available conditional statements for the task flow.
@@ -243,29 +270,77 @@ An `enum.Enum` subclass of available conditional statements for the task flow.
 - **IF** -- IF statement (the node is executed once when the node's `condition` returns True)
 - **WHILE** -- WHILE statement (the node is iteratively executed as long as the node's `condition` returns True)
 
+
+---
+
+
 <h3 class="h-class">class libs.scheme.context.<b>ContextBase</b></h3>
 
 At present, this class is a superclass of `WorkerContext` and `WorkSessionContext` which provides developers with data memory used in evaluating conditional statements set to `TemplateNode` and `BatchNode`.
 
-<h4 class="h-class">ContextBase.<b>add_member</b><span class="args">name, value</span></h4>
 
-Stores a value for the specified member.
-Note that the stored value is appended to a *list* reserved for the member, which is returned when `ContextBase.get_member()` is called.
+---
 
-#### Parameters:
 
-- **name** (*str*) -- A member name.
-- **value** (*any*) -- A stored value for the member.
+<h4 class="h-class">ContextBase.<b>set_attr</b><span class="args">name, value</span></h4>
 
-<h4 class="h-class">ContextBase.<b>get_member</b><span class="args">name</span></h4>
+Stores a primitive value (*i.e.,* bool, int, float, list, and dict) for the specified attribute key.
+To store an object instance of any Python class, use `set_attr_obj()` instead.
 
 #### Parameters:
 
-- **name** (*str*) -- A member name.
+- **name** (*str*) -- An attribute key name.
+- **value** (*primitive type*) -- A stored value for the attribute key.
+
+
+---
+
+
+<h4 class="h-class">ContextBase.<b>set_attr_obj</b><span class="args">name, value</span></h4>
+
+Stores an object of any Python class for the specified attribute key.
+
+#### Parameters:
+
+- **name** (*str*) -- An attribute key name.
+- **value** (*object*) -- A stored value for the attribute key.
+
+
+---
+
+
+<h4 class="h-class">ContextBase.<b>get_attr</b><span class="args">name</span></h4>
+
+Gets a value for the specified attribute key which was set with `set_attr`.
+To get values set with `set_attr_obj`, use `get_attr_obj` instead.
+
+#### Parameters:
+
+- **name** (*str*) -- An attribute name.
 
 ##### Return value:
 
-A *list* of values added (pushed) for the member.
+- The stored value.
+
+
+---
+
+
+<h4 class="h-class">ContextBase.<b>get_attr_obj</b><span class="args">name</span></h4>
+
+Gets a value for the specified attribute key which was set with `set_attr_obj`.
+
+#### Parameters:
+
+- **name** (*str*) -- An attribute name.
+
+##### Return value:
+
+- The stored value.
+
+
+---
+
 
 <h4 class="h-class">ContextBase.<b>cnt</b><span class="args">node_name</span></h4>
 
@@ -279,9 +354,17 @@ Returns a number of times the node is visited previously.
 
 An *integer* value.
 
+
+---
+
+
 <h3 class="h-class">class libs.scheme.context.<b>WorkerContext</b></h3>
 
 A `ContextBase` subclass with a scope for a worker ID.
+
+
+---
+
 
 <h3 class="h-class">class libs.scheme.context.<b>WorkSessionContext</b></h3>
 
