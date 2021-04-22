@@ -131,8 +131,8 @@
                         <v-col cols="4"> <v-text-field outlined dense hide-details disabled v-model="prjName"></v-text-field> </v-col>
                     </v-row>
                 </v-card-text>
-                <v-card-text>
-                    <v-alert dense outlined border="left" class="text-caption" type="warning" >Make sure the project name is correct. If not, change it in the top navigation bar.</v-alert>
+                <v-card-text v-if="projectHasDiff">
+                    <v-alert border="left" type="error" >Seems like your project has been updated since last build.&nbsp;&nbsp;&nbsp;<v-btn color="white" outlined :loading="rebuildingProject" @click="rebuildProject">Rebuild</v-btn></v-alert>
                 </v-card-text>
                 <v-card-text>
                     <v-row>
@@ -166,7 +166,7 @@
             </v-card>
         </v-col>
         <v-col cols="10" class="text-right">
-            <v-btn dark :loading="postingHITs" color="indigo" @click.stop="credentials.Sandbox ? postHITs() : confirmPostHITs();">Post HITs</v-btn>
+            <v-btn dark :loading="postingHITs" :disabled="projectHasDiff" color="indigo" @click.stop="credentials.Sandbox ? postHITs() : confirmPostHITs();">Post HITs</v-btn>
         </v-col>
 
         <tutti-snackbar color="success" :timeout="3000" ref="snackbarSuccess" />
@@ -284,6 +284,9 @@ export default {
         confirmingPostHITs: false,
 
         postingHITs: false,
+
+        projectHasDiff: false,
+        rebuildingProject: false,
     }),
     computed: {
         allQualIds() {
@@ -353,6 +356,14 @@ export default {
         },
         isTuttiQual(qtid){
             return this.customQualTypes[qtid].name.startsWith("TUTTI_HITTYPE_QUALIFICATION");
+        },
+
+        checkProjectDiff(){
+            this.duct.send(this.duct.next_rid(), this.duct.EVENT.CHECK_PROJECT_DIFF, {"ProjectName": this.prjName});
+        },
+        rebuildProject(){
+            this.rebuildingProject = true;
+            this.duct.send(this.duct.next_rid(), this.duct.EVENT.REBUILD_PRODUCTION_ENVIRONMENT, {"ProjectName": this.prjName});
         }
     },
     watch: {
@@ -367,6 +378,16 @@ export default {
     created() {
         this.createNew = true;
         this.duct.invokeOrWaitForOpen(() => {
+            this.checkProjectDiff();
+
+            this.duct.setEventHandler( this.duct.EVENT.CHECK_PROJECT_DIFF, (rid,eid,data) => {
+                if(data["Contents"]["HasDiff"]) this.projectHasDiff = true;
+            });
+
+            this.duct.setEventHandler( this.duct.EVENT.REBUILD_PRODUCTION_ENVIRONMENT, () => {
+                this.rebuildingProject = false;
+                setTimeout(() => { this.projectHasDiff = false; }, 1000);
+            });
 
             this.duct.eventListeners.mturk.on("getHITTypes", {
                 success: (data) => {
