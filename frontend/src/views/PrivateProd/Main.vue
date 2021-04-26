@@ -113,6 +113,18 @@
             </template>
         </tutti-dialog>
                 
+        <tutti-dialog ref="dialogCompleted" maxWidth="500"
+            :actions="[
+                { label: 'OK', color: 'indigo darken-w', onClick: _onSubmitWorkSession, dark: true }
+            ]">
+            <template v-slot:title>
+                <v-icon color="success" class="mr-2">mdi-check-circle</v-icon> Task Completed!
+            </template>
+            <template v-slot:body>
+                You finished all of our questions. Thank you for your contribution!
+            </template>
+        </tutti-dialog>
+
     </v-app>
 </template>
 
@@ -199,7 +211,6 @@ export default {
     },
     created: function(){
         this.loadClientToken().then(() => {
-
             this.duct = new tutti.Duct();
             this.duct.logger = new tutti.DuctEventLogger(this.duct);
 
@@ -274,7 +285,13 @@ export default {
                         } else if(data["WorkSessionStatus"]=="Terminated") {
                             if(this.templateName=="")  this.$refs.dialogAdviseReturn.shown = true;
                             else if(data["TerminateReason"]=="UnskippableNode")  this.$refs.dialogUnskippableNode.shown = true;
-                            else if(data["TerminateReason"]=="SessionEnd")  this._onSubmitWorkSession(this);
+                            else if(data["TerminateReason"]=="SessionEnd") {
+                                if(this.prjConfig.CompletionAlert){
+                                    console.log("session end..");
+                                    this.$refs.dialogCompleted.show();
+                                }
+                                else  this._onSubmitWorkSession(this);
+                            }
                             else  this._onSubmitWorkSession(this);
                         }
                         this.loadingNextTemplate = false;

@@ -18,6 +18,7 @@ class ProjectSchemeBase(ABC):
         self.allow_parallel_sessions = True
         self.anonymous = False
         self.preview = True
+        self.completion_alert = False
 
         self.config_params()
 

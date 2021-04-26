@@ -66,4 +66,5 @@ class Handler(EventHandler):
             "AllowParallelSessions": scheme.allow_parallel_sessions,
             "Anonymous": scheme.anonymous,
             "Preview": scheme.preview,
+            "CompletionAlert": scheme.completion_alert,
         }
