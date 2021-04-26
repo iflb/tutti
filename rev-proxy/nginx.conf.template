@@ -9,11 +9,11 @@ http {
         listen ${HTTP_PORT};
         server_name ${DOMAIN_NAME};
 
-        proxy_set_header Host ${DOMAIN_NAME}:${HTTP_PORT};
+        proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Forwarded-Host ${DOMAIN_NAME}:${HTTP_PORT};
-        proxy_set_header X-Forwarded-Server ${DOMAIN_NAME}:${HTTP_PORT};
+        proxy_set_header X-Forwarded-Host $http_host;
+        proxy_set_header X-Forwarded-Server $http_host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 
         location / {
@@ -42,11 +42,18 @@ http {
         listen ${DEV_HTTP_PORT};
         server_name ${DEV_DOMAIN_NAME};
 
-        proxy_set_header Host ${DEV_DOMAIN_NAME}:${DEV_HTTP_PORT};
+        #proxy_set_header Host ${DEV_DOMAIN_NAME}:${DEV_HTTP_PORT};
+        #proxy_set_header X-Real-IP $remote_addr;
+        #proxy_set_header X-Forwarded-Proto $scheme;
+        #proxy_set_header X-Forwarded-Host ${DEV_DOMAIN_NAME}:${DEV_HTTP_PORT};
+        #proxy_set_header X-Forwarded-Server ${DEV_DOMAIN_NAME}:${DEV_HTTP_PORT};
+        #proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+        proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Forwarded-Host ${DEV_DOMAIN_NAME}:${DEV_HTTP_PORT};
-        proxy_set_header X-Forwarded-Server ${DEV_DOMAIN_NAME}:${DEV_HTTP_PORT};
+        proxy_set_header X-Forwarded-Host $http_host;
+        proxy_set_header X-Forwarded-Server $http_host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 
         location / {
