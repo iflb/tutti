@@ -115,7 +115,7 @@
                 
         <tutti-dialog ref="dialogCompleted" maxWidth="500"
             :actions="[
-                { label: 'OK', color: 'indigo darken-w', onClick: _onSubmitWorkSession, dark: true }
+                { label: 'OK', color: 'indigo darken-w', onclick: _onSubmitWorkSession, dark: true }
             ]">
             <template v-slot:title>
                 <v-icon color="success" class="mr-2">mdi-check-circle</v-icon> Task Completed!
