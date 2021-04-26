@@ -136,8 +136,8 @@ class Handler(EventHandler):
 
             output.set("WorkSessionId", wsid)
             output.set("WorkerId", wid)
-            output.set("Pagination", scheme.pagination)
-            output.set("InstructionEnabled", scheme.instruction)
+            output.set("PageNavigation", scheme.page_navigation)
+            output.set("PushInstruction", scheme.push_instruction)
             if scheme.show_title:  output.set("Title", scheme.title)
 
         elif command=="Get":

@@ -33,8 +33,10 @@ export default {
     },
 
     onSubmitWorkSession: function() {
-        console.log("onSubmitWorkSession");
         sessionStorage.removeItem(clientTokenKey);
+        if(localStorage.getItem("tuttiPlatformWorkerId").startsWith("__ANONYMOUS__")){
+            localStorage.removeItem("tuttiPlatformWorkerId");
+        }
         window.location.reload();
     }
 }

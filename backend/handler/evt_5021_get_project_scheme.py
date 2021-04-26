@@ -59,7 +59,11 @@ class Handler(EventHandler):
             "Title": scheme.title,
             "AssignmentOrder": scheme.assignment_order,
             "SortOrder": scheme.sort_order,
-            "Pagination": scheme.pagination,
-            "Instruction": scheme.instruction,
-            "ShowTitle": scheme.show_title
+            "ShowTitle": scheme.show_title,
+            "PageNavigation": scheme.page_navigation,
+            "PushInstruction": scheme.push_instruction,
+            "InstructionBtn": scheme.instruction_btn,
+            "AllowParallelSessions": scheme.allow_parallel_sessions,
+            "Anonymous": scheme.anonymous,
+            "Preview": scheme.preview,
         }

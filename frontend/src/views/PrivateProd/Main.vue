@@ -1,6 +1,6 @@
 <template>
     <v-app>
-        <div class="text-right ma-6">
+        <div class="text-right ma-6" v-if="!prjConfig.Anonymous">
             <v-menu offset-y v-if="showWorkerMenu && platformWorkerId">
                 <template v-slot:activator="{ on, attrs }">
                     <v-btn text color="indigo" class="text-none" v-bind="attrs" v-on="on">
@@ -20,11 +20,11 @@
 
         <div class="d-flex flex-column">
         <v-row>
-            <v-col v-if="showTitle" cols="12" class="text-center text-h3 my-3">
-                {{ projectTitle }}
+            <v-col v-if="prjConfig.ShowTitle" cols="12" class="text-center text-h3 my-3">
+                {{ prjConfig.Title }}
             </v-col>
             <v-col cols="12" class="text-center">
-                <v-btn v-if="instruction.enabled" @click="$refs.dialogInstruction.shown=true">Show Instruction</v-btn>
+                <v-btn v-if="prjConfig.InstructionBtn" @click="$refs.dialogInstruction.shown=true">Show Instruction</v-btn>
             </v-col>
         </v-row>
         <v-card flat>
@@ -32,7 +32,7 @@
                 <v-progress-circular color="grey" indeterminate size="64"></v-progress-circular>
             </v-overlay>
             <v-row>
-                <v-col cols="12" height="100" class="pt-8" v-if="pagination">
+                <v-col cols="12" height="100" class="pt-8" v-if="prjConfig.PageNavigation">
                     <v-col class="text-center">
                         <v-btn color="white" class="mx-4 pa-2" @click="getTemplate('PREV')" :disabled="!hasPrevTemplate"><v-icon>mdi-chevron-left</v-icon></v-btn>
                         <v-btn color="white" class="mx-4 pa-2" @click="getTemplate('NEXT')" :disabled="!hasNextTemplate"><v-icon>mdi-chevron-right</v-icon></v-btn>
@@ -41,7 +41,10 @@
                 <v-col cols="12" class="px-8">
                     <v-slide-x-reverse-transition hide-on-leave>
                         <component v-if="showTemplate" :is="template" :nano-props="nanoProps" :prev-answer="prevAnswer" @submit="submit" />
-                        <component v-else-if="showPreviewTemplate" :is="previewTemplate" />
+                        <div v-if="!showTemplate && showPreviewTemplate">
+                            <v-btn v-if="prjConfig.Anonymous" color="indigo" @click="anonymousLogin();">Start Task</v-btn>
+                            <component :is="previewTemplate" />
+                        </div>
                     </v-slide-x-reverse-transition>
                 </v-col>
             </v-row>
@@ -114,7 +117,6 @@
 </template>
 
 <script>
-//import tutti from '@/lib/tutti-js/lib/tutti'
 import tutti from '@iflb/tutti'
 import { platformConfig } from './platformConfig'
 
@@ -123,27 +125,19 @@ export default {
         TuttiDialog: () => import('@/views/assets/Dialog')
     },
     data: () => ({
-        projectTitle: "",
+        prjConfig: {},
+
         showTemplate: false,
         showPreviewTemplate: false,
         loadingNextTemplate: false,
         templateName: "",
-        //count: 0,
-        //nanotaskId: null,
         wsid: null,
         nsid: "",
         answer: {},
-        //name: "/private-prod/",
         nanoProps: null,
         workerId: "",
         platformWorkerId: "",
         prevAnswer: null,
-        pagination: false,
-        instruction: {
-            enabled: false,
-            shown: false
-        },
-        showTitle: false,
 
         hasPrevTemplate: false,
         hasNextTemplate: false,
@@ -192,6 +186,15 @@ export default {
         },
         _onSubmitWorkSession() {
             platformConfig.onSubmitWorkSession(this);
+        },
+       
+        anonymousLogin() {
+            localStorage.setItem("tuttiPlatformWorkerId", "__ANONYMOUS__"+this.getDuctSSID());
+            window.location.reload();
+        },
+        getDuctSSID() {
+            let splitUrl = this.duct.WSD.websocket_url.split("/");
+            return splitUrl[splitUrl.length-1].split(".")[0];
         }
     },
     created: function(){
@@ -203,21 +206,18 @@ export default {
             this.duct.addOnOpenHandler(() => {
                 this.duct.eventListeners.resource.on("getProjectScheme", {
                     success: (data) => {
-                        console.log("getProjectScheme");
-                        const config = data["Config"];
-                        this.pagination = config["Pagination"];
-                        this.projectTitle = config["Title"] || "";
-                        this.instruction.enabled = config["Instruction"];
-                        this.showTitle = config["ShowTitle"];
+                        console.log(data["Config"]);
+                        this.prjConfig = data["Config"];
 
                         this.platformWorkerId = platformConfig.workerId(this);
-                        if(!this.platformWorkerId) {
-                            this.showPreviewTemplate = true;
-                            this.$refs.dialogInstruction.shown = true;
-                            return;
-                        } else {
+                        if(this.platformWorkerId) {
                             this.duct.controllers.resource.checkPlatformWorkerIdExistenceForProject(this.projectName, platformConfig.platformName, this.platformWorkerId);
                             this.duct.controllers.resource.createSession(this.projectName, this.platformWorkerId, this.clientToken, platformConfig.platformName);
+                        } else if(this.prjConfig.Preview) {
+                            this.showPreviewTemplate = true;
+                            this.$refs.dialogInstruction.shown = this.prjConfig.PushInstruction;
+                        } else {
+                            this.anonymousLogin();
                         }
                     },
                     error: (data) => {
@@ -227,7 +227,7 @@ export default {
                 this.duct.eventListeners.resource.on("checkPlatformWorkerIdExistenceForProject", {
                     success: (data) => {
                         console.log("checkPlatformWorkerIdExistenceForProject");
-                        if(!data["Exists"]) this.$refs.dialogInstruction.shown = true;
+                        if(!data["Exists"]) this.$refs.dialogInstruction.shown = this.prjConfig.PushInstruction;
                     },
                     error: (data) => {
                         console.error(data["Reason"]);
@@ -255,7 +255,6 @@ export default {
                         this.hasPrevTemplate = data["HasPrevTemplate"];
                         this.hasNextTemplate = data["HasNextTemplate"];
                         if(data["Template"]){
-                            //this.count += 1;
                             this.showTemplate = false;
                             this.$nextTick(() => {
                                 this.showTemplate = true;
@@ -263,11 +262,9 @@ export default {
                                 this.nsid = data["NodeSessionId"];
                                 if(data["IsStatic"]) {
                                     this.$set(this, "nanoProps", null);
-                                    //this.nanotaskId = null;
                                 }
                                 else {
                                     this.$set(this, "nanoProps", data["Props"]);
-                                    //this.nanotaskId = data["NanotaskId"];
                                 }
                                 
                                 if("Answers" in data) {
@@ -279,7 +276,6 @@ export default {
                             else if(data["TerminateReason"]=="UnskippableNode")  this.$refs.dialogUnskippableNode.shown = true;
                             else if(data["TerminateReason"]=="SessionEnd")  this._onSubmitWorkSession(this);
                             else  this._onSubmitWorkSession(this);
-                            //else  this.$refs.unexpectedTermination.shown = true;
                         }
                         this.loadingNextTemplate = false;
                     },
@@ -303,7 +299,6 @@ export default {
             this.duct.open("/ducts/wsd");
 
         });
-        //}).catch(platformConfig.onClientTokenFailure);
     }
 }
 </script>
