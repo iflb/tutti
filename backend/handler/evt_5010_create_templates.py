@@ -44,7 +44,7 @@ class Handler(EventHandler):
     
             try:
                 shutil.copytree(preset, dst)
-                open(dst/Path("dummy.txt"),"w").close()
+                open(dst/Path(".dummy"),"w").close()
                 templates_success.append(tn)
             except Exception as e:
                 raise Exception("Error for '{}': {} (Successful for templates: {})".format(tn, e, templates_success))
