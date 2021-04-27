@@ -69,12 +69,6 @@
                 <v-list-item-group active-class="indigo--text text--accent-4">
                     <v-subheader>PUBLISH & COLLECT</v-subheader>
  
-                    <v-list-item :href="`/vue/private-prod/${this.prjName}`" target="_blank">
-                        <v-list-item-icon> <v-icon>mdi-monitor</v-icon> </v-list-item-icon>
-                        <v-list-item-title>Task UI</v-list-item-title>
-                        <v-list-item-action> <v-icon small>mdi-launch</v-icon> </v-list-item-action>
-                    </v-list-item>
-
                     <v-list-item to="/console/response/">
                         <v-list-item-icon> <v-icon>mdi-comment-check-outline</v-icon> </v-list-item-icon>
                         <v-list-item-title>Responses</v-list-item-title>

@@ -35,8 +35,10 @@ services:
     stdin_open: true
     tty: true
     environment:
-      - DOMAIN_NAME=$DOMAIN_NAME
-      - DEV_DOMAIN_NAME=$DEV_DOMAIN_NAME
+      - VUE_APP_HOST=$DOMAIN_NAME:$HTTP_PORT
+      - VUE_APP_DEV_HOST=$DEV_DOMAIN_NAME:$DEV_HTTP_PORT
+      - VUE_APP_SSL=$ENABLE_SSL
+      - VUE_APP_DEV_SSL=$DEV_ENABLE_SSL
     depends_on: 
       - rev-proxy
     networks:
