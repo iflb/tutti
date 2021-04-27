@@ -6,7 +6,7 @@
                 <slot name="title"></slot>
             </v-card-title>
             <v-card-text v-if="$slots.body">
-                <v-form v-model="valid">
+                <v-form v-model="valid" @submit.prevent="allowEnter ? submit(actions[0].onclick) : null;">
                     <slot name="body"></slot>
                 </v-form>
             </v-card-text>
@@ -15,7 +15,15 @@
             </div>
             <v-card-actions>
                 <v-spacer></v-spacer>
-                <v-btn v-for="(action,i) in actions.slice().reverse()" :key="i" :color="action.color" @click="action.onclick ? action.onclick() : null; shown=false;" :dark="action.dark" :text="action.text" :disabled="action.disableByRule && !valid">{{ action.label }}</v-btn>
+                <v-btn
+                        v-for="(action,i) in actions.slice().reverse()"
+                        :key="i"
+                        :color="action.color"
+                        @click="submit(action.onclick)"
+                        :dark="action.dark"
+                        :text="action.text"
+                        :disabled="action.disableByRule && !valid"
+                    >{{ action.label }}</v-btn>
             </v-card-actions>
         </v-card>
     </v-dialog>
@@ -29,8 +37,12 @@ export default {
     methods: {
         show() {
             this.shown = true;
+        },
+        submit(onclick) {
+            if(onclick) onclick();
+            this.shown = false;
         }
     },
-    props: ["title", "actions", "maxWidth", "persistent"]
+    props: ["title", "actions", "maxWidth", "persistent", "allowEnter"]
 }
 </script>

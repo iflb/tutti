@@ -37,7 +37,7 @@
             </v-col>
         </v-row>
 
-        <tutti-dialog ref="dialogCreateTemplate" maxWidth="400" title="Create New Template"
+        <tutti-dialog ref="dialogCreateTemplate" maxWidth="400" title="Create New Template" :allowEnter="true"
             :actions="[
                 { label: 'Create', color: 'indigo darken-1', text: true, disableByRule: true, onclick: createTemplate },
                 { label: 'Cancel', color: 'grey darken-1', text: true }

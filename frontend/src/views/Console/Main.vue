@@ -142,7 +142,7 @@
         </keep-alive>
 
 
-        <tutti-dialog ref="dialogCreateProject" title="Create New Project" maxWidth="400"
+        <tutti-dialog ref="dialogCreateProject" title="Create New Project" maxWidth="400" :allowEnter="true"
             :actions="[
                 { label: 'Create', color: 'indigo darken-1', disableByRule: true, text: true, onclick: createProject },
                 { label: 'Cancel', color: 'grey darken-1', text: true }
