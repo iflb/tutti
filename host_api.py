@@ -2,6 +2,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import logging
 import subprocess
 import os
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(name)s] [%(levelname)s] %(message)s')
+logger = logging.getLogger()
 
 prj_hashes = {}
 
@@ -48,16 +50,15 @@ def check_prj_hash_diff(prj_name, hash_val):
     return (prj_name not in prj_hashes) or (prj_hashes[prj_name]!=hash_val)
 
 def run(server_class=HTTPServer, handler_class=S, port=18080):
-    logging.basicConfig(level=logging.INFO)
     server_address = ('0.0.0.0', port)
     httpd = server_class(server_address, handler_class)
-    logging.info('Starting httpd...\n')
+    logger.info('Starting httpd...\n')
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
         pass
     httpd.server_close()
-    logging.info('Stopping httpd...\n')
+    logger.info('Stopping httpd...\n')
 
 if __name__ == '__main__':
     from sys import argv

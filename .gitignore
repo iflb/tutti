@@ -15,3 +15,4 @@ projects/test0812
 letsencrypt/
 frontend/src/lib/tutti-js/
 .bash_history
+.host_api.pid
