@@ -1,5 +1,5 @@
 from libs.scheme import ProjectSchemeBase
-from libs.scheme.flow import BatchNode, TemplateNode, Statement
+from libs.scheme.flow import BatchNode, TemplateNode, Condition, Statement
 
 class ProjectScheme(ProjectSchemeBase):
     def config_params(self):
