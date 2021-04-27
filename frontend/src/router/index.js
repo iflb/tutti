@@ -8,6 +8,10 @@ function getPropsForRoute(route) {
 
 const routes = [
     {
+        path: "/",
+        redirect: "console"
+    },
+    {
         path: "/console",
         redirect: "console/dashboard",
         component: () => import("@/views/Console/Main"),
