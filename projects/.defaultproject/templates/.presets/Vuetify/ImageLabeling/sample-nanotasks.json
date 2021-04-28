@@ -1,0 +1,150 @@
+{
+    "Settings": {
+        "TagName": "mysample",
+        "NumAssignable": 3,
+        "Priority": 1
+    },
+    "Nanotasks": [
+        {
+            "NumAssignable": 2,
+            "Priority": 3,
+            "Props": {
+                "img_url0": "/static/sample-images/trump-left.jpg",
+                "img_url1": "/static/sample-images/trump-right-1.jpg"
+            },
+            "GroundTruths": {
+                "choice": "Same"
+            }
+        },
+        {
+            "Priority": 3,
+            "Props": {
+                "img_url0": "/static/sample-images/trump-left.jpg",
+                "img_url1": "/static/sample-images/trump-right-2.jpg"
+            },
+            "GroundTruths": {
+                "choice": "Same"
+            }
+        },
+        {
+            "Priority": 3,
+            "Props": {
+                "img_url0": "/static/sample-images/trump-left.jpg",
+                "img_url1": "/static/sample-images/trump-right-3.jpg"
+            },
+            "GroundTruths": {
+                "choice": "Same"
+            }
+        },
+        {
+            "Priority": 3,
+            "Props": {
+                "img_url0": "/static/sample-images/trump-left.jpg",
+                "img_url1": "/static/sample-images/trump-right-4.jpg"
+            },
+            "GroundTruths": {
+                "choice": "Not Same"
+            }
+        },
+        {
+            "Priority": 3,
+            "Props": {
+                "img_url0": "/static/sample-images/trump-left.jpg",
+                "img_url1": "/static/sample-images/trump-right-5.jpg"
+            },
+            "GroundTruths": {
+                "choice": "Not Same"
+            }
+        },
+        {
+            "Props": {
+                "img_url0": "/static/sample-images/piko-left.jpg",
+                "img_url1": "/static/sample-images/piko-right-1.jpg"
+            },
+            "GroundTruths": {
+                "choice": "Not Same"
+            }
+        },
+        {
+            "Props": {
+                "img_url0": "/static/sample-images/piko-left.jpg",
+                "img_url1": "/static/sample-images/piko-right-2.jpg"
+            },
+            "GroundTruths": {
+                "choice": "Same"
+            }
+        },
+        {
+            "Props": {
+                "img_url0": "/static/sample-images/piko-left.jpg",
+                "img_url1": "/static/sample-images/piko-right-3.jpg"
+            },
+            "GroundTruths": {
+                "choice": "Same"
+            }
+        },
+        {
+            "Props": {
+                "img_url0": "/static/sample-images/piko-left.jpg",
+                "img_url1": "/static/sample-images/piko-right-4.jpg"
+            },
+            "GroundTruths": {
+                "choice": "Same"
+            }
+        },
+        {
+            "Props": {
+                "img_url0": "/static/sample-images/piko-left.jpg",
+                "img_url1": "/static/sample-images/piko-right-5.jpg"
+            },
+            "GroundTruths": {
+                "choice": "Same"
+            }
+        },
+        {
+            "Props": {
+                "img_url0": "/static/sample-images/waldo-left.jpg",
+                "img_url1": "/static/sample-images/waldo-right-1.jpg"
+            },
+            "GroundTruths": {
+                "choice": "Same"
+            }
+        },
+        {
+            "Props": {
+                "img_url0": "/static/sample-images/waldo-left.jpg",
+                "img_url1": "/static/sample-images/waldo-right-2.jpg"
+            },
+            "GroundTruths": {
+                "choice": "Same"
+            }
+        },
+        {
+            "Props": {
+                "img_url0": "/static/sample-images/waldo-left.jpg",
+                "img_url1": "/static/sample-images/waldo-right-3.jpg"
+            },
+            "GroundTruths": {
+                "choice": "Same"
+            }
+        },
+        {
+            "Props": {
+                "img_url0": "/static/sample-images/waldo-left.jpg",
+                "img_url1": "/static/sample-images/waldo-right-4.jpg"
+            },
+            "GroundTruths": {
+                "choice": "Same"
+            }
+        },
+        {
+            "Props": {
+                "img_url0": "/static/sample-images/waldo-left.jpg",
+                "img_url1": "/static/sample-images/waldo-right-5.jpg"
+            },
+            "GroundTruths": {
+                "choice": "Same"
+            }
+        }
+    ]
+}
