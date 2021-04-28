@@ -1,20 +1,32 @@
 #!/bin/bash
 
-if [ "$1" = "start" ]; then
+if [ "$1" = "init" ]; then
+    sudo docker-compose build
+
+elif [ "$1" = "start" ]; then
     find projects/.defaultproject -type f -print0 | xargs -0 chmod 644
     python3 host_api.py >> ./logs/host_api.log 2>&1 &
     echo $! > .host_api.pid
     sudo docker-compose up -d
-fi
 
-if [ "$1" = "stop" ]; then
+elif [ "$1" = "stop" ]; then
     sudo docker-compose down
     TUTTI_HOST_PID=`cat .host_api.pid`
     kill -SIGTERM $TUTTI_HOST_PID
-fi
 
-if [ "$1" = "kill" ]; then
+elif [ "$1" = "kill" ]; then
     sudo docker-compose kill
     TUTTI_HOST_PID=`cat .host_api.pid`
     kill $TUTTI_HOST_PID
+
+else
+    echo "
+    usage: ./tutti [init|start|stop|kill]
+    
+    init  ... Initialize Tutti environment (i.e., sudo docker-compose build)
+    start ... Start containers and host web server
+    stop  ... Stop containers and host web server
+    kill  ... Kill containers and host web server
+    "
+
 fi

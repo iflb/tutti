@@ -2,7 +2,7 @@ module.exports = {
     publicPath: '/',
     devServer: {
         port: 80,
-        public:  process.env.NODE_ENV === 'production' ? process.env.DOMAIN_NAME : process.env.DEV_DOMAIN_NAME,
+        public:  process.env.NODE_ENV === 'production' ? process.env.VUE_APP_HOST : process.env.VUE_APP_DEV_HOST,
     },
     outputDir: 'dist/dist',
     configureWebpack: {
