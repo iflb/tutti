@@ -7,7 +7,7 @@ function getHost(){
 	[domain, port] = process.env.VUE_APP_DEV_HOST.split(":");
 
     if(port=="80" || port=="443")  return domain;
-    else  return process.env.VUE_APP_HOST;
+    else  return `${domain}:${port}`;
 }
 
 module.exports = {
