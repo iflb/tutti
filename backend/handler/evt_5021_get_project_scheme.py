@@ -14,14 +14,21 @@ class Handler(EventHandler):
 
     def setup(self, handler_spec, manager):
         self.evt_project_scheme = manager.get_handler_for(manager.key_ids["PROJECT_SCHEME_CORE"])[1]
+        self.evt_list_templates = manager.get_handler_for(manager.key_ids["LIST_TEMPLATES"])[1]
 
         handler_spec.set_description('Creates a project.')
         handler_spec.set_as_responsive()
         return handler_spec
 
+    def is_valid_template_name(self, name):
+        return name in self.templates
+
     @handler_output
     async def handle(self, event, output):
         ret = await self.evt_project_scheme.get_project_scheme(**event.data)
+
+        self.templates = await self.evt_list_templates.list_templates(event.data["ProjectName"])
+
         if isinstance(ret, Exception):
             raise ret
         else:
@@ -34,6 +41,8 @@ class Handler(EventHandler):
 
     def get_batch_info_dict(self, child):
         if child.is_template():
+            if not self.is_valid_template_name(child.name):
+                raise Exception(f"'{child.name}' is not registered as a template name")
             ret = {
                 "is_skippable": child.is_skippable,
                 "name": child.name
