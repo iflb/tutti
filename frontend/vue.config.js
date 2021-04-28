@@ -1,8 +1,20 @@
+function getHost(){
+    let domain;
+    let port;
+    if(process.env.NODE_ENV==="production")
+	[domain, port] = process.env.VUE_APP_HOST.split(":");
+    else
+	[domain, port] = process.env.VUE_APP_DEV_HOST.split(":");
+
+    if(port=="80" || port=="443")  return domain;
+    else  return process.env.VUE_APP_HOST;
+}
+
 module.exports = {
     publicPath: '/',
     devServer: {
         port: 80,
-        public:  process.env.NODE_ENV === 'production' ? process.env.VUE_APP_HOST : process.env.VUE_APP_DEV_HOST,
+	public: getHost(),
     },
     outputDir: 'dist/dist',
     configureWebpack: {
