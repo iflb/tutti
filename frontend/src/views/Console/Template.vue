@@ -1,10 +1,10 @@
 <template>
     <!--<v-main class="mt-10 grey lighten-4">-->
     <v-main>
-        <v-toolbar flat class="pa-0 ma-0">
+        <v-toolbar class="pa-0 ma-0 grey lighten-4">
             <v-row align="end" justify="center">
                 <v-col cols="6">
-                    <v-select outlined dense width="300" :hide-details="!templateCreated" messages="Page refresh may be required for rendering the new templates" :items="tmplNames" v-model="tmplName" label="Template name" :disabled="tmplNames.length==0">
+                    <v-select width="300" :hide-details="!templateCreated" messages="Page refresh may be required for rendering the new templates" :items="tmplNames" v-model="tmplName" label="Template name" :disabled="tmplNames.length==0">
                         <template v-if="templateCreated" v-slot:message="{ message }">
                             <span style="color:darkorange;font-weight:bold;">{{ message }}</span>
                         </template>

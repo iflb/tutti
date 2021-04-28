@@ -9,16 +9,12 @@
 
             <v-autocomplete v-model="prjName" :items="prjNames" label="Select existing project" hide-details cache-items solo-inverted hide-no-data dense rounded></v-autocomplete>
 
-            <v-menu bottom left offset-y>
+            <v-tooltip bottom>
                 <template v-slot:activator="{ on, attrs }">
-                    <v-btn fab dark small icon v-on="on" v-bind="attrs"><v-icon>mdi-dots-vertical</v-icon></v-btn>
+                    <v-btn fab dark small icon v-on="on" v-bind="attrs" @click="$refs.dialogCreateProject.show()"><v-icon>mdi-plus</v-icon></v-btn>
                 </template>
-                <v-list>
-                    <v-list-item @click="$refs.dialogCreateProject.show()">
-                        <v-list-item-title>Create New Project...</v-list-item-title>
-                    </v-list-item>
-                </v-list>
-            </v-menu>
+                <span>Create new project...</span>
+            </v-tooltip>
 
             <v-spacer></v-spacer>
 
@@ -60,8 +56,8 @@
                     </v-list-item>
                
                     <v-list-item to="/console/flow/">
-                        <v-list-item-icon> <v-icon>mdi-transit-connection</v-icon> </v-list-item-icon>
-                        <v-list-item-title>Task Flow</v-list-item-title>
+                        <v-list-item-icon> <v-icon>mdi-wrench</v-icon> </v-list-item-icon>
+                        <v-list-item-title>Scheme</v-list-item-title>
                     </v-list-item>
 
                 </v-list-item-group>

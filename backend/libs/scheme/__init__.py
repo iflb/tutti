@@ -6,7 +6,10 @@ import sys
 class ProjectSchemeBase(ABC):
     def __init__(self):
         pn = sys.modules[self.__class__.__module__].__file__.split("/")[-2]
-        self.flow = Flow(pn, self.define_flow())
+        try:
+            self.flow = Flow(pn, self.define_flow())
+        except AttributeError:
+            self.flow = None 
 
         self.title = None
         self.assignment_order = "bfs"

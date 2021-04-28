@@ -27,7 +27,10 @@ class Handler(EventHandler):
         else:
             scheme = ret
             output.set("Config", self.get_config_dict(scheme))
-            output.set("Flow", self.get_batch_info_dict(scheme.flow.root_node))
+            if scheme.flow:
+                output.set("Flow", self.get_batch_info_dict(scheme.flow.root_node))
+            else:
+                output.set("Flow", None)
 
     def get_batch_info_dict(self, child):
         if child.is_template():
