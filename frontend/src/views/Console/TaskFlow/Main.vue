@@ -1,7 +1,10 @@
 <template>
     <v-main class="grey lighten-4">
+        <v-row class="justify-center"><v-col cols="11" lg="8" class="text-right mt-10">
+            <v-btn color="indigo" dark @click="loadFlow()"><v-icon>mdi-refresh</v-icon></v-btn>
+        </v-col></v-row>
         <v-row class="justify-center"><v-col cols="11" lg="8">
-            <v-card class="mt-10">
+            <v-card class="mt-1">
                 <v-card-title> Config Parameters </v-card-title>
                 <v-data-table
                     dense
@@ -11,6 +14,7 @@
                         { width: '60%', text: 'Value', value: 'val' }
                     ]"
                     :items="configArray"
+                    :items-per-page="100"
                 >
                     <template v-slot:item.val="{ item }">
                         <v-icon v-if="item.val===true" color="success">mdi-check-circle-outline</v-icon>
@@ -24,7 +28,6 @@
             <v-card class="mt-10">
                 <v-card-title>
                     Task Flow
-                    <v-btn text icon @click="loadFlow()"><v-icon>mdi-refresh</v-icon></v-btn>
                 </v-card-title>
                 <v-container>
                     <v-row>
@@ -97,7 +100,8 @@ export default {
         this.duct.invokeOrWaitForOpen(() => {
             this.duct.eventListeners.resource.on("getProjectScheme", {
                 success: (data) => {
-                    this.scheme = data;
+                    this.$set(this.scheme, "Flow", data.Flow);
+                    this.$set(this.scheme, "Config", data.Config);
                     this.$refs.snackbarSuccess.show("successfully loaded flow");
                 },
                 error: (data) => {

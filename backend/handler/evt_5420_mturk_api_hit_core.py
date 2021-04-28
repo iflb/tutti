@@ -14,6 +14,7 @@ class Handler(EventHandler):
 
     async def setup(self, handler_spec, manager):
         self.evt_mturk_api_core = manager.get_handler_for(manager.key_ids["MTURK_API_CORE"])[1]
+        self.evt_project_scheme_core = manager.get_handler_for(manager.key_ids["PROJECT_SCHEME_CORE"])[1]
         self.r_mt = MTurkResource(manager.redis)
 
         handler_spec.set_description('Lists HITs.')
@@ -133,15 +134,19 @@ class Handler(EventHandler):
             async with sem:
                 return await self.evt_mturk_api_core.exec_boto3("create_hit_with_hit_type", CreateHITsWithHITTypeParams)
 
-        url = f"https://{os.environ['DOMAIN_NAME']}/vue/private-prod/{ProjectName}"
-        CreateHITsWithHITTypeParams["Question"] = f'''
-            <ExternalQuestion
-                xmlns="http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2006-07-14/ExternalQuestion.xsd">
-                <ExternalURL>{url}</ExternalURL>
-                <FrameHeight>{FrameHeight}</FrameHeight>
-            </ExternalQuestion>'''
-        tasks = [asyncio.ensure_future(_create_hit()) for i in range(NumHITs)]
-        return await asyncio.gather(*tasks)
+        scheme = await self.evt_project_scheme_core.get_project_scheme(ProjectName)
+        if scheme.preview:
+            url = f"https://{os.environ['DOMAIN_NAME']}/private-prod/{ProjectName}"
+            CreateHITsWithHITTypeParams["Question"] = f'''
+                <ExternalQuestion
+                    xmlns="http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2006-07-14/ExternalQuestion.xsd">
+                    <ExternalURL>{url}</ExternalURL>
+                    <FrameHeight>{FrameHeight}</FrameHeight>
+                </ExternalQuestion>'''
+            tasks = [asyncio.ensure_future(_create_hit()) for i in range(NumHITs)]
+            return await asyncio.gather(*tasks)
+        else:
+            raise Exception("Preview parameter in scheme cannot be false")
 
     async def expire_hits(self, HITIds):
         sem = asyncio.Semaphore(sem_limit)

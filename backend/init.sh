@@ -5,7 +5,7 @@ envsubst '$$REDIS_ADDRESS' < $HOME/config/config_server.ini.template > $HOME/con
 python -m ducts server start -c ./config/config_server.ini &
 
 if [ "$1" = "dev" ]; then
-    watchmedo shell-command -W -R -p '*.py' -c 'echo ${watch_src_path}; python -m ducts server stop && python -m ducts server start -c ./config/config_server.ini' ./
+    watchmedo shell-command -W -R -p '*.py' --ignore-patterns="projects/*/*" -c 'echo ${watch_src_path}; python -m ducts server stop && python -m ducts server start -c ./config/config_server.ini' ./
 else
     /bin/bash
 fi
