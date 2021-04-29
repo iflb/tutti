@@ -17,4 +17,4 @@ class ProjectScheme(ProjectSchemeBase):
 
     def define_flow(self):
         # define your task flow here
-        pass
+        return TemplateNode("hello-world")
