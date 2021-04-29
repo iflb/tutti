@@ -4,7 +4,7 @@
         <v-toolbar class="pa-0 ma-0 grey lighten-4">
             <v-row align="end" justify="center">
                 <v-col cols="6">
-                    <v-select width="300" :hide-details="!templateCreated" messages="Page refresh may be required for rendering the new templates" :items="tmplNames" v-model="tmplName" label="Template name" :disabled="tmplNames.length==0">
+                    <v-select width="300" :hide-details="!templateCreated" messages="Page refresh may be required for rendering the new templates" :items="tmplNamesWithAux" v-model="tmplName" label="Template name">
                         <template v-if="templateCreated" v-slot:message="{ message }">
                             <span style="color:darkorange;font-weight:bold;">{{ message }}</span>
                         </template>
@@ -93,11 +93,23 @@ export default {
     props: ["name", "duct", "prjName"],
     computed: {
         tmplComponent() {
-            if(this.prjName && this.tmplName){ return require(`@/projects/${this.prjName}/templates/${this.tmplName}/Main.vue`).default; }
+            if(this.prjName && this.tmplName){
+                if(this.tmplName=="[Instruction]")
+                    return require(`@/projects/${this.prjName}/templates/Instruction.vue`).default;
+                else if(this.tmplName=="[Preview]")
+                    return require(`@/projects/${this.prjName}/templates/Preview.vue`).default;
+                else
+                    return require(`@/projects/${this.prjName}/templates/${this.tmplName}/Main.vue`).default;
+
+            }
             else { return null; }
         },
 
-        presetsList() { return this.presets.map((val) => ({ text: `${val[0]} - ${val[1]}`, value: val })); }
+        presetsList() { return this.presets.map((val) => ({ text: `${val[0]} - ${val[1]}`, value: val })); },
+
+        tmplNamesWithAux() {
+            return [...this.tmplNames, "[Instruction]", "[Preview]"];
+        }
     },
     methods: {
         updateAnswer($event) {
