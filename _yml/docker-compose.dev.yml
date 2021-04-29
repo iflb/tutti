@@ -54,6 +54,7 @@ services:
     environment:
       - HOME=$BACKEND_HOME
       - REDIS_ADDRESS=$DEV_REDIS_ADDRESS
+      - DOMAIN_NAME=$DOMAIN_NAME
       - TUTTI_WEBAPI_HOST=${HOST_WEBAPI_ADDRESS:-host.docker.internal}:$HOST_WEBAPI_PORT
     depends_on: 
       - backend
