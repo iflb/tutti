@@ -1,6 +1,5 @@
 <template>
     <v-row class="my-10" justify="center">
-        {{ this.attributes.QualificationRequirements }}
         <v-col cols="10">
             <v-card>
                 <v-card-title>

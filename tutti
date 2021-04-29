@@ -19,14 +19,17 @@ elif [ "$1" = "kill" ]; then
     TUTTI_HOST_PID=`cat .host_api.pid`
     kill $TUTTI_HOST_PID
 
+elif [ "$1" = "log" ]; then
+    sudo docker-compose logs --tail="50" -f $2
 else
     echo "
-    usage: ./tutti [init|start|stop|kill]
+    usage: ./tutti [init|start|stop|kill|log] [container]
     
     init  ... Initialize Tutti environment (i.e., sudo docker-compose build)
     start ... Start containers and host web server
     stop  ... Stop containers and host web server
     kill  ... Kill containers and host web server
+    log   ... Monitor output logs of a specified container (Ctrl+C to abort)
     "
 
 fi
