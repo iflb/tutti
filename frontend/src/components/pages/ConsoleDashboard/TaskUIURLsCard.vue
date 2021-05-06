@@ -1,32 +1,26 @@
 <template>
-    <v-main class="mt-10 grey lighten-4">
-        <v-row justify="center">
-            <v-col cols="9">
-                <v-card>
-                    <v-card-title>
-                        Visit Tutti Task UI:
-                    </v-card-title>
-                    <v-card-text>
-                        <div v-if="projectHasDiff">
-                            Production URL is not available since "{{ prjName }}" seems to be changed since the last build.
-                            <v-btn outlined small color="grey" :loading="rebuildingProject" @click="rebuildProject">Rebuild now</v-btn>
-                        </div>
-                        <div v-else>
-                            <b>Production URL</b>: <a :href="url" target="_blank">{{ url }}</a><copy-to-clipboard-btn x-small class="ml-1" :text="url"></copy-to-clipboard-btn><br>
-                        </div>
-                        <b>Development URL</b>: <a :href="devUrl" target="_blank">{{ devUrl }}</a><copy-to-clipboard-btn x-small class="ml-1" :text="devUrl"></copy-to-clipboard-btn><br>
-                    </v-card-text>
-                </v-card>
-            </v-col>
-        </v-row>
-    </v-main>
+    <v-card>
+        <v-card-title>
+            Visit Tutti Task UI:
+        </v-card-title>
+        <v-card-text>
+            <div v-if="projectHasDiff">
+                Production URL is not available since "{{ prjName }}" seems to be changed since the last build.
+                <v-btn outlined small color="grey" :loading="rebuildingProject" @click="rebuildProject">Rebuild now</v-btn>
+            </div>
+            <div v-else>
+                <b>Production URL</b>: <a :href="url" target="_blank">{{ url }}</a><copy-to-clipboard-btn x-small class="ml-1" :text="url"></copy-to-clipboard-btn><br>
+            </div>
+            <b>Development URL</b>: <a :href="devUrl" target="_blank">{{ devUrl }}</a><copy-to-clipboard-btn x-small class="ml-1" :text="devUrl"></copy-to-clipboard-btn><br>
+        </v-card-text>
+    </v-card>
 </template>
 <script>
 import { getUrl } from "@/lib/tutti-env.js"
 
 export default {
     components: {
-        CopyToClipboardBtn: () => import("@/components/CopyToClipboardBtn")
+        CopyToClipboardBtn: () => import("@/components/CopyToClipboardBtn"),
     },
     data: () => ({
         projectHasDiff: false,

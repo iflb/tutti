@@ -36,8 +36,8 @@ export default {
         }
     },
     methods: {
-        updateAnswer() {
-            this.$emit("updateAnswer", this.nano.ans);
+        updateResponse() {
+            this.$emit("response-update", this.nano.ans);
         },
         submit(ans) {
             if(ans) this.$emit("submit", ans);
@@ -64,7 +64,7 @@ export default {
         "nano.ans": {
             deep: true,
             handler() {
-                this.updateAnswer();
+                this.updateResponse();
             }
         }
     },
