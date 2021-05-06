@@ -5,8 +5,14 @@ if [ "$1" = "init" ]; then
 
 elif [ "$1" = "start" ]; then
     find projects/.defaultproject -type f -print0 | xargs -0 chmod 644
-    python3 host_api.py >> ./logs/host_api.log 2>&1 &
-    echo $! > .host_api.pid
+
+    if [ -e .host_api.pid ] && [ -n "$(ps -p `cat .host_api.pid` -o pid=)" ]; then
+        echo "Tutti is already started."
+    else
+        python3 host_api.py >> ./logs/host_api.log 2>&1 &
+        echo $! > .host_api.pid
+    fi
+
     sudo docker-compose up -d
 
 elif [ "$1" = "stop" ]; then
