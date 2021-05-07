@@ -1,114 +1,95 @@
 <template>
     <v-row class="my-10" justify="center">
         <v-col cols="10" class="text-right">
-            <v-tooltip top>
-                <template #activator="{ on, attrs }">
-                    <v-btn v-bind="attrs" v-on="on" class="mx-2" dark color="success" @click="$refs.dialogApprove.show()"><v-icon>mdi-check-bold</v-icon></v-btn>
-                </template>
-                <span>Approve assignment(s)</span>
-            </v-tooltip>
-            <v-tooltip top>
-                <template #activator="{ on, attrs }">
-                    <v-btn v-bind="attrs" v-on="on" class="mx-2" dark color="error" @click="$refs.dialogReject.show()"><v-icon>mdi-close-thick</v-icon></v-btn>
-                </template>
-                <span>Reject assignment(s)</span>
-            </v-tooltip>
+            <div style="display:flex;justify-content:flex-end;">
+                <approve-button :duct="duct" :aids="selectedIds" @success="clearSelection();" />
+                <reject-button :duct="duct" :aids="selectedIds" @success="clearSelection();" />
+            </div>
         </v-col>
+
         <v-col cols="10">
             <v-data-table
+              dense
+              sort-desc
+              show-select
               :headers="headers"
               :items="assignments"
               item-key="AssignmentId"
               class="elevation-1"
-              dense
-              :loading="loadingAssignments"
-              show-select
+              :loading="loading"
               v-model="selected"
               sort-by="Timestamp"
-              sort-desc
               :items-per-page="100"
               :footer-props="{ itemsPerPageOptions: [10,30,50,100,300] }"
-              :search="searchAssignments"
-            >
+              :search="searchQuery">
+
                 <template v-slot:top>
                     <v-card-title>
                         Assignments
                         <v-btn icon @click="listAssignments(false)"><v-icon>mdi-refresh</v-icon></v-btn>
-                        <!--<v-btn icon @click="$refs.dlgCreate.shown=true"><v-icon>mdi-plus</v-icon></v-btn>-->
+
                         <v-spacer></v-spacer>
-                        <v-select :loading="loadingHITTypes" v-model="selectedHITTypeId" :items="Object.keys(HITIds)" label="HITTypeId" hide-details></v-select>
+
+                        <v-select
+                            hide-details 
+                            :loading="loadingHITTypes"
+                            v-model="HITTypeId"
+                            :items="Object.keys(HITIds)"
+                            label="HITTypeId" />
+
                         <v-spacer></v-spacer>
-                        <v-text-field v-model="searchAssignments" append-icon="mdi-magnify" label="Search" single-line hide-details></v-text-field>
+
+                        <v-text-field
+                            single-line
+                            hide-details
+                            v-model="searchQuery"
+                            append-icon="mdi-magnify"
+                            label="Search"
+                            >
+                        </v-text-field>
                     </v-card-title>
-                    <v-card-subtitle>
-                    (Last retrieved: {{ listLastRetrieved }})
-                    </v-card-subtitle>
                 </template>
+
+                <template v-slot:item.WorkerId="{ item }">
+                    {{ `${item.PlatformWorkerId}\n(${item.WorkerId})` }}
+                </template>
+
                 <template v-slot:item.AssignmentId="{ item }">
                     <div class="text-truncate" style="max-width:100px;">
                         {{ item.AssignmentId }}
                     </div>
                 </template>
-                <!--<template v-slot:item.WorkerId="{ item }">
-                    {{ item.PlatformWorkerId }}<br>
-                    ({{ item.WorkerId }})
-                </template>-->
+
                 <template v-slot:item.AcceptTime="{ item }">
                     {{ stringifyUnixTime(item.AcceptTime*1000) }}
                 </template>
+
                 <template v-slot:item.SubmitTime="{ item }">
                     {{ stringifyUnixTime(item.SubmitTime*1000) }}
                 </template>
+
                 <template v-slot:item.AutoApprovalTime="{ item }">
                     {{ stringifyUnixTime(item.AutoApprovalTime*1000) }}
                 </template>
+
             </v-data-table>
         </v-col>
-
-        <tutti-snackbar ref="snackbarSuccess" color="success" :timeout="3000" />
-        <tutti-snackbar ref="snackbarWarning" color="warning" :timeout="3000" />
-        <tutti-snackbar ref="snackbarError" color="error" :timeout="3000" />
-
-        <tutti-dialog ref="dialogApprove" title="Approve Assignment(s)" maxWidth="500" persistent
-            :actions="[
-                { label: 'Confirm', color: 'indigo darken-1', text: true, onclick: approveAssignments },
-                { label: 'Cancel', color: 'grey darken-1', text: true }
-            ]" >
-            <template v-slot:body>
-                Approve {{ selectedIds.length }} assignments?
-                <v-text-field v-model="message" label="Message to workers (optional)"></v-text-field>
-            </template>
-        </tutti-dialog>
-
-        <tutti-dialog ref="dialogReject" title="Reject Assignment(s)" maxWidth="500" persistent
-            :actions="[
-                { label: 'Confirm', color: 'indigo darken-1', disableByRule: true, text: true, onclick: rejectAssignments },
-                { label: 'Cancel', color: 'grey darken-1', text: true }
-            ]" >
-            <template v-slot:body>
-                Reject {{ selectedIds.length }} assignments?<br>
-                Caution: You must be careful when rejecting workers.
-                <v-text-field autofocus v-model="message" label="Reason for rejection (required)" :rules="[rules.required]"></v-text-field>
-            </template>
-        </tutti-dialog>
 
     </v-row>
 </template>
 <script>
-import Snackbar from '@/views/assets/Snackbar.vue'
-import Dialog from '@/views/assets/Dialog.vue'
 import { stringifyUnixTime } from '@/lib/utils'
-import rules from '@/lib/input-rules'
+import ApproveButton from './ApproveButton'
+import RejectButton from './RejectButton'
 
 export default {
     components: {
-        TuttiSnackbar: Snackbar,
-        TuttiDialog: Dialog
+        ApproveButton,
+        RejectButton
     },
     data: () => ({
-        rules,
-
         stringifyUnixTime,
+
         headers: [
             { text: "Assignment ID", value: "AssignmentId" },
             { text: "Worker ID", value: "WorkerId" },
@@ -117,27 +98,15 @@ export default {
             { text: "Submitted at", value: "SubmitTime" },
             { text: "Auto-approve at", value: "AutoApprovalTime" },
         ],
-        search: "",
-        searchAssignments: "",
+        searchQuery: "",
+        HITTypeId: "",
+
         selected: [],
-        workers: [],
-        sendEmailWorkerIds: [],
-        loadingHITTypes: false,
-        loadingAssignments: false,
-        snackbarTexts: {
-            success: "",
-            warning: "",
-            error: ""
-        },
-        email: {
-            Subject: "",
-            MessageText: ""
-        },
-        listLastRetrieved: null,
         assignments: [],
-        message: "",
         HITIds: {},
-        selectedHITTypeId: "",
+
+        loading: false,
+        loadingHITTypes: false,
     }),
     props: ["duct", "sharedProps","name"],
 
@@ -147,27 +116,24 @@ export default {
         }
     },
     methods: {
-        unixTimeToLocaleString(unixTime) {
-            var dt = new Date(unixTime*1000);
-            return dt.toLocaleDateString() + " " + dt.toLocaleTimeString();
-        },
         listHITsForHITType() {
             this.loadingHITTypes = true;
             this.duct.controllers.mturk.listHITsForHITType();
         },
         listAssignmentsForHITType() {
-            this.loadingAssignments = true;
-            this.duct.controllers.mturk.listAssignmentsForHITs(this.HITIds[this.selectedHITTypeId]);
+            this.loading = true;
+            this.duct.controllers.mturk.listAssignmentsForHITs(this.HITIds[this.HITTypeId]);
         },
-        approveAssignments() { this.duct.controllers.mturk.approveAssignments(this.selectedIds, this.message); },
-        rejectAssignments() { this.duct.controllers.mturk.rejectAssignments(this.selectedIds, this.message); }
+        clearSelection() {
+            this.selected = [];
+        }
     },
     watch: {
         credentials: {
             handler() { this.listWorkers(); },
             deep: true
         },
-        selectedHITTypeId() {
+        HITTypeId() {
             this.listAssignmentsForHITType();
         }
     },
@@ -175,33 +141,22 @@ export default {
         this.duct.invokeOrWaitForOpen(() => {
             this.duct.eventListeners.mturk.on("listHITsForHITType", {
                 success: (data) => {
-                    this.loadingHITTypes = false;
                     for(const HITTypeId in data.Results){
                         this.$set(this.HITIds, HITTypeId, data.Results[HITTypeId].HITIds);
                     }
+                },
+                complete: () => {
+                    this.loadingHITTypes = false;
                 }
             });
             this.duct.eventListeners.mturk.on("listAssignmentsForHITs", {
                 success: (data) => {
-                    console.log(data);
-                    this.loadingAssignments = false;
-                    //this.listLastRetrieved = stringifyUnixTime(data["Assignments"]["LastRetrieved"]);
                     this.assignments = data["Assignments"];
-                    for(let asmt of this.assignments){
-                        asmt.WorkerId = `${asmt.PlatformWorkerId}\n(${asmt.WorkerId})`;
-                    }
+                },
+                complete: () => {
+                    this.loading = false;
                 }
             });
-            for(const opr of ["approve", "reject"]) {
-                this.duct.eventListeners.mturk.on(`${opr}Assignments`, {
-                    success: () => {
-                        //this.duct.controllers.mturk.getAssignments(this.selectedIds);
-                        this.$refs.snackbarSuccess.show(`Successfully ${opr.split(6)}ed ${this.selectedIds.length} assignments`);
-                        this.selected = [];
-                        this.message = "";
-                    }
-                });
-            }
 
             this.listHITsForHITType();
         });
