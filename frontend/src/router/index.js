@@ -14,20 +14,20 @@ const routes = [
         children: [
             {
                 path: "dashboard",
-                component: () => import("@/components/pages/ConsoleDashboard"),
+                component: () => import("@/components/pages/Console/Dashboard"),
             },
             {
                 path: "template",
-                component: () => import("@/components/pages/ConsoleTemplate"),
+                component: () => import("@/components/pages/Console/Template"),
             },
             {
                 path: "flow",
-                component: () => import("@/views/ConsoleComponents/TaskFlow/Main"),
+                component: () => import("@/views/ConsoleComponents/TaskFlow"),
             },
             {
                 path: "platform/mturk",
                 redirect: "platform/mturk/top",
-                component: () => import("@/views/ConsoleComponents/Platforms/MTurk/Main"),
+                component: () => import("@/views/ConsoleComponents/Platforms/MTurk"),
                 children: [
                     {
                         path: "top",
@@ -35,7 +35,7 @@ const routes = [
                     },
                     {
                         path: "hit",
-                        component: () => import("@/views/ConsoleComponents/Platforms/MTurk/HIT/Main"),
+                        component: () => import("@/views/ConsoleComponents/Platforms/MTurk/HIT"),
                     },
                     {
                         path: "hit/create",
@@ -43,25 +43,25 @@ const routes = [
                     },
                     {
                         path: "qual",
-                        component: () => import("@/views/ConsoleComponents/Platforms/MTurk/Qualification/Main"),
+                        component: () => import("@/views/ConsoleComponents/Platforms/MTurk/Qualification"),
                     },
                     {
                         path: "worker",
-                        component: () => import("@/views/ConsoleComponents/Platforms/MTurk/Worker/Main"),
+                        component: () => import("@/views/ConsoleComponents/Platforms/MTurk/Worker"),
                     },
                     {
                         path: "assignment",
-                        component: () => import("@/views/ConsoleComponents/Platforms/MTurk/Assignment/Main"),
+                        component: () => import("@/views/ConsoleComponents/Platforms/MTurk/Assignment"),
                     },
                 ]
             },
             {
                 path: "response",
-                component: () => import("@/components/pages/ConsoleResponse"),
+                component: () => import("@/components/pages/Console/Response"),
             },
             {
                 path: "event",
-                component: () => import("@/components/pages/ConsoleEvent"),
+                component: () => import("@/components/pages/Console/Event"),
             },
         ]
     },

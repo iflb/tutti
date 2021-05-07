@@ -21,17 +21,15 @@
             ></router-view>
         </keep-alive>
 
-
         <tutti-snackbar color="success" :timeout="5000" ref="snackbarSuccess" />
-        
     </v-app>
 </template>
 
 <script>
 import tutti from '@iflb/tutti'
-import AppBar from './AppBar'
-import MenuDrawer from './MenuDrawer'
-import EventDrawer from './EventDrawer'
+import AppBar from '@/components/views/ConsoleAppBar'
+import MenuDrawer from '@/components/views/ConsoleMenuDrawer'
+import EventDrawer from '@/components/views/ConsoleEventDrawer'
 
 export default {
     components: { 

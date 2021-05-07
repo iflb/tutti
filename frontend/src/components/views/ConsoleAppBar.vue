@@ -82,7 +82,7 @@
 <script>
 import rules from '@/lib/input-rules'
 import TuttiDialog from '@/views/assets/Dialog'
-import ServerStatusMenuButton from './ServerStatusMenuButton'
+import ServerStatusMenuButton from './ConsoleServerStatusMenuButton'
 
 export default {
     components: {
