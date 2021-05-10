@@ -59,12 +59,7 @@
             </template>
         </tutti-dialog>
 
-        <tutti-snackbar v-for="type in ['success', 'warning', 'error']"
-            :key="type"
-            :ref="'snackbar'+type"
-            color="type"
-            :texts="snackbarTexts[type]"
-            :timeout="3000" />
+        <tutti-snackbar ref="snackbar" />
     </div>
 </template>
 
@@ -80,11 +75,6 @@ export default {
     },
     data: () => ({
         rules,
-        snackbarTexts: {
-            success: "",
-            warning: "",
-            error: ""
-        },
         newQualParams: {
             Name: "",
             Description: "",
@@ -102,11 +92,11 @@ export default {
         this.duct.invokeOrWaitForOpen(() => {
             this.duct.eventListeners.mturk.on("createQualification", {
                 success: () => {
-                    this.$refs.snackbarSuccess.show("Successfully created a qualification");
+                    this.$refs.snackbar.show("success", "Successfully created a qualification");
                     this.getQualificationTypeIds();
                 },
                 error: (data) => {
-                    this.$refs.snackbarError.show(`Error in creating a qualification: ${data["Reason"]}`);
+                    this.$refs.snackbar.show("error", `Error in creating a qualification: ${data["Reason"]}`);
                 }
             });
         });

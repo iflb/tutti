@@ -123,3 +123,11 @@ class Handler(EventHandler):
                 else:
                     ob[i] = func(v)
 
+    async def create_qualification_type(self, **kwargs):
+        return await self.exec_boto3("create_qualification_type", Parameters=kwargs)
+
+    async def create_hit_type(self, **kwargs):
+        return await self.exec_boto3("create_hit_type", Parameters=kwargs)
+
+    async def create_hit_with_hit_type(self, **kwargs):
+        return await self.exec_boto3("create_hit_with_hit_type", Parameters=kwargs)

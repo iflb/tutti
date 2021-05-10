@@ -45,12 +45,7 @@
             </template>
         </tutti-dialog>
 
-        <tutti-snackbar v-for="type in Object.keys(snackbarTexts)"
-            :key="type"
-            :ref="'snackbar'+type"
-            color="type"
-            :texts="snackbarTexts[type]"
-            :timeout="3000" />
+        <tutti-snackbar ref="snackbar" />
     </div>
 </template>
 
@@ -68,11 +63,6 @@ export default {
         rules,
 
         message: "",
-        snackbarTexts: {
-            success: "",
-            warning: "",
-            error: ""
-        },
     }),
     props: ["duct", "aids"],
     methods: {
@@ -82,7 +72,7 @@ export default {
         this.duct.invokeOrWaitForOpen(() => {
             this.duct.eventListeners.mturk.on("rejectAssignments", {
                 success: () => {
-                    this.$refs.snackbarsuccess.show(`Successfully rejected ${this.aids.length} assignments`);
+                    this.$refs.snackbar.show("success", `Successfully rejected ${this.aids.length} assignments`);
                     this.message = "";
                     this.$emit("success");
                 }

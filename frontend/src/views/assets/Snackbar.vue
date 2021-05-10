@@ -1,5 +1,5 @@
 <template>
-    <v-snackbar :color="color" v-model="shown" :timeout="timeout">
+    <v-snackbar v-model="shown" :color="color" :timeout="timeout">
         {{ text }}
         <template v-slot:action="{ attrs }">
             <v-btn dark color="white" text v-bind="attrs" @click="shown=false">Close</v-btn>
@@ -10,13 +10,19 @@
 export default {
     data: () => ({
         shown: false,
-        text: ""
+        text: "",
+        timeout: 3000,
+        color: ""
     }),
-    props: ["color", "timeout"],
     methods: {
-        show(text){
-            this.text = text;
-            this.shown = true;
+        show(color, text, timeout=3000){
+            this.shown = false;
+            this.$nextTick(() => {
+                this.text = text;
+                this.color = color;
+                this.timeout = timeout;
+                this.shown = true;
+            });
         }
     }
 }

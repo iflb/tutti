@@ -10,12 +10,7 @@
             Delete ({{ qtids.length }})
         </v-btn>
 
-        <tutti-snackbar v-for="type in Object.keys(snackbarTexts)"
-            :key="type"
-            :ref="'snackbar'+type"
-            color="type"
-            :texts="snackbarTexts[type]"
-            :timeout="3000" />
+        <tutti-snackbar ref="snackbar" />
     </div>
 </template>
 
@@ -29,11 +24,6 @@ export default {
     data: () => ({
         loading: false,
         disabled: false,
-
-        snackbarTexts: {
-            success: "",
-            error: ""
-        },
     }),
     props: ["duct", "qtids"],
     methods: {
@@ -55,15 +45,15 @@ export default {
                             cntSuccess++;
                     }
                     if(cntSuccess==res.length) {
-                        this.$refs.snackbarSuccess.show(`Successfully deleted ${res.length} qualifications`);
+                        this.$refs.snackbar.show("success", `Successfully deleted ${res.length} qualifications`);
                     } else {
-                        this.$refs.snackbarSuccess.show(`Deleted ${cntSuccess} qualifications, but errors occurred in deleting ${res.length-cntSuccess} qualifications`);
+                        this.$refs.snackbar.show("success", `Deleted ${cntSuccess} qualifications, but errors occurred in deleting ${res.length-cntSuccess} qualifications`);
                     }
 
                     this.loading = false;
                 },
                 error: (data) => {
-                    this.$refs.snackbarError.show(`Errors occurred in deleting qualifications: ${data["Reason"]}`);
+                    this.$refs.snackbar.show("error", `Errors occurred in deleting qualifications: ${data["Reason"]}`);
 
                     this.loading = false;
                 }

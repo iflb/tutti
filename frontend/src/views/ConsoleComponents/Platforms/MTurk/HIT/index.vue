@@ -2,75 +2,109 @@
     <div class="mt-10">
         <v-row justify="center">
             <v-col cols="10" class="text-right">
-                <v-btn :loading="button.expireHITs.loading" class="mx-2" dark
-                       color="warning" v-if="selectedHITIds.length>0" @click="expireHITs()">Expire ({{ selectedHITIds.length }})</v-btn>
-                <v-btn :loading="button.deleteHITs.loading" class="mx-2" dark
-                       color="error" v-if="selectedHITIds.length>0" @click="deleteHITs()">Delete ({{ selectedHITIds.length }})</v-btn>
-                <v-btn class="mx-2" dark color="indigo" to="/console/platform/mturk/hit/create/">Create HITs...</v-btn>
+                <expire-hits-button :duct="duct" :hids="selectedHITIds" />
+                <delete-hits-button :duct="duct" :hids="selectedHITIds" />
+                <v-btn
+                    dark
+                    class="mx-2"
+                    color="indigo"
+                    to="/console/platform/mturk/hit/create/">
+                    Create HITs...
+                </v-btn>
             </v-col>
             <v-col cols="10">
                 <v-card cols="10">
                     <v-data-table
-                      :headers="headers"
-                      :items="hitTypes"
-                      :single-expand="false"
-                      :expanded.sync="expanded"
-                      item-key="id"
-                      show-expand
-                      class="elevation-1"
-                      dense
-                      :loading="loadingHITs"
-                      show-select
-                      v-model="selectedHITTypes"
-                      sort-by="creation_time"
-                      sort-desc
-                    >
+                        dense
+                        show-select
+                        show-expand
+                        sort-desc
+                        :headers="headers"
+                        :items="hitTypes"
+                        :single-expand="false"
+                        :expanded.sync="expanded"
+                        item-key="id"
+                        class="elevation-1"
+                        :loading="loading"
+                        v-model="selectedHITTypes"
+                        sort-by="creation_time">
+
                         <template v-slot:top>
                             <v-card-title>
                                 HITs
                                 <v-btn icon @click="listHITs(false)"><v-icon>mdi-refresh</v-icon></v-btn>
+
                                 <v-spacer></v-spacer>
-                                <v-spacer></v-spacer>
-                                <v-text-field v-model="search" append-icon="mdi-magnify" label="Search" single-line hide-details></v-text-field>
+
+                                <v-text-field
+                                    single-line
+                                    hide-details 
+                                    v-model="searchQuery"
+                                    append-icon="mdi-magnify"
+                                    label="Search" />
                             </v-card-title>
-                            <v-card-subtitle>
-                            (Last retrieved: {{ listLastRetrieved }})
-                            </v-card-subtitle>
                         </template>
+
                         <template v-slot:item.active="{ item }">
                             <v-icon v-if="item.detail.HITStatusCount.Assignable>0" color="success">mdi-circle-medium</v-icon>
                         </template>
+
                         <template v-slot:item.id="{ item }">
-                            <div class="text-truncate" style="max-width:100px;">
-                            {{ item.id }}
-                            </div>
-                            <v-icon v-if="item.detail.HITStatusCount.Assignable>0 && !credentials.Sandbox" small @click="openNewWindow('https://worker.mturk.com/projects/'+item.groupId+'/tasks');">mdi-open-in-new</v-icon>
-                            <v-icon v-if="item.detail.HITStatusCount.Assignable>0 && credentials.Sandbox" small @click="openNewWindow('https://workersandbox.mturk.com/projects/'+item.groupId+'/tasks');">mdi-open-in-new</v-icon>
+                            <div class="text-truncate" style="max-width:100px;">{{ item.id }}</div>
+                            <v-icon
+                                v-if="item.detail.HITStatusCount.Assignable>0"
+                                small
+                                @click="openNewHITWindow(item.groupId, credentials.Sandbox);">
+                                mdi-open-in-new
+                            </v-icon>
                         </template>
+
                         <template v-slot:item.title="{ item }">
                             <div class="text-truncate" style="max-width:100px;">
                             {{ item.title }}
                             </div>
                         </template>
+
                         <template v-slot:item.project_names="{ item }">
                             <div v-if="item.project_names && item.project_names.length==1"> {{ item.project_names[0] }} </div>
                             <v-tooltip bottom>
                                 <template #activator="{ on, attrs }">
-                                    <div v-if="item.project_names && item.project_names.length>1" v-html="item.project_names.join(',<br>')" v-bind="attrs" v-on="on" style="font-weight:bold; color:red;"> </div>
+                                    <div
+                                        v-if="item.project_names && item.project_names.length>1"
+                                        v-html="item.project_names.join(',<br>')"
+                                        v-bind="attrs"
+                                        v-on="on"
+                                        style="font-weight:bold; color:red;">
+                                    </div>
                                 </template>
                                 <span><v-icon color="white">mdi-alert</v-icon> Multiple projects are bound to one HIT Type</span>
                             </v-tooltip>
                         </template>
+
                         <template v-slot:item.num_hits="{ item }">
                             {{ item.num_hits }} ( {{ item.num_assignable }} / {{ item.num_reviewable }} )
                         </template>
+
                         <template v-slot:item.reward="{ item }">
                             ${{ item.reward }}
                         </template>
+
                         <template v-slot:item.refresh="{ item }">
-                            <v-btn v-if="item.refresh==false" icon @click="item.refresh=true; listHITs(item.id, false)"><v-icon>mdi-refresh</v-icon></v-btn>
-                            <v-progress-circular v-else indeterminate color="grey darken-2" :size="20" :width="2"></v-progress-circular>
+                            <v-btn
+                                v-if="item.refresh==false"
+                                icon
+                                @click="item.refresh=true; listHITs(item.id, false)">
+                                <v-icon>mdi-refresh</v-icon>
+                            </v-btn>
+                            <v-progress-circular
+                                v-else
+                                indeterminate
+                                color="grey
+                                darken-2"
+                                :size="20"
+                                :width="2" />
                         </template>
+
                         <template v-slot:expanded-item="{ headers, item }">
                             <td :colspan="headers.length">
                                 <div class="my-2">
@@ -91,25 +125,25 @@
                 </v-card>
             </v-col>
         </v-row>
-
-        <tutti-snackbar ref="snackbarSuccess" color="success" :timeout="3000" />
-        <tutti-snackbar ref="snackbarWarning" color="warning" :timeout="3000" />
-        <tutti-snackbar ref="snackbarError" color="error" :timeout="3000" />
     </div>
 </template>
 <script>
 import 'vue-json-pretty/lib/styles.css'
+import VueJsonPretty from 'vue-json-pretty/lib/vue-json-pretty'
 import { stringifyUnixTime } from '@/lib/utils'
+import ExpireHITsButton from './ExpireHITsButton'
+import DeleteHITsButton from './DeleteHITsButton'
 
 export default {
     components: {
-        VueJsonPretty: () => import('vue-json-pretty/lib/vue-json-pretty'),
-        TuttiSnackbar: () => import('@/views/assets/Snackbar')
+        VueJsonPretty,
+        "expire-hits-button": ExpireHITsButton,
+        "delete-hits-button": DeleteHITsButton,
     },
     data: () => ({
-        selectedHITTypes: [],
-        search: "",
         expanded: [],
+        selectedHITTypes: [],
+        searchQuery: "",
         headers: [
           { text: '', value: 'active' },
           { text: 'HIT Type ID', value: 'id' },
@@ -122,27 +156,8 @@ export default {
           { text: '', value: 'refresh' },
           { text: '', value: 'data-table-expand' },
         ],
-        listLastRetrieved: null,
         hitTypes: [],
-        cmOptions: {
-            styleActiveLine: true,
-            lineNumbers: true,
-            line: true,
-            mode: 'text/javascript',
-            lineWrapping: true,
-            theme: 'base16-dark',
-            indentWithTabs: true
-        },
-        hitTypeParams: "",
-        loadingHITs: false,
-        button: {
-            expireHITs: {
-                loading: false,
-            },
-            deleteHITs: {
-                loading: false,
-            },
-        },
+        loading: false,
     }),
     props: ["duct", "prjName", "credentials", "name"],
 
@@ -156,8 +171,9 @@ export default {
         }
     },
     methods: {
-        openNewWindow(url) {
-            window.open(url, "_blank");
+        openNewHITWindow(groupId, isSandbox) {
+            const subdomain = isSandbox ? "workersandbox" : "worker";
+            window.open(`https://${subdomain}.mturk.com/projects/${groupId}/tasks`, "_blank");
         },
         secondsToTimeString(seconds) {
             var hours = Math.floor(seconds / 3600);
@@ -166,16 +182,8 @@ export default {
             seconds -= minutes*60;
             return `${hours}:${("00"+minutes).slice(-2)}:${("00"+seconds).slice(-2)}`;
         },
-        expireHITs(){
-            this.button.expireHITs.loading = true;
-            this.duct.controllers.mturk.expireHITs(this.selectedHITIds);
-        },
-        deleteHITs(){
-            this.button.deleteHITs.loading = true;
-            this.duct.controllers.mturk.deleteHITs(this.selectedHITIds);
-        },
         listHITs(HITTypeId, Cached){
-            if(!HITTypeId) this.loadingHITs = true;
+            if(!HITTypeId) this.loading = true;
             this.duct.controllers.mturk.listHITsForHITType(HITTypeId, Cached);
         }
     },
@@ -192,11 +200,8 @@ export default {
         this.duct.invokeOrWaitForOpen(() => {
             this.duct.eventListeners.mturk.on("listHITsForHITType", {
                 success: (data) => {
-                    console.log(data);
-                    this.loadingHITs = false;
-                    //this.listLastRetrieved = stringifyUnixTime(data["Results"]["LastRetrieved"]);
+                    this.loading = false;
 
-                    //this.hitTypes = [];
                     for(const htid in data["Results"]){
                         const ht = data["Results"][htid];
 
@@ -228,29 +233,6 @@ export default {
                     this.selectedHITTypes = [];
                 }
             });
-
-            for(const opr of ["expire", "delete"]){
-                this.duct.eventListeners.mturk.on(`${opr}HITs`, {
-                    success: (data) => {
-                        const cntSuccess = data["Results"].filter((r) => ( ("ResponseMetadata" in r) && ("HTTPStatusCode" in r["ResponseMetadata"]) && (r["ResponseMetadata"]["HTTPStatusCode"]==200) )).length;
-
-                        if(cntSuccess==data["Results"].length) {
-                            this.$refs.snackbarSuccess.show(`${opr[0].toUpperCase()+opr.slice(1)}d ${cntSuccess} HITs`);
-                        } else {
-                            this.$refs.snackbarWarning.show(`${opr[0].toUpperCase()+opr.slice(1)}d ${cntSuccess} HITs, but errors occurred in ${opr.slice(0,-1)}ing ${data["Results"].length-cntSuccess} HITs`);
-                        }
-
-                        this.button[opr+"HITs"].loading = false;
-                        //this.listHITs(false);
-                    },
-                    error: (data) => {
-                        this.$refs.snackbarError.show(`Errors occurred in ${opr.slice(0,-1)}ing HITs: ${data["Reason"]}`);
-
-                        this.button[opr+"HITs"].loading = false;
-                        //this.listHITs(false);
-                    }
-                });
-            }
 
             this.listHITs();
         });

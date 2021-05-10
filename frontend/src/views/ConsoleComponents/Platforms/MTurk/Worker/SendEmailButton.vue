@@ -59,11 +59,7 @@
             </template>
         </tutti-dialog>
 
-        <tutti-snackbar v-for="type in ['success', 'warning', 'error']"
-            :key="type"
-            :color="type"
-            :timeout="3000"
-            :text="snackbarTexts[type]" />
+        <tutti-snackbar ref="snackbar" />
     </div>
 </template>
 
@@ -77,11 +73,6 @@ export default {
         TuttiDialog: Dialog
     },
     data: () => ({
-        snackbarTexts: {
-            success: "",
-            warning: "",
-            error: ""
-        },
         searchedWorkerId: "",
         email: {
             Subject: "",
