@@ -39,6 +39,8 @@ export default {
                     this.tmplNames = data["Templates"];
                 }
             });
+
+            if(this.prjName) this.listTemplates();
         })
     }
 }

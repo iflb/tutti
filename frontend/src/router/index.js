@@ -68,6 +68,7 @@ const routes = [
     {
         path: "/private-prod/:projectName",
         component: () => import("@/views/PrivateProd/Main.vue"),
+        props: true,
     },
     {
         path: "/private-prod-login",

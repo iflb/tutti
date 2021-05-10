@@ -30,26 +30,31 @@
                 You are currently in production mode, which will hire MTurk workers and pay them real money. Are you sure to proceed?
             </template>
         </tutti-dialog>
+        <tutti-snackbar ref="snackbar" />
     </div>
 </template>
 
 <script>
 import Dialog from '@/views/assets/Dialog.vue'
+import Snackbar from '@/views/assets/Snackbar.vue'
 
 export default {
     components: {
-        TuttiDialog: Dialog
+        TuttiDialog: Dialog,
+        TuttiSnackbar: Snackbar
     },
     data: () => ({
         loading: false,
-        customQualTypes: {},
     }),
     props: [
         "duct",
         "prjName",
         "HITTypeParams",
         "HITParams",
-        "numCreateHITs"
+        "numCreateHITs",
+        "credentials",
+        "createNew",
+        "chosenExstHITTypeId"
     ],
     methods: {
         createHITsWithHITType(HITTypeId) {
@@ -59,26 +64,16 @@ export default {
                 { HITTypeId, ...this.HITParams }
             );
         },
-        isTuttiQual(qtid){
-            return this.customQualTypes[qtid].name.startsWith("TUTTI_HITTYPE_QUALIFICATION");
-        },
-
         postHITs() {
             this.loading = true;
 
-            this.HITTypeParams.QualificationRequirements.forEach((qr,i) => {
-                if(this.isTuttiQual(qr.QualificationTypeId)) {
-                    delete this.HITTypeParams.QualificationRequirements[i];
+            this.HITTypeParams.QualificationRequirements.forEach((qr) => {
+                if(qr.IntegerValues && qr.IntegerValues.length>0) {
+                    qr.IntegerValues.map((data) => parseInt(data));
                 } else {
-                    if(qr.IntegerValues.length>0) {
-                        qr.IntegerValues.map((data) => parseInt(data));
-                    } else {
-                        delete qr.IntegerValues;
-                    }
+                    delete qr.IntegerValues;
                 }
             });
-
-
 
             if(this.createNew){
                 this.duct.controllers.mturk.createTuttiHITBatch(
@@ -97,11 +92,14 @@ export default {
         this.duct.invokeOrWaitForOpen(() => {
             this.duct.eventListeners.mturk.on(["createTuttiHITBatch", "createHITsWithHITType"], {
                 success: () => {
-                    this.loading = false;
                     this.$refs.snackbar.show("success", "Successfully posted HITs");
                 },
                 error: (data) => {
                     this.$refs.snackbar.show("error", `Error in posting HITs: ${data["Reason"]}`);
+                },
+                complete: () => {
+                    console.log("complete");
+                    this.loading = false;
                 }
             });
         });

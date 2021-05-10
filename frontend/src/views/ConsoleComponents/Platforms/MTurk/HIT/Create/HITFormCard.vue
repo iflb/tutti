@@ -79,6 +79,10 @@ export default {
         numCreateHITs(val) {
             this.$emit("update", "numCreateHITs", val);
         }
+    },
+    created() {
+        this.$emit("update", "HITParams", this.HITParams);
+        this.$emit("update", "numCreateHITs", this.numCreateHITs);
     }
 }
 </script>

@@ -2,8 +2,8 @@
     <v-row class="my-10" justify="center">
         <v-col class="text-right" cols="10">
             <div style="display:flex;justify-content:flex-end;">
-                <delete-qual-button :duct="duct" :qtids="selectedQualTypeIds" />
-                <create-qual-button :duct="duct" />
+                <delete-qual-button :duct="duct" :qtids="selectedQualTypeIds" @delete="getQualificationTypeIds()" />
+                <create-qual-button :duct="duct" @create="getQualificationTypeIds()" />
             </div>
         </v-col>
 

@@ -19,6 +19,9 @@
                 :HITTypeParams="HITTypeParams"
                 :HITParams="HITParams"
                 :numCreateHITs="numCreateHITs"
+                :credentials="credentials"
+                :createNew="createNew"
+                :chosenExstHITTypeId="chosenExstHITTypeId"
                 />
         </v-col>
     </v-row>
@@ -43,6 +46,8 @@ export default {
         HITTypeParams: null,
         HITParams: null,
         numCreateHITs: 1,
+        createNew: true,
+        chosenExstHITTypeId: "",
     }),
     methods: {
         checkProjectDiff() {
@@ -62,8 +67,10 @@ export default {
             );
         },
 
-        updateHITTypeParams(val) {
-            this.HITTypeParams = val;
+        updateHITTypeParams(params, createNew, chosenExstHITTypeId) {
+            this.HITTypeParams = params;
+            this.createNew = createNew;
+            this.chosenExstHITTypeId = chosenExstHITTypeId;
         },
         updateHITParams(target, val) {
             if(target=="HITParams" || target=="numCreateHITs") this[target] = val;

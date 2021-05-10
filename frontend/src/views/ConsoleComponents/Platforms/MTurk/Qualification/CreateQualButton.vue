@@ -93,7 +93,7 @@ export default {
             this.duct.eventListeners.mturk.on("createQualification", {
                 success: () => {
                     this.$refs.snackbar.show("success", "Successfully created a qualification");
-                    this.getQualificationTypeIds();
+                    this.$emit("create");
                 },
                 error: (data) => {
                     this.$refs.snackbar.show("error", `Error in creating a qualification: ${data["Reason"]}`);

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from ducts.event import EventHandler
 from handler.handler_output import handler_output
 
@@ -15,11 +17,12 @@ class Handler(EventHandler):
 
     @handler_output
     async def handle(self, event, output):
-        await self.evt_mturk_api_hit_core.create_hit_with_hit_type(**event.data or {})
+        result = await self.create_tutti_hit_batch(**event.data)
+        output.set("Results", result)
 
     async def create_tutti_hit_batch(self, ProjectName, NumHITs, HITTypeParams, HITParams): 
         result = await self.evt_mturk_api_core.create_qualification_type(
-                                    Name=f"TUTTI_HITTYPE_QUALIFICATION {dt}",
+                                    Name=f"TUTTI_HITTYPE_QUALIFICATION {datetime.now().strftime('%Y/%m/%d %H:%M:%S')}",
                                     Description="TUTTI_HITTYPE_QUALIFICATION",
                                     AutoGranted=False,
                                     QualificationTypeStatus="Active")
@@ -30,8 +33,8 @@ class Handler(EventHandler):
                                     Comparator="DoesNotExist",
                                     ActionsGuarded="DiscoverPreviewAndAccept"))
 
-        result = await self.evt_mturk_api_core.create_hit_type(**HITTypeParams)
-        HITParams["HITTypeId"] = result["HITTypeId"]
+        htid = await self.evt_mturk_api_hit_core.create_hit_type(HITTypeParams, qtid)
+        HITParams["HITTypeId"] = htid
 
         # more like create_hit_with_hit_type_for_tutti_project
         result = await self.evt_mturk_api_hit_core.create_hit_with_hit_type(
@@ -39,4 +42,4 @@ class Handler(EventHandler):
                                     NumHITs=NumHITs,
                                     CreateHITsWithHITTypeParams=HITParams)
 
-        output.set("Results", result)
+        return result

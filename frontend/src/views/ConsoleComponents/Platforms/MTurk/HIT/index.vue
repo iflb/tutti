@@ -1,7 +1,7 @@
 <template>
     <div class="mt-10">
         <v-row justify="center">
-            <v-col cols="10" class="text-right">
+            <v-col cols="10" class="text-right d-flex justify-end">
                 <expire-hits-button :duct="duct" :hids="selectedHITIds" />
                 <delete-hits-button :duct="duct" :hids="selectedHITIds" />
                 <v-btn
@@ -99,8 +99,7 @@
                             <v-progress-circular
                                 v-else
                                 indeterminate
-                                color="grey
-                                darken-2"
+                                color="grey darken-2"
                                 :size="20"
                                 :width="2" />
                         </template>

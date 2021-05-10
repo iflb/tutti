@@ -26,7 +26,15 @@
                             <td><v-radio-group class="ma-0 pa-0" dense hide-details v-model="chosenExstHITTypeId"><v-radio :value="htid"></v-radio></v-radio-group></td>
                             <td>{{ params.Title }}</td>
                             <td>{{ htid }}</td>
-                            <td><v-btn small text color="indigo" @click="createNew=true; $nextTick(() => { chosenExstHITTypeId = htid; });">Copy to new</v-btn></td>
+                            <td>
+                                <v-btn
+                                    small
+                                    text
+                                    color="indigo"
+                                    @click="copyToNew(htid)">
+                                    Copy to new
+                                </v-btn>
+                            </td>
                         </tr>
                     </tbody>
                 </template>
@@ -194,11 +202,13 @@
                 </tbody>
             </template>
         </v-simple-table>
+        <tutti-snackbar ref="snackbar" />
     </v-card>
 </template>
 
 <script>
 import HelpButton from './HelpButton'
+import Snackbar from '@/views/assets/Snackbar.vue'
 import rules from '@/lib/input-rules'
 import {
     HITTypeParamOptions,
@@ -210,7 +220,8 @@ import {
 
 export default {
     components: {
-        HelpButton
+        HelpButton,
+        TuttiSnackbar: Snackbar
     },
     data: () => ({
         rules,
@@ -242,10 +253,11 @@ export default {
             if(this.HITTypeParams && this.HITTypeParams.QualificationRequirements){
                 let qrs = [];
                 for(const qr of this.HITTypeParams.QualificationRequirements){
-                    if(qr.QualificationTypeId
-                       &&  (qr.QualificationTypeId in this.customQualTypes)
-                       && this.isTuttiQual(qr.QualificationTypeId) )
+                    console.log(qr.QualificationTypeId);
+                    if( !(qr.QualificationTypeId in this.customQualTypes) || this.isTuttiQual(qr.QualificationTypeId) ) {
+                        console.log("hoge");
                         continue;
+                    }
 
                     qrs.push(qr);
                 }
@@ -274,24 +286,44 @@ export default {
             if(item.LocaleValues.length==0) delete item.LocaleValues;
         },
         isTuttiQual(qtid){
-            return this.customQualTypes[qtid].name.startsWith("TUTTI_HITTYPE_QUALIFICATION");
+            return qtid
+                   && (qtid in this.customQualTypes)
+                   && this.customQualTypes[qtid].name.startsWith("TUTTI_HITTYPE_QUALIFICATION");
         },
+        copyToNew(htid){
+            this.createNew = true;
+            this.$nextTick(() => {
+                this.chosenExstHITTypeId = htid;
+                this.$nextTick(() => {
+                    this.HITTypeParams.QualificationRequirements.forEach((qr,i) => {
+                        if(this.isTuttiQual(qr.QualificationTypeId)) {
+                            delete this.HITTypeParams.QualificationRequirements[i];
+                        }
+                    });
+                    this.$emit("update", this.HITTypeParams, this.createNew, this.chosenExstHITTypeId);
+                });
+            });
+        }
     },
     watch: {
         chosenExstHITTypeId(value) {
             if(value!="") this.HITTypeParams = this.exstHITTypes[value];
         },
-        createNew(value) {
+        createNew(v) {
             this.chosenExstHITTypeId = "";
-            if(value) this.HITTypeParams = Object.assign({}, defaultHITTypeParams);
+            if(v) { this.HITTypeParams = Object.assign({}, defaultHITTypeParams); }
+
+            this.$emit("update", this.HITTypeParams, this.createNew, this.chosenExstHITTypeId);
         },
 
         HITTypeParams: {
             deep: true,
             handler(params) {
-                params.AutoApprovalDelayInSeconds = parseInt(params.AutoApprovalDelayInSeconds);
-                params.AssignmentDurationInSeconds = parseInt(params.AssignmentDurationInSeconds);
-                this.$emit("update", params);
+                if(params){
+                    params.AutoApprovalDelayInSeconds = parseInt(params.AutoApprovalDelayInSeconds);
+                    params.AssignmentDurationInSeconds = parseInt(params.AssignmentDurationInSeconds);
+                }
+                this.$emit("update", params, this.createNew, this.chosenExstHITTypeId);
             }
         }
     },

@@ -29,7 +29,7 @@ export default {
     methods: {
         deleteQualifications() {
             this.loading = true;
-            this.duct.controllers.mturk.deleteQualifications( this.selectedQualTypeIds );
+            this.duct.controllers.mturk.deleteQualifications( this.qtids );
         },
     },
     created() {
@@ -51,6 +51,7 @@ export default {
                     }
 
                     this.loading = false;
+                    this.$emit("delete");
                 },
                 error: (data) => {
                     this.$refs.snackbar.show("error", `Errors occurred in deleting qualifications: ${data["Reason"]}`);
