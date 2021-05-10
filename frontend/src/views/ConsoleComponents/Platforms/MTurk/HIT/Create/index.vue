@@ -46,6 +46,7 @@ export default {
     }),
     methods: {
         checkProjectDiff() {
+            console.log(this.prjName);
             this.duct.send(
                 this.duct.next_rid(),
                 this.duct.EVENT.CHECK_PROJECT_DIFF,
@@ -68,9 +69,15 @@ export default {
             if(target=="HITParams" || target=="numCreateHITs") this[target] = val;
         }
     },
+    watch: {
+        prjName(val) {
+            if(val) this.checkProjectDiff();
+        }
+    },
     created() {
         this.duct.invokeOrWaitForOpen(() => {
             this.duct.setEventHandler( this.duct.EVENT.CHECK_PROJECT_DIFF, (rid,eid,data) => {
+                console.log(data["Contents"]);
                 if(data["Contents"]["HasDiff"]) this.projectHasDiff = true;
             });
 
@@ -78,8 +85,6 @@ export default {
                 this.rebuildingProject = false;
                 setTimeout(() => { this.projectHasDiff = false; }, 1000);
             });
-
-            this.checkProjectDiff();
         });
     }
 };

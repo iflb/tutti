@@ -26,7 +26,11 @@ elif [ "$1" = "kill" ]; then
     kill $TUTTI_HOST_PID
 
 elif [ "$1" = "log" ]; then
-    sudo docker-compose logs --tail="50" -f $2
+    if [ "$2" = "host" ]; then
+        less +F -K ./logs/host_api.log
+    else
+        sudo docker-compose logs --tail="50" -f $2
+    fi
 else
     echo "
     usage: ./tutti [init|start|stop|kill|log] [container]
