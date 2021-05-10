@@ -1,6 +1,6 @@
 # Installation
 
-### 1. Get Docker ready
+## 1. Get Docker ready
 
 To build Tutti environment, you first need to install **Docker** and **Docker Compose** in your host server.  
 Since their installation steps may depend on your local environment, please follow their latest official installation procedures.
@@ -8,60 +8,135 @@ Since their installation steps may depend on your local environment, please foll
 - [Install Docker](https://docs.docker.com/get-docker/)
 - [Install Docker Compose](https://docs.docker.com/compose/install/)
 
-### 2. Clone Tutti repository
+## 2. Clone Tutti repository
 
-```bash
+```
 git clone https://github.com/iflb/tutti
 ```
 
-### 3. Activate Tutti
+## 3. Initial Configuration for Tutti
 
-#### [Optional] Automatic SSL configuration by using Let's Encrypt
+### 3-1. Host settings
 
-If you already have your web domain name ready, Tutti can automatically request/renew SSL certification via [Let's Encrypt](https://letsencrypt.org) at each time you start Tutti service, so that all web pages can be served with `https://`.
-This is especially necessary when you are planning to use some crowdsourcing platforms like [Amazon Mechanical Turk](https://mturk.com). 
+There are two hosts used in Tutti: for **production** and **development**.
 
-To enable this feature, you first need to edit an environment configuration file `tutti/.env` as follows:
+- **Production host** ... Can be distributed to external workers. <span style="color:red">Manual build is necessary</span> before publishing.
+- **Development host** ... Used for prototyping Tutti projects. Changes in projects are monitored and automatically rebuilt.
 
-**tutti/.env**
+#### 3-1-1. Production host
+
+<u>By default, the production host can be accessed from `http://localhost:80/`.</u>
+
+To change settings for production, edit `tutti/.env` file as follows:
+
+**Ex.**, changing to http://mytuttidomain.com:8880/ :
+
 ```diff
-
 - DOMAIN_NAME=localhost
-- EMAIL=
-+ DOMAIN_NAME=yourdomain.com
-+ EMAIL=my.email.address@for.letsencrypt.contact.info.com
-...
+- HTTP_PORT=80
+===
++ DOMAIN_NAME=mytuttidomain.com
++ HTTP_PORT=8880
+```
+
+#### 3-1-2. Development host
+
+<u>By default, the development host can be accessed from `http://localhost:8080/`.</u>
+
+Likewise, change development host settings as follows, if necessary.
+
+**Ex 1.**, changing to http://mytuttidomain.com:8881/ :
+
+```diff
+- DEV_DOMAIN_NAME=localhost
+- DEV_HTTP_PORT=8080
+===
++ DEV_DOMAIN_NAME=mytuttidomain.com
++ DEV_HTTP_PORT=8881
+```
+
+**Ex 2.**, changing to http://dev.mytuttidomain.com/ :
+
+```diff
+- DEV_DOMAIN_NAME=localhost
+- DEV_HTTP_PORT=8080
+===
++ DEV_DOMAIN_NAME=dev.mytuttidomain.com
++ DEV_HTTP_PORT=80
+```
+
+?> Make sure to open port numbers as necessary.
+
+### 3-2. SSL settings
+
+If you have set your own domain name (not `localhost`) above, Tutti can obtain, set up, and renew SSL certificates via [Let's Encrypt](https://letsencrypt.org) for you -- so that you can serve your tasks via HTTPS.
+
+Edit `tutti/.env` like:
+
+```diff
 - ENABLE_SSL=0
+- EMAIL=
+
+- DEV_ENABLE_SSL=0
+- DEV_EMAIL=
+===
 + ENABLE_SSL=1
-...
++ EMAIL=my.email.address@for.letsencrypt.contact.info.com
+
++ DEV_ENABLE_SSL=1
++ DEV_EMAIL=my.email.address@for.letsencrypt.contact.info.com
 ```
 
-?> Also note that you need to set port numbers 80 and 443 of your host server open.
+?> Make sure to open port 443.
 
-#### Build
+### 3-3. Only for Linux users
 
-Run the command below (this may take at least a few minutes)
+If you are a Linux user, uncomment a line in `tutti/.env` file as follows:
 
-```bash
-sudo docker-compose build
+```diff
+- # HOST_WEBAPI_ADDRESS=172.0.0.1
+===
++ HOST_WEBAPI_ADDRESS=172.0.0.1
 ```
 
-#### Start
+## 4. Launch Tutti
 
-Run the command below (this may take another few minutes)
+### Build
 
-```bash
-sudo docker-compose up
+At `~/tutti/`, run the command below (this may take at least a few minutes)
+
+```
+./tutti init
 ```
 
-Then wait while output logs keep printing, until you see the similar message as shown below (this means Vue CLI successfully started the frontend server.)
+### Start
+
+Then run the command below (this may take another few minutes)
+
+```
+./tutti start
+```
+
+and wait until the service starts up. Monitor its status with:
+
+```
+./tutti log frontend-dev
+```
+
+When the service is up, you will see messages like below:
 
 <img src="./_media/vue-ready-output.png" />
 
-### 4. Check Tutti Console
+Hit Ctrl-C to abort the log output.
 
-Access `https://yourdomain.com/vue/console/` (Web hosting w/ SSL) or `http://localhost/vue/console/` (local host machine) via a web browser (Google Chrome is recommended).
-Make sure that the console is displayed with the green sign "Websocket connected", which means DUCTS backend server is successfully booted.
+## 5. Check Tutti Console
+
+Access in your web browser:
+
+- `https://<dev-domain>/` (if service is running on HTTPS)
+- `http://<dev-domain>:<dev-port>/` (on HTTP)
+
+Then you should see Tutti's Web Console like this:
 
 <img src="./_media/console-ready-screenshot.png" width="700" />
 
