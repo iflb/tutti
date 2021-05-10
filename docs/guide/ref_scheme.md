@@ -13,9 +13,9 @@
 
 <h3 id="class_libs.scheme.ProjectScheme" class="h-class">class libs.scheme.<b>ProjectScheme</b></h3>
 
-In `scheme.py`, a class for a project scheme called `ProjectScheme` needs to be declared, which extends `ProjectSchemeBase`.
+Necessary in `scheme.py`.
 
-There are a couple of functions required to be implemented within the class: `config_params()` and `define_flow()`.
+Within the class, `config_params()` and `define_flow()` also needs to be implemented.
 
 
 
@@ -27,8 +27,9 @@ There are a couple of functions required to be implemented within the class: `co
 <h4 class="h-class">ProjectScheme.<b>config_params</b><span class="args"></span></h4>
 
 
-This function is used for initializing a set of project configuration parameters.
-As of now, each parameter is designed to be declared as an instance variable of the project class, such as:
+Initializes a set of project parameters.
+
+As of now, each parameter is declared as an instance variable in the class, such as:
 
 ```python
 class ProjectScheme(ProjectSchemeBase):
@@ -37,8 +38,6 @@ class ProjectScheme(ProjectSchemeBase):
         self.assignment_order = "dfs"
         ...
 ```
-
-where the project title is set to a string "My test project" and the nanotask assignment order is set to "dfs (depth-first search)".
 
 All available parameters are as follows:
 
@@ -78,9 +77,14 @@ All available parameters are as follows:
     </table>
 </div>
 
-- `pagination` (*boolean;* default: False) -- Whether to show Prev and Next buttons in the project UI that allows workers to go back and forth among assigned nanotasks.
-- `instruction` (*boolean;* default: True) -- Whether to show a button for instruction in the project UI.
 - `show_title` (*boolean;* default: True) -- Whether to show the project title in the project UI.
+- `page_navination` (*boolean;* default: False) -- Whether to show Prev and Next buttons in the project UI that allows workers to go back and forth among assigned nanotasks.
+- `push_instruction` (*boolean;* default: True) -- Whether to automatically show an instruction pop-up to new workers.
+- `instruction_btn` (*boolean;* default: True) -- Whether to show a button for instruction in the project UI.
+- `allow_parallel_sessions` (*boolean;* default: True) -- Whether to allow workers to open the same project in multiple tabs/pages.
+- `anonymous` (*boolean;* default: False) -- Whether to allow workers to work without worker ID.
+- `preview` (*boolean;* default: True) -- Whether to show preview template when no worker ID is found.
+- `completion_alert` (*boolean;* default: False) -- Whether to show a pop-up to notify workers the end of the work session.
  
 
 
