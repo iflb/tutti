@@ -89,24 +89,24 @@ Edit `tutti/.env` like:
 
 ?> Make sure to open port 443.
 
-### 3-3. Only for Linux users
-
-If you are a Linux user, uncomment a line in `tutti/.env` file as follows:
-
-```diff
-- # HOST_WEBAPI_ADDRESS=172.0.0.1
-===
-+ HOST_WEBAPI_ADDRESS=172.0.0.1
-```
-
 ## 4. Launch Tutti
 
-### Build
+### Initialize
 
-At `~/tutti/`, run the command below (this may take at least a few minutes)
+At `~/tutti/`, run the command below. This sets up file/command permissions and env variables necessary to Tutti functionality.
 
 ```
 ./tutti init
+```
+
+?> This only needs to be called once when launching Tutti envrionment, and has no effect on further execution.
+
+### Build
+
+Then run the command below (this may take at least a few minutes)
+
+```
+./tutti build
 ```
 
 ### Start
