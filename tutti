@@ -2,19 +2,19 @@
 
 if [ "$1" = "init" ]; then
     TUTTI_NEWGRP=0
-    if [ "$(expr substr $(uname -s) 1 5)" == 'Linux' ]; then
-	if [ ! $(getent group docker) ]; then
+    if [ "$(uname -s | cut -b 1-5)" == "Linux" ]; then
+        if [ ! $(getent group docker) ]; then
             sudo groupadd docker
-	    sudo gpasswd -a $USER docker
-	    sudo systemctl restart docker
-	    sudo chmod +x /usr/local/bin/docker-compose
-	    TUTTI_NEWGRP=1
-	    echo '' >> ~/.bashrc
-	    echo '# Tutti envs' >> ~/.bashrc
-	    echo 'export HOST_WEBAPI_ADDRESS=172.0.0.1' >> ~/.bashrc
-	    source ~/.bashrc
-	    newgrp docker
-	fi
+            sudo gpasswd -a $USER docker
+            sudo systemctl restart docker
+            sudo chmod +x /usr/local/bin/docker-compose
+            TUTTI_NEWGRP=1
+            echo '' >> ~/.bashrc
+            echo '# Tutti envs' >> ~/.bashrc
+            echo 'export HOST_WEBAPI_ADDRESS=172.0.0.1' >> ~/.bashrc
+            source ~/.bashrc
+            newgrp docker
+        fi
     fi
     if [ $TUTTI_NEWGRP = 1 ]; then
         echo -e "\033[1;33mWarning: You have logged out from docker user group. You may need to log out once (or run 'newgrp docker') for normal Tutti functionality.\033[0m"
