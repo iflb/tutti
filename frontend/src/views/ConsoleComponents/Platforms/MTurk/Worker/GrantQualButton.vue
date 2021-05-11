@@ -41,7 +41,7 @@
                     outlined
                     hide-selected
                     v-model="newAssociateQual.WorkerIds"
-                    :items="workerIds"
+                    :items="wids"
                     label="To"
                     :search-input.sync="searchedWorkerId">
                     <template v-slot:no-data>
@@ -97,16 +97,16 @@ export default {
             SendNotification: true
         },
     }),
-    props: ["duct", "workerIds"],
+    props: ["duct", "wids", "selectedWids"],
     computed: {
         qualificationTypes() {
-            var wids = [];
+            var qids = [];
             for(var i in this.quals) {
                 const id = this.quals[i]["QualificationTypeId"];
                 const name = this.quals[i]["Name"];
-                wids.push({ text: `${name} - ${id}`, value: this.quals[i]["QualificationTypeId"] });
+                qids.push({ text: `${name} - ${id}`, value: this.quals[i]["QualificationTypeId"] });
             }
-            return wids;
+            return qids;
         }
     },
     methods: {

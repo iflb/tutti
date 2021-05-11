@@ -36,7 +36,6 @@
                 :chosenExstHITTypeId="chosenExstHITTypeId"
                 />
         </v-col>
-        {{ HITTypeParams }}
     </v-row>
 </template>
 <script>
@@ -64,7 +63,6 @@ export default {
     }),
     methods: {
         checkProjectDiff() {
-            console.log(this.prjName);
             this.duct.send(
                 this.duct.next_rid(),
                 this.duct.EVENT.CHECK_PROJECT_DIFF,
@@ -97,7 +95,6 @@ export default {
     created() {
         this.duct.invokeOrWaitForOpen(() => {
             this.duct.setEventHandler( this.duct.EVENT.CHECK_PROJECT_DIFF, (rid,eid,data) => {
-                console.log(data["Contents"]);
                 if(data["Contents"]["HasDiff"]) this.projectHasDiff = true;
             });
 

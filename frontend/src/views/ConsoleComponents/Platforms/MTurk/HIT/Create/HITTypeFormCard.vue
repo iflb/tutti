@@ -343,7 +343,6 @@ export default {
                     ret[id] = { name };
                 }
                 this.customQualTypes = ret;
-                console.log(this.customQualTypes);
             }
         });
 
