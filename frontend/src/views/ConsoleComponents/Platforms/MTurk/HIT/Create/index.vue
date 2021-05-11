@@ -10,7 +10,19 @@
                 />
         </v-col>
         <v-col v-if="projectHasDiff" cols="10">
-            <v-alert border="left" type="error" >Seems like your project has been updated since last build.&nbsp;&nbsp;&nbsp;<v-btn color="white" outlined :loading="rebuildingProject" @click="rebuildProject">Rebuild</v-btn></v-alert>
+            <v-alert
+                border="left"
+                type="error">
+                Seems like your project has been updated since last build.
+                &nbsp;&nbsp;&nbsp;
+                <v-btn
+                    color="white"
+                    outlined
+                    :loading="rebuildingProject"
+                    @click="rebuildProject">
+                    Rebuild
+                </v-btn>
+            </v-alert>
         </v-col>
         <v-col v-else cols="10" class="text-right">
             <post-hits-button
@@ -24,6 +36,7 @@
                 :chosenExstHITTypeId="chosenExstHITTypeId"
                 />
         </v-col>
+        {{ HITTypeParams }}
     </v-row>
 </template>
 <script>

@@ -8,7 +8,7 @@ export const HITTypeParamOptions = [
 ];
 
 export const defaultHITTypeParams = {
-    "Reward": 0.01,
+    "Reward": "0.01",
     "Title": "",
     "Description": "",
     "Keywords": "",

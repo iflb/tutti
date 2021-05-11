@@ -253,9 +253,7 @@ export default {
             if(this.HITTypeParams && this.HITTypeParams.QualificationRequirements){
                 let qrs = [];
                 for(const qr of this.HITTypeParams.QualificationRequirements){
-                    console.log(qr.QualificationTypeId);
-                    if( !(qr.QualificationTypeId in this.customQualTypes) || this.isTuttiQual(qr.QualificationTypeId) ) {
-                        console.log("hoge");
+                    if( qr.QualificationTypeId!="" && (!(qr.QualificationTypeId in this.customQualTypes) || this.isTuttiQual(qr.QualificationTypeId)) ) {
                         continue;
                     }
 
@@ -286,9 +284,9 @@ export default {
             if(item.LocaleValues.length==0) delete item.LocaleValues;
         },
         isTuttiQual(qtid){
-            return qtid
+            return (qtid
                    && (qtid in this.customQualTypes)
-                   && this.customQualTypes[qtid].name.startsWith("TUTTI_HITTYPE_QUALIFICATION");
+                   && this.customQualTypes[qtid].name.startsWith("TUTTI_HITTYPE_QUALIFICATION"))==true;
         },
         copyToNew(htid){
             this.createNew = true;
@@ -345,6 +343,7 @@ export default {
                     ret[id] = { name };
                 }
                 this.customQualTypes = ret;
+                console.log(this.customQualTypes);
             }
         });
 
