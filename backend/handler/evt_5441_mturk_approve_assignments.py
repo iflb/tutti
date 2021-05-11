@@ -26,11 +26,11 @@ class Handler(EventHandler):
         if event.data is None:  event.data = {}
         output.set("Assignments", await self.approve_assignments(**event.data))
 
-    async def approve_assignments(self, AssignmentIds, RequesterFeedback):
+    async def approve_assignments(self, AssignmentIds, RequesterFeedback, OverrideRejection=True):
         sem = asyncio.Semaphore(sem_limit)
         async def _approve_assignment(assignment_id):
             async with sem:
-                return await self.evt_mturk_api_core.exec_boto3("approve_assignment", { "AssignmentId": assignment_id, "RequesterFeedback": RequesterFeedback })
+                return await self.evt_mturk_api_core.exec_boto3("approve_assignment", { "AssignmentId": assignment_id, "RequesterFeedback": RequesterFeedback, "OverrideRejection": OverrideRejection })
 
         tasks = [asyncio.ensure_future(_approve_assignment(assignment_id)) for assignment_id in AssignmentIds]
         return await asyncio.gather(*tasks)

@@ -310,6 +310,7 @@ export default {
                     }
                 });
 
+                console.log(this.projectName);
                 this.duct.controllers.resource.getProjectScheme(this.projectName);
             });
 

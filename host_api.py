@@ -17,7 +17,10 @@ class S(BaseHTTPRequestHandler):
         # returns if the queried project has been changed
         self._set_response()
         prj_name = self.path.split("/")[1]
-
+        if not prj_name:
+            self.wfile.write(b"-1")
+            return
+            
         try:
             p1 = subprocess.run(["tar","-c","projects/{}".format(prj_name)], check=True, capture_output=True)
             p2 = subprocess.run(["shasum"], input=p1.stdout, capture_output=True)

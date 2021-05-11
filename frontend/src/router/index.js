@@ -2,10 +2,6 @@ import Vue from 'vue'
 import VueRouter from 'vue-router'
 Vue.use(VueRouter)
 
-function getPropsForRoute(route) {
-    return { name: route.path }
-}
-
 const routes = [
     {
         path: "/",
@@ -14,69 +10,58 @@ const routes = [
     {
         path: "/console",
         redirect: "console/dashboard",
-        component: () => import("@/views/Console/Main"),
+        component: () => import("@/views/Console"),
         children: [
             {
                 path: "dashboard",
-                component: () => import("@/views/Console/Dashboard"),
-                props: getPropsForRoute
+                component: () => import("@/components/pages/Console/Dashboard"),
             },
             {
                 path: "template",
-                component: () => import("@/views/Console/Template"),
-                props: getPropsForRoute
+                component: () => import("@/components/pages/Console/Template"),
             },
             {
                 path: "flow",
-                component: () => import("@/views/Console/TaskFlow/Main"),
-                props: getPropsForRoute
+                component: () => import("@/views/ConsoleComponents/TaskFlow"),
             },
             {
                 path: "platform/mturk",
                 redirect: "platform/mturk/top",
-                component: () => import("@/views/Console/Platforms/MTurk/Main"),
+                component: () => import("@/views/ConsoleComponents/Platforms/MTurk"),
                 children: [
                     {
                         path: "top",
-                        component: () => import("@/views/Console/Platforms/MTurk/Top"),
-                        props: getPropsForRoute
+                        component: () => import("@/views/ConsoleComponents/Platforms/MTurk/Top"),
                     },
                     {
                         path: "hit",
-                        component: () => import("@/views/Console/Platforms/MTurk/HIT/Main"),
-                        props: getPropsForRoute
+                        component: () => import("@/views/ConsoleComponents/Platforms/MTurk/HIT"),
                     },
                     {
                         path: "hit/create",
-                        component: () => import("@/views/Console/Platforms/MTurk/HIT/Create"),
-                        props: getPropsForRoute
+                        component: () => import("@/views/ConsoleComponents/Platforms/MTurk/HIT/Create"),
                     },
                     {
                         path: "qual",
-                        component: () => import("@/views/Console/Platforms/MTurk/Qualification/Main"),
-                        props: getPropsForRoute
+                        component: () => import("@/views/ConsoleComponents/Platforms/MTurk/Qualification"),
                     },
                     {
                         path: "worker",
-                        component: () => import("@/views/Console/Platforms/MTurk/Worker/Main"),
-                        props: getPropsForRoute
+                        component: () => import("@/views/ConsoleComponents/Platforms/MTurk/Worker"),
                     },
                     {
                         path: "assignment",
-                        component: () => import("@/views/Console/Platforms/MTurk/Assignment/Main"),
-                        props: getPropsForRoute
+                        component: () => import("@/views/ConsoleComponents/Platforms/MTurk/Assignment"),
                     },
                 ]
             },
             {
                 path: "response",
-                component: () => import("@/views/Console/Response"),
-                props: getPropsForRoute
+                component: () => import("@/components/pages/Console/Response"),
             },
             {
                 path: "event",
-                component: () => import("@/views/Console/Event"),
-                props: getPropsForRoute
+                component: () => import("@/components/pages/Console/Event"),
             },
         ]
     },
@@ -88,7 +73,6 @@ const routes = [
     {
         path: "/private-prod-login",
         component: () => import("@/views/PrivateProdLogin.vue"),
-        props: true
     },
 ]
 

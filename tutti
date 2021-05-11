@@ -1,7 +1,27 @@
 #!/bin/bash
 
 if [ "$1" = "init" ]; then
-    sudo docker-compose build
+    TUTTI_NEWGRP=0
+    if [ "$(uname -s | cut -b 1-5)" == "Linux" ]; then
+        if [ ! $(getent group docker) ]; then
+            sudo groupadd docker
+            sudo gpasswd -a $USER docker
+            sudo systemctl restart docker
+            sudo chmod +x /usr/local/bin/docker-compose
+            TUTTI_NEWGRP=1
+            echo '' >> ~/.bashrc
+            echo '# Tutti envs' >> ~/.bashrc
+            echo 'export HOST_WEBAPI_ADDRESS=172.0.0.1' >> ~/.bashrc
+            source ~/.bashrc
+            newgrp docker
+        fi
+    fi
+    if [ $TUTTI_NEWGRP = 1 ]; then
+        echo -e "\033[1;33mWarning: You have logged out from docker user group. You may need to log out once (or run 'newgrp docker') for normal Tutti functionality.\033[0m"
+    fi
+
+elif [ "$1" = "build" ]; then
+    docker-compose build
 
 elif [ "$1" = "start" ]; then
     find projects/.defaultproject -type f -print0 | xargs -0 chmod 644
@@ -13,25 +33,30 @@ elif [ "$1" = "start" ]; then
         echo $! > .host_api.pid
     fi
 
-    sudo docker-compose up -d
+    docker-compose up -d
 
 elif [ "$1" = "stop" ]; then
-    sudo docker-compose down
+    docker-compose down
     TUTTI_HOST_PID=`cat .host_api.pid`
     kill -SIGTERM $TUTTI_HOST_PID
 
 elif [ "$1" = "kill" ]; then
-    sudo docker-compose kill
+    docker-compose kill
     TUTTI_HOST_PID=`cat .host_api.pid`
     kill $TUTTI_HOST_PID
 
 elif [ "$1" = "log" ]; then
-    sudo docker-compose logs --tail="50" -f $2
+    if [ "$2" = "host" ]; then
+        less +F -K ./logs/host_api.log
+    else
+        docker-compose logs --tail="50" -f $2
+    fi
 else
     echo "
     usage: ./tutti [init|start|stop|kill|log] [container]
     
-    init  ... Initialize Tutti environment (i.e., sudo docker-compose build)
+    init  ... Initialize Tutti environment
+    build ... Build Tutti environment (i.e., docker-compose build)
     start ... Start containers and host web server
     stop  ... Stop containers and host web server
     kill  ... Kill containers and host web server
