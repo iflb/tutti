@@ -89,5 +89,17 @@ export default {
     watch: {
         selectedWids(val) { this.email.WorkerIds = val; }
     },
+    created() {
+        this.duct.invokeOrWaitForOpen(() => {
+            this.duct.eventListeners.mturk.on("notifyWorkers", {
+                success: () => {
+                    this.$refs.snackbar.show("success", "Successfully sent emails!");
+                },
+                error: (data) => {
+                    this.$refs.snackbar.show("error", "Error in sending emails: "+data["Reason"]);
+                },
+            });
+        });
+    }
 }
 </script>

@@ -127,6 +127,14 @@ export default {
                     this.quals = data["QualificationTypes"];
                 }
             });
+            this.duct.eventListeners.mturk.on("associateQualificationsWithWorkers", {
+                success: () => {
+                    this.$refs.snackbar.show("success", "Successfully granted a qualification!");
+                },
+                error: (data) => {
+                    this.$refs.snackbar.show("error", "Error in granting a qualification: "+data["Reason"]);
+                },
+            });
         });
     }
 }
