@@ -1,79 +1,72 @@
 <template>
     <v-app>
-        <div class="text-right ma-6" v-if="!prjConfig.Anonymous">
-            <v-menu offset-y v-if="showWorkerMenu && platformWorkerId">
-                <template v-slot:activator="{ on, attrs }">
-                    <v-btn text color="indigo" class="text-none" v-bind="attrs" v-on="on">
-                        Worker ID: {{ platformWorkerId }}
-                    </v-btn>
-                </template>
-                <v-list>
-                    <v-list-item key="logout" @click="$refs.dialogLogout.shown=true">
-                        <v-list-item-title>Log out</v-list-item-title>
-                    </v-list-item>
-                </v-list>
-            </v-menu>
-            <v-btn v-if="showWorkerMenu && !platformWorkerId" dark color="indigo" :href="`../private-prod-login?project=${projectName}`">
-                Log in
-            </v-btn>
-        </div>
+        <wp-login-button
+            v-if="!prjConfig.Anonymous"
+            :prjName="prjName"
+            :showWorkerMenu="showWorkerMenu"
+            :platformWorkerId="platformWorkerId"
+            />
 
         <div class="d-flex flex-column">
-        <v-row>
-            <v-col v-if="prjConfig.ShowTitle" cols="12" class="text-center text-h3 my-3">
-                {{ prjConfig.Title }}
-            </v-col>
-            <v-col cols="12" class="text-center">
-                <v-btn v-if="prjConfig.InstructionBtn" @click="$refs.dialogInstruction.shown=true">Show Instruction</v-btn>
-            </v-col>
-        </v-row>
-        <v-card flat>
-            <v-overlay color="white" :opacity="0.6" absolute :value="loadingNextTemplate">
-                <v-progress-circular color="grey" indeterminate size="64"></v-progress-circular>
-            </v-overlay>
-            <v-row>
-                <v-col cols="12" height="100" class="pt-8" v-if="prjConfig.PageNavigation">
-                    <v-col class="text-center">
-                        <v-btn color="white" class="mx-4 pa-2" @click="getTemplate('PREV')" :disabled="!hasPrevTemplate"><v-icon>mdi-chevron-left</v-icon></v-btn>
-                        <v-btn color="white" class="mx-4 pa-2" @click="getTemplate('NEXT')" :disabled="!hasNextTemplate"><v-icon>mdi-chevron-right</v-icon></v-btn>
+            <wp-header
+                :prjName="prjName"
+                :title="prjConfig.Title"
+                :showTitle="prjConfig.ShowTitle"
+                :showInstructionBtn="prjConfig.InstructionBtn"
+                />
+
+            <v-card flat>
+                <v-overlay color="white" :opacity="0.6" absolute :value="loadingNextTemplate">
+                    <v-progress-circular color="grey" indeterminate size="64"></v-progress-circular>
+                </v-overlay>
+                <v-row>
+                    <v-col
+                        cols="12"
+                        height="100"
+                        class="pt-8"
+                        v-if="prjConfig.PageNavigation">
+                        <v-col class="text-center">
+                            <v-btn
+                                color="white"
+                                class="mx-4 pa-2"
+                                @click="getTemplate('PREV')"
+                                :disabled="!hasPrevTemplate">
+                                <v-icon>mdi-chevron-left</v-icon>
+                            </v-btn>
+
+                            <v-btn
+                                color="white"
+                                class="mx-4 pa-2"
+                                @click="getTemplate('NEXT')"
+                                :disabled="!hasNextTemplate">
+                                <v-icon>mdi-chevron-right</v-icon>
+                            </v-btn>
+                        </v-col>
                     </v-col>
-                </v-col>
-                <v-col cols="12" class="px-8">
-                    <v-slide-x-reverse-transition hide-on-leave>
-                        <component v-if="showTemplate" :is="template" :nano-props="nanoProps" :prev-answer="prevAnswer" @submit="submit" />
-                        <div v-if="!showTemplate && showPreviewTemplate">
-                            <v-btn v-if="prjConfig.Anonymous" color="indigo" @click="anonymousLogin();">Start Task</v-btn>
-                            <component :is="previewTemplate" />
-                        </div>
-                    </v-slide-x-reverse-transition>
-                </v-col>
-            </v-row>
-        </v-card>
+                    <v-col cols="12" class="px-8">
+                        <v-slide-x-reverse-transition hide-on-leave>
+                            <component
+                                v-if="showTemplate"
+                                :is="template"
+                                :nano-props="nanoProps"
+                                :prev-answer="prevAnswer"
+                                @submit="submit" />
+                            <div v-if="!showTemplate && showPreviewTemplate">
+                                <v-btn
+                                    v-if="prjConfig.Anonymous"
+                                    color="indigo"
+                                    @click="anonymousLogin();">
+                                    Start Task
+                                </v-btn>
+                                <component :is="previewTemplate" />
+                            </div>
+                        </v-slide-x-reverse-transition>
+                    </v-col>
+                </v-row>
+            </v-card>
         </div>
 
-        <tutti-dialog ref="dialogInstruction" maxWidth="1000"
-            :actions="[
-                { label: 'Close', color: 'green darken-1', text: true }
-            ]">
-            <template v-slot:body-raw>
-                <v-card-actions>
-                    <v-spacer></v-spacer>
-                    <v-btn icon text @click="$refs.dialogInstruction.shown=false"><v-icon>mdi-close</v-icon></v-btn>
-                </v-card-actions>
-                <component :is="instructionTemplate" />
-            </template>
-        </tutti-dialog>
 
-        <tutti-dialog ref="dialogLogout" title="Are you sure to log out?" maxWidth="500"
-            :actions="[
-                { label: 'Logout', color: 'indigo darken-1', text: true, onclick: logout },
-                { label: 'Cancel', color: 'grey darken-1', text: true }
-            ]">
-            <template v-slot:body>
-                Some of your working history may not be saved.
-            </template>
-        </tutti-dialog>
-                
         <tutti-dialog ref="dialogAdviseReturn" maxWidth="800"
             :actions="[
                 { label: 'OK', color: 'grey darken-1', text: true }
@@ -130,12 +123,18 @@
 
 <script>
 import tutti from '@iflb/tutti'
-import { platformConfig } from './platformConfig'
+import { platformConfig } from '@/lib/platformConfig'
 import TuttiDialog from '@/components/ui/TuttiDialog'
+import WorkPlaceLoginButton from '@/components/views/WorkPlaceLoginButton'
+import WorkPlaceHeader from '@/components/views/WorkPlaceHeader'
+
+console.log(platformConfig);
 
 export default {
     components: {
-        TuttiDialog
+        TuttiDialog,
+        "wp-login-button": WorkPlaceLoginButton,
+        "wp-header": WorkPlaceHeader
     },
     data: () => ({
         prjConfig: {},
@@ -157,22 +156,18 @@ export default {
     }),
     computed: {
         template() {
-            try { return require(`@/projects/${this.projectName}/templates/${this.templateName}/Main.vue`).default }
+            try { return require(`@/projects/${this.prjName}/templates/${this.templateName}/Main.vue`).default }
             catch { return null }
         },
         previewTemplate() {
-            try { return require(`@/projects/${this.projectName}/templates/Preview.vue`).default }
+            try { return require(`@/projects/${this.prjName}/templates/Preview.vue`).default }
             catch { return null }
         },
         showWorkerMenu() {
             return platformConfig && platformConfig.showWorkerMenu;
         },
-        instructionTemplate() {
-            try { return require(`@/projects/${this.projectName}/templates/Instruction.vue`).default }
-            catch { return null }
-        }
     },
-    props: ["projectName"],
+    props: ["prjName"],
     methods: {
         getTemplate(direction) {
             if(this.wsid) {
@@ -184,12 +179,6 @@ export default {
             Object.assign(this.answer, $event);
             this.duct.controllers.resource.setResponse(this.wsid, this.nsid, this.answer);
         },
-        logout() {
-            localStorage.removeItem("tuttiPlatformWorkerId");
-            this.platformWorkerId = "";
-            window.location.reload();
-        },
-        
         loadClientToken() {
             return new Promise((resolve, reject) => {
                 this.clientToken = platformConfig.clientToken(this);
@@ -223,8 +212,8 @@ export default {
 
                         this.platformWorkerId = platformConfig.workerId(this);
                         if(this.platformWorkerId) {
-                            this.duct.controllers.resource.checkPlatformWorkerIdExistenceForProject(this.projectName, platformConfig.platformName, this.platformWorkerId);
-                            this.duct.controllers.resource.createSession(this.projectName, this.platformWorkerId, this.clientToken, platformConfig.platformName);
+                            this.duct.controllers.resource.checkPlatformWorkerIdExistenceForProject(this.prjName, platformConfig.platformName, this.platformWorkerId);
+                            this.duct.controllers.resource.createSession(this.prjName, this.platformWorkerId, this.clientToken, platformConfig.platformName);
                         } else if(this.prjConfig.Preview) {
                             this.showPreviewTemplate = true;
                             this.$refs.dialogInstruction.shown = this.prjConfig.PushInstruction;
@@ -311,8 +300,8 @@ export default {
                     }
                 });
 
-                console.log(this.projectName);
-                this.duct.controllers.resource.getProjectScheme(this.projectName);
+                console.log(this.prjName);
+                this.duct.controllers.resource.getProjectScheme(this.prjName);
             });
 
             this.duct.open("/ducts/wsd");

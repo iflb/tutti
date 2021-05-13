@@ -1,11 +1,12 @@
-import mturk from './platform-config-mturk'
-import priv from './platform-config-private'
+import cfMturk from './platform-configs/mturk.js'
+import cfPrivate from './platform-configs/private.js'
 
-var config;
+var config = null;
+
 if(document.referrer.length>0 && (document.referrer.startsWith("https://worker.mturk.com") || document.referrer.startsWith("https://workersandbox.mturk.com"))) {
-    config = mturk;
+    config = cfMturk
 } else {
-    config = priv;
+    config = cfPrivate
 }
 
 export const platformConfig = config;

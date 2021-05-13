@@ -23,7 +23,7 @@ export default {
     showWorkerMenu: true,
 
     onWorkerIdNotFound: function(next, pn) {
-        next({ path: `/private-prod-login?project=${pn}` })
+        next({ path: `/workplace-login?project=${pn}` })
         return false;
     },
 

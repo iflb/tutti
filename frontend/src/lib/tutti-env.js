@@ -10,7 +10,7 @@ function getUrl(prjName, dev=false) {
     const [host, port] = getHost(dev).split(":");
     let _url = `${scheme()}://${host}`;
     if(["80","443"].indexOf(port) == -1) _url += `:${port}`;
-    return `${_url}/private-prod/${prjName}`;
+    return `${_url}/workplace/${prjName}`;
 }
 
 module.exports = { getUrl }

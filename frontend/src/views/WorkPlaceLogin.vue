@@ -30,7 +30,7 @@
 export default {
     data: () => ({
         workerId: "",
-        projectName: "",
+        prjName: "",
         workerIdRules: [
             v => !!v || "worker ID is required"
         ],
@@ -39,7 +39,7 @@ export default {
         ]
     }),
     created() {
-        if(this.$route.query.project) this.projectName = this.$route.query.project;
+        if(this.$route.query.project) this.prjName = this.$route.query.project;
     },
     props: {
       source: String,
@@ -48,7 +48,7 @@ export default {
         mySubmit() {
             if(this.$refs.form.validate()){
                 localStorage.setItem("tuttiPlatformWorkerId", this.workerId);
-                window.location.href = `./private-prod/${this.projectName}`;
+                window.location.href = `./workplace/${this.prjName}`;
             }
         }
     }

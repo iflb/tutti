@@ -42,7 +42,7 @@ export default {
     },
 
     onWorkerIdNotFound: function(next, pn) {
-        next({ path: `/private-prod/${pn}/preview` });
+        next({ path: `/workplace/${pn}/preview` });
         return false;
     },
 

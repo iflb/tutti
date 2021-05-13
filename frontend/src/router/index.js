@@ -66,13 +66,13 @@ const routes = [
         ]
     },
     {
-        path: "/private-prod/:projectName",
-        component: () => import("@/views/PrivateProd/Main.vue"),
+        path: "/workplace/:prjName",
+        component: () => import("@/views/WorkPlace"),
         props: true,
     },
     {
-        path: "/private-prod-login",
-        component: () => import("@/views/PrivateProdLogin.vue"),
+        path: "/workplace-login",
+        component: () => import("@/views/WorkPlaceLogin"),
     },
 ]
 
