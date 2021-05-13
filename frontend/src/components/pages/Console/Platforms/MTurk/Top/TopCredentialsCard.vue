@@ -72,7 +72,7 @@
 </template>
 
 <script>
-import TuttiDialog from '@/views/assets/Dialog'
+import TuttiDialog from '@/components/ui/TuttiDialog'
 
 export default {
     components: {

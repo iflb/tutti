@@ -15,11 +15,11 @@
 </template>
 
 <script>
-import Snackbar from '@/views/assets/Snackbar.vue'
+import TuttiSnackbar from '@/components/ui/TuttiSnackbar'
 
 export default {
     components: {
-        TuttiSnackbar: Snackbar,
+        TuttiSnackbar,
     },
     data: () => ({
         loading: false,

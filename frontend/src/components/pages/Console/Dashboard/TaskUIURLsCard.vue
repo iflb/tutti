@@ -17,10 +17,11 @@
 </template>
 <script>
 import { getUrl } from "@/lib/tutti-env.js"
+import CopyToClipboardBtn from "@/components/ui/CopyToClipboardBtn"
 
 export default {
     components: {
-        CopyToClipboardBtn: () => import("@/components/CopyToClipboardBtn"),
+        CopyToClipboardBtn,
     },
     data: () => ({
         projectHasDiff: false,

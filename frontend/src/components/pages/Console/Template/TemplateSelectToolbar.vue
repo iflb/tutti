@@ -83,7 +83,7 @@
 </template>
 
 <script>
-import TuttiDialog from '@/views/assets/Dialog.vue'
+import TuttiDialog from '@/components/ui/TuttiDialog'
 import rules from '@/lib/input-rules'
 
 export default {

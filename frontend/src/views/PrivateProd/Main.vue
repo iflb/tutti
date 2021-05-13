@@ -131,10 +131,11 @@
 <script>
 import tutti from '@iflb/tutti'
 import { platformConfig } from './platformConfig'
+import TuttiDialog from '@/components/ui/TuttiDialog'
 
 export default {
     components: {
-        TuttiDialog: () => import('@/views/assets/Dialog')
+        TuttiDialog
     },
     data: () => ({
         prjConfig: {},

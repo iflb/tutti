@@ -50,14 +50,14 @@
 </template>
 
 <script>
-import Snackbar from '@/views/assets/Snackbar.vue'
-import Dialog from '@/views/assets/Dialog.vue'
+import TuttiSnackbar from '@/components/ui/TuttiSnackbar'
+import TuttiDialog from '@/components/ui/TuttiDialog'
 import rules from '@/lib/input-rules'
 
 export default {
     components: {
-        TuttiSnackbar: Snackbar,
-        TuttiDialog: Dialog
+        TuttiSnackbar,
+        TuttiDialog
     },
     data: () => ({
         rules,

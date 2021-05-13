@@ -30,13 +30,14 @@ import tutti from '@iflb/tutti'
 import AppBar from '@/components/views/ConsoleAppBar'
 import MenuDrawer from '@/components/views/ConsoleMenuDrawer'
 import EventDrawer from '@/components/views/ConsoleEventDrawer'
+import TuttiSnackbar from '@/components/ui/TuttiSnackbar'
 
 export default {
     components: { 
         AppBar,
         MenuDrawer,
         EventDrawer,
-        TuttiSnackbar: () => import('@/views/assets/Snackbar'),
+        TuttiSnackbar
     },
     data: () => ({
         duct: null,

@@ -44,7 +44,7 @@
 <script>
 import TemplateSelectToolbar from './TemplateSelectToolbar'
 import ResponseCard from './ResponseCard'
-import TuttiDialog from '@/views/assets/Dialog.vue'
+import TuttiDialog from '@/components/ui/TuttiDialog'
 import 'vue-json-pretty/lib/styles.css'
 import VueJsonPretty from 'vue-json-pretty/lib/vue-json-pretty'
 

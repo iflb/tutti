@@ -4,10 +4,10 @@
             dark
             :loading="loading"
             class="mx-2"
-            color="error"
+            color="warning"
             v-if="hids.length>0"
-            @click="deleteHITs()">
-            Delete ({{ hids.length }})
+            @click="expireHITs()">
+            Expire ({{ hids.length }})
         </v-btn>
 
         <tutti-snackbar ref="snackbar" />
@@ -15,25 +15,27 @@
 </template>
 
 <script>
-import Snackbar from '@/views/assets/Snackbar.vue'
+import TuttiSnackbar from '@/components/ui/TuttiSnackbar'
 
 export default {
     components: {
-        TuttiSnackbar: Snackbar
+        TuttiSnackbar
     },
     data: () => ({
         loading: false,
     }),
     props: ["duct", "hids"],
     methods: {
-        deleteHITs(){
+        expireHITs(){
             this.loading = true;
-            this.duct.controllers.mturk.deleteHITs(this.hids);
+            this.duct.controllers.mturk.expireHITs(this.hids);
         },
+    },
+    watch: {
     },
     mounted() {
         this.duct.invokeOrWaitForOpen(() => {
-            this.duct.eventListeners.mturk.on("deleteHITs", {
+            this.duct.eventListeners.mturk.on("expireHITs", {
                 success: (data) => {
                     const cntSuccess = data["Results"].filter((r) => (
                             ("ResponseMetadata" in r) &&
@@ -42,13 +44,13 @@ export default {
                         )).length;
 
                     if(cntSuccess==data["Results"].length) {
-                        this.$refs.snackbar.show("success", `Deleted ${cntSuccess} HITs`);
+                        this.$refs.snackbar.show("success", `Expired ${cntSuccess} HITs`);
                     } else {
-                        this.$refs.snackbar.show("warning", `Deleted ${cntSuccess} HITs, but errors occurred in deleting ${data["Results"].length-cntSuccess} HITs`);
+                        this.$refs.snackbar.show("warning", `Expired ${cntSuccess} HITs, but errors occurred in expiring ${data["Results"].length-cntSuccess} HITs`);
                     }
                 },
                 error: (data) => {
-                    this.$refs.snackbar.show("error", `Errors occurred in deleting HITs: ${data["Reason"]}`);
+                    this.$refs.snackbarError.show("error", `Errors occurred in expiring HITs: ${data["Reason"]}`);
                 },
                 complete: () => {
                     this.loading = false;

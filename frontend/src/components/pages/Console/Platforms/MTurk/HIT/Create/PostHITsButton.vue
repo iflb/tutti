@@ -35,13 +35,13 @@
 </template>
 
 <script>
-import Dialog from '@/views/assets/Dialog.vue'
-import Snackbar from '@/views/assets/Snackbar.vue'
+import TuttiDialog from '@/components/ui/TuttiDialog'
+import TuttiSnackbar from '@/components/ui/TuttiSnackbar'
 
 export default {
     components: {
-        TuttiDialog: Dialog,
-        TuttiSnackbar: Snackbar
+        TuttiDialog,
+        TuttiSnackbar
     },
     data: () => ({
         loading: false,

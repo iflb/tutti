@@ -22,36 +22,36 @@ const routes = [
             },
             {
                 path: "flow",
-                component: () => import("@/views/ConsoleComponents/TaskFlow"),
+                component: () => import("@/components/pages/Console/TaskFlow"),
             },
             {
                 path: "platform/mturk",
                 redirect: "platform/mturk/top",
-                component: () => import("@/views/ConsoleComponents/Platforms/MTurk"),
+                component: () => import("@/components/pages/Console/Platforms/MTurk"),
                 children: [
                     {
                         path: "top",
-                        component: () => import("@/views/ConsoleComponents/Platforms/MTurk/Top"),
+                        component: () => import("@/components/pages/Console/Platforms/MTurk/Top"),
                     },
                     {
                         path: "hit",
-                        component: () => import("@/views/ConsoleComponents/Platforms/MTurk/HIT"),
+                        component: () => import("@/components/pages/Console/Platforms/MTurk/HIT"),
                     },
                     {
                         path: "hit/create",
-                        component: () => import("@/views/ConsoleComponents/Platforms/MTurk/HIT/Create"),
+                        component: () => import("@/components/pages/Console/Platforms/MTurk/HIT/Create"),
                     },
                     {
                         path: "qual",
-                        component: () => import("@/views/ConsoleComponents/Platforms/MTurk/Qualification"),
+                        component: () => import("@/components/pages/Console/Platforms/MTurk/Qualification"),
                     },
                     {
                         path: "worker",
-                        component: () => import("@/views/ConsoleComponents/Platforms/MTurk/Worker"),
+                        component: () => import("@/components/pages/Console/Platforms/MTurk/Worker"),
                     },
                     {
                         path: "assignment",
-                        component: () => import("@/views/ConsoleComponents/Platforms/MTurk/Assignment"),
+                        component: () => import("@/components/pages/Console/Platforms/MTurk/Assignment"),
                     },
                 ]
             },

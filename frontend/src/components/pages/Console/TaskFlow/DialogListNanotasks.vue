@@ -97,6 +97,8 @@
 </template>
 
 <script>
+import TuttiDialog from '@/components/ui/TuttiDialog'
+
 export default {
     data: () => ({
         show: false,
@@ -109,7 +111,7 @@ export default {
     }),
     props: ["duct", "prjName", "template", "nanotasks"],
     components: {
-        TuttiDialog: () => import('@/views/assets/Dialog')
+        TuttiDialog
     },
     computed: {
         headers() {

@@ -208,7 +208,7 @@
 
 <script>
 import HelpButton from './HelpButton'
-import Snackbar from '@/views/assets/Snackbar.vue'
+import TuttiSnackbar from '@/components/ui/TuttiSnackbar'
 import rules from '@/lib/input-rules'
 import {
     HITTypeParamOptions,
@@ -221,7 +221,7 @@ import {
 export default {
     components: {
         HelpButton,
-        TuttiSnackbar: Snackbar
+        TuttiSnackbar
     },
     data: () => ({
         rules,
