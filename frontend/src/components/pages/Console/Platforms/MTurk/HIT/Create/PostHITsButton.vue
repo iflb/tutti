@@ -69,7 +69,7 @@ export default {
 
             this.HITTypeParams.QualificationRequirements.forEach((qr) => {
                 if(qr.IntegerValues && qr.IntegerValues.length>0) {
-                    qr.IntegerValues.map((data) => parseInt(data));
+                    qr.IntegerValues = qr.IntegerValues.map((data) => parseInt(data));
                 } else {
                     delete qr.IntegerValues;
                 }

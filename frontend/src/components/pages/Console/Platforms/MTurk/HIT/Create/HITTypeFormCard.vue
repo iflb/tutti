@@ -253,7 +253,7 @@ export default {
             if(this.HITTypeParams && this.HITTypeParams.QualificationRequirements){
                 let qrs = [];
                 for(const qr of this.HITTypeParams.QualificationRequirements){
-                    if( qr.QualificationTypeId!="" && (!(qr.QualificationTypeId in this.customQualTypes) || this.isTuttiQual(qr.QualificationTypeId)) ) {
+                    if( this.isTuttiQual(qr.QualificationTypeId) ) {
                         continue;
                     }
 
