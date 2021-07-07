@@ -216,6 +216,7 @@ export default {
                         this.prjConfig = data["Config"];
 
                         this.platformWorkerId = platformConfig.workerId(this);
+                        console.log(this.platformWorkerId);
                         if(this.platformWorkerId) {
                             this.duct.controllers.resource.checkPlatformWorkerIdExistenceForProject(this.prjName, platformConfig.platformName, this.platformWorkerId);
                             this.duct.controllers.resource.createSession(this.prjName, this.platformWorkerId, this.clientToken, platformConfig.platformName);
