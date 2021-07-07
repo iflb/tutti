@@ -9,7 +9,7 @@
         <v-col cols="12" class="text-center">
             <v-btn
                 v-if="showInstructionBtn"
-                @click="$refs.dialogInstruction.show()">
+                @click="dialogInstruction.show()">
                 Show Instruction
             </v-btn>
         </v-col>
@@ -21,7 +21,7 @@
             <template v-slot:body-raw>
                 <v-card-actions>
                     <v-spacer></v-spacer>
-                    <v-btn icon text @click="$refs.dialogInstruction.shown=false"><v-icon>mdi-close</v-icon></v-btn>
+                    <v-btn icon text @click="dialogInstruction.hide()"><v-icon>mdi-close</v-icon></v-btn>
                 </v-card-actions>
                 <component :is="instructionTemplate" />
             </template>
@@ -40,6 +40,9 @@ export default {
         instructionTemplate() {
             try { return require(`@/projects/${this.prjName}/templates/Instruction.vue`).default }
             catch { return null }
+        },
+        dialogInstruction() {
+            return this.$refs.dialogInstruction;
         }
     }
 }

@@ -38,9 +38,12 @@ export default {
         show() {
             this.shown = true;
         },
+        hide() {
+            this.shown = false;
+        },
         submit(onclick) {
             if(onclick) onclick();
-            this.shown = false;
+            this.hide();
         }
     },
     props: ["title", "actions", "maxWidth", "persistent", "allowEnter"]

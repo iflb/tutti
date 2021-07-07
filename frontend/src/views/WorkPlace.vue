@@ -13,6 +13,7 @@
                 :title="prjConfig.Title"
                 :showTitle="prjConfig.ShowTitle"
                 :showInstructionBtn="prjConfig.InstructionBtn"
+                ref="header"
                 />
 
             <v-card flat>
@@ -128,8 +129,6 @@ import TuttiDialog from '@/components/ui/TuttiDialog'
 import WorkPlaceLoginButton from '@/components/views/WorkPlaceLoginButton'
 import WorkPlaceHeader from '@/components/views/WorkPlaceHeader'
 
-console.log(platformConfig);
-
 export default {
     components: {
         TuttiDialog,
@@ -199,7 +198,14 @@ export default {
             return splitUrl[splitUrl.length-1].split(".")[0];
         }
     },
-    created: function(){
+    mounted: function(){
+        window.addEventListener('message', (e) => {
+            switch(e.data.action) {
+                case 'SyncMessage':
+                    console.log(e.data.message);
+                    break;
+            }
+        });
         this.loadClientToken().then(() => {
             this.duct = new tutti.Duct();
             this.duct.logger = new tutti.DuctEventLogger(this.duct);
@@ -207,7 +213,6 @@ export default {
             this.duct.addOnOpenHandler(() => {
                 this.duct.eventListeners.resource.on("getProjectScheme", {
                     success: (data) => {
-                        console.log(data["Config"]);
                         this.prjConfig = data["Config"];
 
                         this.platformWorkerId = platformConfig.workerId(this);
@@ -216,7 +221,7 @@ export default {
                             this.duct.controllers.resource.createSession(this.prjName, this.platformWorkerId, this.clientToken, platformConfig.platformName);
                         } else if(this.prjConfig.Preview) {
                             this.showPreviewTemplate = true;
-                            this.$refs.dialogInstruction.shown = this.prjConfig.PushInstruction;
+                            this.$refs.header.dialogInstruction.shown = this.prjConfig.PushInstruction;
                         } else {
                             this.anonymousLogin();
                         }
@@ -228,7 +233,7 @@ export default {
                 this.duct.eventListeners.resource.on("checkPlatformWorkerIdExistenceForProject", {
                     success: (data) => {
                         console.log("checkPlatformWorkerIdExistenceForProject");
-                        if(!data["Exists"]) this.$refs.dialogInstruction.shown = this.prjConfig.PushInstruction;
+                        if(!data["Exists"]) this.$refs.header.dialogInstruction.shown = this.prjConfig.PushInstruction;
                     },
                     error: (data) => {
                         console.error(data["Reason"]);
@@ -300,7 +305,6 @@ export default {
                     }
                 });
 
-                console.log(this.prjName);
                 this.duct.controllers.resource.getProjectScheme(this.prjName);
             });
 

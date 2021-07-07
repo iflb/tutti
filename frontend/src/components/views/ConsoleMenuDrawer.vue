@@ -36,14 +36,14 @@
                 <v-list-group prepend-icon="mdi-account-group" :value="false">
                     <template v-slot:activator> <v-list-item-title>Worker Platforms</v-list-item-title> </template>
 
+                    <v-list-item class="pl-6" to="/console/platform/tutti-market/">
+                        <v-list-item-icon> <v-icon>mdi-music</v-icon> </v-list-item-icon>
+                        <v-list-item-title>Tutti Market</v-list-item-title>
+                    </v-list-item>
+
                     <v-list-item class="pl-6" to="/console/platform/mturk/">
                         <v-list-item-icon> <v-icon>mdi-amazon</v-icon> </v-list-item-icon>
                         <v-list-item-title>Amazon MTurk</v-list-item-title>
-                    </v-list-item>
-
-                    <v-list-item class="pl-6" to="/console/platform/private/">
-                        <v-list-item-icon> <v-icon>mdi-account-supervisor-circle</v-icon> </v-list-item-icon>
-                        <v-list-item-title>Partner-Sourcing</v-list-item-title>
                     </v-list-item>
 
                 </v-list-group>

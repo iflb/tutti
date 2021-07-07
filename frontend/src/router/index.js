@@ -25,6 +25,17 @@ const routes = [
                 component: () => import("@/components/pages/Console/TaskFlow"),
             },
             {
+                path: "platform/tutti-market",
+                redirect: "platform/tutti-market/top",
+                component: () => import("@/components/pages/Console/Platforms/TuttiMarket"),
+                children: [
+                    {
+                        path: "top",
+                        component: () => import("@/components/pages/Console/Platforms/TuttiMarket/Top"),
+                    },
+                ]
+            },
+            {
                 path: "platform/mturk",
                 redirect: "platform/mturk/top",
                 component: () => import("@/components/pages/Console/Platforms/MTurk"),
@@ -74,6 +85,10 @@ const routes = [
         path: "/workplace-login",
         component: () => import("@/views/WorkPlaceLogin"),
     },
+    {
+        path: '/market',
+        component: () => import('@/views/Market')
+    }
 ]
 
 const router = new VueRouter({
